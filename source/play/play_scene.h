@@ -5,9 +5,7 @@
 
 class PlayScene {
 private:
-    Texture2D arrowTex;
-    Texture2D noteLineTex;
-    float judgmentLineX;
+    float judgmentLineY;
 
 public:
     PlayScene();

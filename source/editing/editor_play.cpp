@@ -2,14 +2,6 @@
 #include <cmath>
 #include <vector>
 
-extern "C" {
-    extern const unsigned int new_piskel_data[1600];
-    #ifndef NEW_PISKEL_FRAME_WIDTH
-    #define NEW_PISKEL_FRAME_WIDTH 40
-    #define NEW_PISKEL_FRAME_HEIGHT 40
-    #endif
-}
-
 static std::vector<bool> s_NoteActiveStates;
 
 EditorPlay::EditorPlay() {
@@ -37,17 +29,8 @@ void EditorPlay::Init(const std::vector<SaveNoteData>& notes, Texture2D noteTex)
     noteLineTex = LoadTexture("assets/noteLine.png");
     clickImageTex = LoadTexture("assets/clickimage.png");
     
-    Image noteImg = {
-        .data = (void*)new_piskel_data,
-        .width = NEW_PISKEL_FRAME_WIDTH,
-        .height = NEW_PISKEL_FRAME_HEIGHT,
-        .mipmaps = 1,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-    };
-    Image resizedImg = ImageCopy(noteImg);
-    ImageResize(&resizedImg, NEW_PISKEL_FRAME_WIDTH * 4, NEW_PISKEL_FRAME_HEIGHT * 4);
-    customNoteTex = LoadTextureFromImage(resizedImg);
-    UnloadImage(resizedImg);
+    // 외부 piskel 데이터 의존성을 제거하고 텍스처를 비워둡니다 (DrawRectangle로 대체)
+    customNoteTex = { 0 };
 
     clickImgX = 100.0f;
     clickImgY = 190.0f;
@@ -57,7 +40,6 @@ void EditorPlay::Init(const std::vector<SaveNoteData>& notes, Texture2D noteTex)
 }
 
 void EditorPlay::Update(bool& isPlaying) {
-    // 테스트 플레이 종료 키를 U로 변경
     if (IsKeyPressed(KEY_U)) {
         isPlaying = false;
         return;
@@ -103,11 +85,10 @@ void EditorPlay::Update(bool& isPlaying) {
             if (playNotes[i].lane < 0 || playNotes[i].lane >= 4) continue;
 
             float noteY = laneYCoords[playNotes[i].lane];
-            float noteWidth = (customNoteTex.id > 0) ? (float)customNoteTex.width : 30.0f;
+            float noteWidth = 60.0f; // 도형 노트 너비 기준
             float noteCenterX = playNotes[i].posX + (noteWidth / 2.0f);
             float noteCenterY = noteY;
 
-            // 벡터 인덱스 초과 방지 안전 검사 추가
             if (i < s_NoteActiveStates.size() && s_NoteActiveStates[i] && 
                 fabsf(noteCenterX - hitboxCenterX) < (hitboxWidth / 2.0f) && 
                 fabsf(noteCenterY - hitboxCenterY) < (hitboxHeight / 2.0f)) {
@@ -159,11 +140,12 @@ void EditorPlay::Draw() {
         if (playNotes[i].lane < 0 || playNotes[i].lane >= 4) continue;
         if (i < s_NoteActiveStates.size() && !s_NoteActiveStates[i]) continue;
 
-        float noteY = laneYCoords[playNotes[i].lane] - ((float)customNoteTex.height / 2.0f);
+        float noteY = laneYCoords[playNotes[i].lane] - 7.5f; // 높이 중앙 보정
         if (customNoteTex.id > 0) {
             DrawTexture(customNoteTex, (int)playNotes[i].posX, (int)noteY, WHITE);
         } else {
-            DrawRectangle((int)playNotes[i].posX, (int)noteY, 30, 40, RED);
+            // 텍스처 대신 하얀색 직사각형 노트로 렌더링
+            DrawRectangle((int)playNotes[i].posX, (int)noteY, 60, 15, WHITE);
         }
     }
 

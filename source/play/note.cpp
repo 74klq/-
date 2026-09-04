@@ -1,25 +1,23 @@
 #include "note.h"
 
-Note::Note(float startX, float startY, float moveSpeed) {
+Note::Note(float startX, float startY, float moveSpeed, int noteLane) {
     x = startX;
     y = startY;
     speed = moveSpeed;
     active = true;
+    lane = noteLane;
 }
 
 void Note::Update() {
-    x -= speed;
+    y += speed;
 
-    if (x < -100.0f) {
+    if (y > 900.0f) {
         active = false;
     }
 }
 
-void Note::Draw(Texture2D noteTex) {
+void Note::Draw() { // 인자 제거
     if (active) {
-        float drawX = x - (noteTex.width / 2.0f);
-        float drawY = y - (noteTex.height / 2.0f);
-
-        DrawTexture(noteTex, (int)drawX, (int)drawY, WHITE);
+        DrawRectangle((int)(x - 30.0f), (int)(y - 7.5f), 60, 15, WHITE);
     }
 }

@@ -1,63 +1,50 @@
 #include "audio_manager.h"
 #include <iostream>
 
-AudioManager::AudioManager() : system(nullptr), bgmSound(nullptr), bgmChannel(nullptr) {
-}
+AudioManager::AudioManager() : fmodSystem(nullptr), currentSound(nullptr), currentChannel(nullptr) {}
 
 AudioManager::~AudioManager() {
-    Release();
+    release();
 }
 
-void AudioManager::Init() {
-    FMOD::System_Create(&system);
-    system->init(32, FMOD_INIT_NORMAL, nullptr);
+bool AudioManager::init() {
+    FMOD_RESULT result = FMOD::System_Create(&fmodSystem);
+    if (result != FMOD_OK) return false;
+
+    result = fmodSystem->init(512, FMOD_INIT_NORMAL, nullptr);
+    if (result != FMOD_OK) return false;
+
+    return true;
 }
 
-void AudioManager::Update() {
-    if (system) {
-        system->update();
+void AudioManager::update() {
+    if (fmodSystem) {
+        fmodSystem->update();
     }
 }
 
-void AudioManager::PlayBGM(const std::string& path) {
-    if (!system) return;
+void AudioManager::loadSound(const std::string& path, const std::string& key) {
+    fmodSystem->createSound(path.c_str(), FMOD_DEFAULT, nullptr, &currentSound);
+}
 
-    if (bgmSound) {
-        StopBGM();
-    }
-
-    FMOD_RESULT result = system->createSound(path.c_str(), FMOD_LOOP_NORMAL | FMOD_CREATESTREAM, nullptr, &bgmSound);
-    if (result == FMOD_OK) {
-        system->playSound(bgmSound, nullptr, false, &bgmChannel);
-    } else {
-        std::cout << "음악을 불러오지 못했습니다: " << path << std::endl;
+void AudioManager::playSound(const std::string& key) {
+    if (currentSound) {
+        fmodSystem->playSound(currentSound, nullptr, false, &currentChannel);
     }
 }
 
-void AudioManager::StopBGM() {
-    if (bgmChannel) {
-        bgmChannel->stop();
-        bgmChannel = nullptr;
-    }
-    if (bgmSound) {
-        bgmSound->release();
-        bgmSound = nullptr;
-    }
-}
+unsigned int AudioManager::getMusicPositionMs() const {
+    if (!currentChannel) return 0;
 
-void AudioManager::Release() {
-    StopBGM();
-    if (system) {
-        system->close();
-        system->release();
-        system = nullptr;
-    }
-}
-
-unsigned int AudioManager::GetMusicPosition() const {
-    if (!bgmChannel) return 0;
-    
     unsigned int ms = 0;
-    bgmChannel->getPosition(&ms, FMOD_TIMEUNIT_MS);
+    currentChannel->getPosition(&ms, FMOD_TIMEUNIT_MS);
     return ms;
+}
+
+void AudioManager::release() {
+    if (currentSound) currentSound->release();
+    if (fmodSystem) {
+        fmodSystem->close();
+        fmodSystem->release();
+    }
 }

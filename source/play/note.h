@@ -9,10 +9,11 @@ public:
     float y;
     float speed;
     bool active;
+    int lane;
 
-    Note(float startX, float startY, float moveSpeed);
+    Note(float startX, float startY, float moveSpeed, int noteLane);
     void Update();
-    void Draw(Texture2D noteTex);
+    void Draw(); // 인자 제거
 };
 
 #endif

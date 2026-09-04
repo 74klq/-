@@ -2,12 +2,7 @@
 #include "chart_save.h"
 #include "editor_play.h"
 #include <cmath>
-#include <cstdint>
 #include <vector>
-
-extern "C" {
-    extern const uint32_t new_piskel_data[1][1600];
-}
 
 static EditorPlay s_EditorPlay;
 static bool s_IsTestPlaying = false;
@@ -29,19 +24,8 @@ void ChartEditor::Init() {
     scrollOffset = 0.0f;
     s_IsTestPlaying = false;
 
-    Image noteImg = {
-        .data = (void*)&new_piskel_data[0][0],
-        .width = 40,
-        .height = 40,
-        .mipmaps = 1,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-    };
-
-    Image resizedImg = ImageCopy(noteImg);
-    ImageResize(&resizedImg, 40 * 4, 40 * 4);
-
-    tileTexture = LoadTextureFromImage(resizedImg);
-    UnloadImage(resizedImg);
+    // 외부 piskel 데이터 의존성을 제거하고 텍스처를 비워둡니다 (렌더링 시 도형으로 대체)
+    tileTexture = { 0 };
 }
 
 void ChartEditor::HandleInput() {
@@ -147,12 +131,13 @@ void ChartEditor::Render() {
     for (const auto& note : notes) {
         float screenNoteX = note.posX - scrollOffset;
         if (screenNoteX >= -50 && screenNoteX <= screenWidth + 50) {
-            float noteY = laneYCoords[note.lane] - ((float)tileTexture.height / 2.0f);
+            float noteY = laneYCoords[note.lane] - 20.0f; // 높이 보정
             
             if (tileTexture.id > 0) {
                 DrawTexture(tileTexture, screenNoteX, noteY, WHITE);
             } else {
-                DrawRectangle(screenNoteX, noteY, 30, 40, RED);
+                // 텍스처가 없을 경우 하얀색 가로형 직사각형 노트로 직접 렌더링
+                DrawRectangle((int)screenNoteX, (int)noteY, 60, 15, WHITE);
             }
         }
     }

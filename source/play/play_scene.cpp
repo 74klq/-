@@ -1,89 +1,53 @@
 #include "play_scene.h"
 #include "note.h"
 #include "../editing/editor_scene.h"
+#include "../vfx/hit_effect.h"
 #include <cmath>
 #include <vector>
-
-#ifdef _WIN32
-extern "C" __declspec(dllimport) int __stdcall IsDebuggerPresent(void);
-#endif
-
-extern "C" {
-    extern const unsigned int new_piskel_data[1600]; 
-    #ifndef NEW_PISKEL_FRAME_WIDTH
-    #define NEW_PISKEL_FRAME_WIDTH 40
-    #define NEW_PISKEL_FRAME_HEIGHT 40
-    #endif
-}
+#include <string>
 
 static std::vector<Note> s_Notes;
-static Texture2D s_CustomNoteTex = { 0 };
-static Texture2D s_ClickImageTex = { 0 };
-
 static float s_SpawnTimer = 0.0f;
-static bool  s_ShowPerfect = false;
-static float s_PerfectTimer = 0.0f;
+static int s_Combo = 0;
+static bool  s_ShowJudgment = false;
+static float s_JudgmentTimer = 0.0f;
+static const char* s_CurrentJudgment = "PERFECT";
 
-static const float LANE_Y_COORDS[4] = { 280.0f, 410.0f, 510.0f, 625.0f };
+static const float LANE_X_COORDS[4] = { 457.5f, 532.5f, 607.5f, 682.5f };
 
 static bool  s_IsEditorMode = false;
 static EditorScene s_EditorScene;
 
-static float s_ClickImgX = 100.0f;
-static float s_ClickImgY = 190.0f;
-static const float MIN_Y_LIMIT = 50.0f;
-static const float MAX_Y_LIMIT = 500.0f;
-static bool  s_IsDragging = false;
-static float s_DragOffsetY = 0.0f;
+static float s_ClockAngle = 0.0f;
+
+static Font s_ComboFont = { 0 };
+static Font s_SuitFont = { 0 };
 
 PlayScene::PlayScene() {
-    arrowTex = { 0 };
-    noteLineTex = { 0 };
-    s_ClickImageTex = { 0 };
-    judgmentLineX = 100.0f;
+    judgmentLineY = 560.0f;
 }
 
 PlayScene::~PlayScene() {
 }
 
 void PlayScene::Init() {
-    arrowTex = LoadTexture("assets/arrow.png");
-    noteLineTex = LoadTexture("assets/noteLine.png");
-    s_ClickImageTex = LoadTexture("assets/clickimage.png");
-    judgmentLineX = 100.0f;
-
-    Image rawImg = {
-        .data = (void*)new_piskel_data,
-        .width = NEW_PISKEL_FRAME_WIDTH,
-        .height = NEW_PISKEL_FRAME_HEIGHT,
-        .mipmaps = 1,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-    };
-
-    Image scaledImg = ImageCopy(rawImg);
-    ImageResize(&scaledImg, NEW_PISKEL_FRAME_WIDTH * 4, NEW_PISKEL_FRAME_HEIGHT * 4);
-
-    s_CustomNoteTex = LoadTextureFromImage(scaledImg);
-    UnloadImage(scaledImg);
-
+    judgmentLineY = 560.0f;
     s_Notes.clear();
     s_SpawnTimer = 0.0f;
-    s_ShowPerfect = false;
+    s_Combo = 0;
+    s_ShowJudgment = false;
+    s_JudgmentTimer = 0.0f;
     s_IsEditorMode = false;
-    s_IsDragging = false;
+    s_ClockAngle = 0.0f;
     
+    s_ComboFont = LoadFont("fonts/combo_font.ttf");
+    s_SuitFont = LoadFont("fonts/SUIT-Medium.ttf");
+
     s_EditorScene.Init();
 }
 
 void PlayScene::Update() {
-    bool isDebugMode = false;
-#ifdef _WIN32
-    if (IsDebuggerPresent()) {
-        isDebugMode = true;
-    }
-#endif
-
-    if (isDebugMode && IsKeyPressed(KEY_P)) {
+    if (IsKeyPressed(KEY_P)) {
         s_IsEditorMode = !s_IsEditorMode;
     }
 
@@ -92,41 +56,17 @@ void PlayScene::Update() {
             s_IsEditorMode = false;
             return;
         }
-
         s_EditorScene.HandleInput();
         return;
     }
 
     float dt = GetFrameTime();
-
-    float drawW = (s_ClickImageTex.id > 0) ? ((float)s_ClickImageTex.width / 2.0f) : 25.0f;
-    float drawH = (s_ClickImageTex.id > 0) ? ((float)s_ClickImageTex.height / 2.0f) : 50.0f;
-
-    Vector2 mousePos = GetMousePosition();
-
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        bool isHovered = (mousePos.x >= s_ClickImgX && mousePos.x <= s_ClickImgX + drawW &&
-                          mousePos.y >= s_ClickImgY && mousePos.y <= s_ClickImgY + drawH);
-        if (isHovered) {
-            s_IsDragging = true;
-            s_DragOffsetY = mousePos.y - s_ClickImgY;
-        }
-    }
-
-    if (s_IsDragging) {
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            s_ClickImgY = mousePos.y - s_DragOffsetY;
-            if (s_ClickImgY < MIN_Y_LIMIT) s_ClickImgY = MIN_Y_LIMIT;
-            if (s_ClickImgY > MAX_Y_LIMIT) s_ClickImgY = MAX_Y_LIMIT;
-        } else {
-            s_IsDragging = false;
-        }
-    }
+    s_ClockAngle += dt * 180.0f;
 
     s_SpawnTimer += dt;
-    if (s_SpawnTimer >= 0.5f) {
+    if (s_SpawnTimer >= 0.45f) {
         int lane = GetRandomValue(0, 3);
-        s_Notes.push_back(Note(1300.0f, LANE_Y_COORDS[lane], 5.0f));
+        s_Notes.push_back(Note(LANE_X_COORDS[lane], -40.0f, 6.0f, lane));
         s_SpawnTimer = 0.0f;
     }
 
@@ -134,30 +74,45 @@ void PlayScene::Update() {
         note.Update();
     }
 
-    float hitboxCenterX = s_ClickImgX + (drawW / 2.0f);
-    float hitboxCenterY = s_ClickImgY + (drawH / 2.0f);
+    HitEffect::Update();
 
-    float hitboxWidth  = 60.0f;
-    float hitboxHeight = 60.0f;
+    int inputLane = -1;
+    if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) inputLane = 0;
+    if (IsKeyPressed(KEY_F) || IsKeyDown(KEY_F)) inputLane = 1;
+    if (IsKeyPressed(KEY_J) || IsKeyDown(KEY_J)) inputLane = 2;
+    if (IsKeyPressed(KEY_K) || IsKeyDown(KEY_K)) inputLane = 3;
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+    if (inputLane != -1) {
         for (auto& note : s_Notes) {
-            if (note.active && 
-                fabsf(note.x - hitboxCenterX) < (hitboxWidth / 2.0f) && 
-                fabsf(note.y - hitboxCenterY) < (hitboxHeight / 2.0f)) {
-                
-                note.active = false;
-                s_ShowPerfect = true;
-                s_PerfectTimer = 0.5f;
-                break;
+            if (note.active && note.lane == inputLane) {
+                float dist = fabsf(note.y - judgmentLineY);
+                if (dist < 60.0f) {
+                    note.active = false;
+                    s_Combo++;
+                    s_ShowJudgment = true;
+                    s_JudgmentTimer = 0.4f;
+                    Color effectColor = GOLD;
+                    if (dist < 20.0f) {
+                        s_CurrentJudgment = "PERFECT";
+                        effectColor = GOLD;
+                    } else if (dist < 40.0f) {
+                        s_CurrentJudgment = "GREAT";
+                        effectColor = GREEN;
+                    } else {
+                        s_CurrentJudgment = "GOOD";
+                        effectColor = SKYBLUE;
+                    }
+                    HitEffect::Spawn({note.x, judgmentLineY}, effectColor);
+                    break;
+                }
             }
         }
     }
 
-    if (s_ShowPerfect) {
-        s_PerfectTimer -= dt;
-        if (s_PerfectTimer <= 0.0f) {
-            s_ShowPerfect = false;
+    if (s_ShowJudgment) {
+        s_JudgmentTimer -= dt;
+        if (s_JudgmentTimer <= 0.0f) {
+            s_ShowJudgment = false;
         }
     }
 }
@@ -168,57 +123,91 @@ void PlayScene::Draw() {
         return;
     }
 
-    if (noteLineTex.id > 0) {
-        Rectangle src = { 0.0f, 0.0f, (float)noteLineTex.width, (float)noteLineTex.height };
-        Rectangle dst = { 0.0f, 100.0f, (float)GetScreenWidth(), (float)noteLineTex.height * 0.8f };
-        DrawTexturePro(noteLineTex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
+    for (int i = 0; i < 4; ++i) {
+        float laneX = 420.0f + (75.0f * i);
+        DrawRectangle((int)laneX, 0, 75, 720, Fade(SKYBLUE, 0.02f));
+        DrawLine((int)laneX, 0, (int)laneX, 720, Fade(WHITE, 0.1f));
+    }
+    DrawLine(720, 0, 720, 720, Fade(WHITE, 0.2f));
+
+    bool isDPressed = IsKeyDown(KEY_D);
+    bool isFPressed = IsKeyDown(KEY_F);
+    bool isJPressed = IsKeyDown(KEY_J);
+    bool isKPressed = IsKeyDown(KEY_K);
+    bool pressedStates[4] = { isDPressed, isFPressed, isJPressed, isKPressed };
+
+    for (int i = 0; i < 4; ++i) {
+        if (pressedStates[i]) {
+            float laneX = 420.0f + (75.0f * i);
+            DrawRectangle((int)laneX, 0, 75, 652, Fade(WHITE, 0.08f));
+        }
     }
 
-    if (arrowTex.id > 0) {
-        float scale = 0.8f;
-        float w = (float)arrowTex.width * scale;
-        float h = (float)arrowTex.height * scale;
-        Rectangle src = { 0.0f, 0.0f, (float)arrowTex.width, (float)arrowTex.height };
-        Rectangle dst = { -120.0f, 190.0f, w, h };
-        DrawTexturePro(arrowTex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
+    for (int i = 0; i < 3; ++i) {
+        DrawLine(420 - i, 0, 420 - i, 720, Fade(WHITE, 0.8f));
+        DrawLine(720 + i, 0, 720 + i, 720, Fade(WHITE, 0.8f));
+        DrawLine(420, 720 + i, 720, 720 + i, Fade(WHITE, 0.8f));
     }
 
-    if (s_ClickImageTex.id > 0) {
-        Rectangle src = { 0.0f, 0.0f, (float)s_ClickImageTex.width, (float)s_ClickImageTex.height };
-        float dw = (float)s_ClickImageTex.width / 2.0f;
-        float dh = (float)s_ClickImageTex.height / 2.0f;
-        Rectangle dst = { s_ClickImgX, s_ClickImgY, dw, dh };
-        DrawTexturePro(s_ClickImageTex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
+    DrawLineEx({420.0f, 595.0f}, {720.0f, 595.0f}, 3.0f, RAYWHITE);
+    DrawLineEx({420.0f, 595.0f}, {720.0f, 595.0f}, 1.0f, YELLOW);
+
+    float slotY = 652.0f;
+    float slotW = 75.0f;
+    float slotH = 68.0f;
+    float slotXCoords[4] = { 420.0f, 495.0f, 570.0f, 645.0f };
+
+    for (int i = 0; i < 4; ++i) {
+        if (pressedStates[i]) {
+            DrawRectangle((int)slotXCoords[i], (int)slotY, (int)slotW, (int)slotH, WHITE);
+            DrawRectangleLines((int)slotXCoords[i], (int)slotY, (int)slotW, (int)slotH, BLACK);
+        } else {
+            DrawRectangleLines((int)slotXCoords[i], (int)slotY, (int)slotW, (int)slotH, Fade(WHITE, 0.6f));
+            DrawRectangle((int)slotXCoords[i], (int)slotY, (int)slotW, (int)slotH, Fade(WHITE, 0.05f));
+        }
     }
+
+    float centerX = 570.0f;
+    float centerY = 686.0f;
+    float radius = 16.0f;
+    DrawCircleLines((int)centerX, (int)centerY, radius, WHITE);
+    DrawCircle((int)centerX, (int)centerY, radius - 4.0f, BLACK);
+
+    float rad = s_ClockAngle * (PI / 180.0f);
+    float needleX = centerX + cosf(rad) * (radius - 5.0f);
+    float needleY = centerY + sinf(rad) * (radius - 5.0f);
+    DrawLine((int)centerX, (int)centerY, (int)needleX, (int)needleY, YELLOW);
 
     for (auto& note : s_Notes) {
-        note.Draw(s_CustomNoteTex);
+        if (note.active) {
+            DrawRectangle((int)(note.x - 32.5f), (int)(note.y - 8.0f), 65, 16, RAYWHITE);
+            DrawRectangle((int)(note.x - 28.5f), (int)(note.y - 4.0f), 57, 8, BLACK);
+        }
     }
 
-    if (s_ShowPerfect) {
-        int sw = GetScreenWidth();
-        int sh = GetScreenHeight();
-        DrawText("PERFECT!", sw / 2 - 80, sh / 2 - 20, 40, YELLOW);
+    HitEffect::Draw();
+
+    if (s_Combo > 1 && s_ComboFont.texture.id != 0) {
+        std::string comboStr = std::to_string(s_Combo);
+        float fontSize = 44.0f;
+        Vector2 textSize = MeasureTextEx(s_ComboFont, comboStr.c_str(), fontSize, 2.0f);
+        DrawTextEx(s_ComboFont, comboStr.c_str(), { 570.0f - textSize.x / 2.0f, 210.0f }, fontSize, 2.0f, YELLOW);
+        
+        float labelSize = 16.0f;
+        Vector2 labelSizeVec = MeasureTextEx(s_ComboFont, "COMBO", labelSize, 2.0f);
+        DrawTextEx(s_ComboFont, "COMBO", { 570.0f - labelSizeVec.x / 2.0f, 260.0f }, labelSize, 2.0f, LIGHTGRAY);
+    }
+
+    if (s_ShowJudgment && s_SuitFont.texture.id != 0) {
+        float fontSize = 26.0f;
+        Vector2 jSize = MeasureTextEx(s_SuitFont, s_CurrentJudgment, fontSize, 1.0f);
+        Color col = (std::string(s_CurrentJudgment) == "PERFECT") ? GOLD : (std::string(s_CurrentJudgment) == "GREAT" ? GREEN : SKYBLUE);
+        DrawTextEx(s_SuitFont, s_CurrentJudgment, { 570.0f - jSize.x / 2.0f, 330.0f }, fontSize, 1.0f, col);
     }
 }
 
 void PlayScene::Unload() {
-    if (arrowTex.id > 0) {
-        UnloadTexture(arrowTex);
-        arrowTex.id = 0;
-    }
-    if (noteLineTex.id > 0) {
-        UnloadTexture(noteLineTex);
-        noteLineTex.id = 0;
-    }
-    if (s_ClickImageTex.id > 0) {
-        UnloadTexture(s_ClickImageTex);
-        s_ClickImageTex.id = 0;
-    }
-    if (s_CustomNoteTex.id > 0) {
-        UnloadTexture(s_CustomNoteTex);
-        s_CustomNoteTex.id = 0;
-    }
-    
+    if (s_ComboFont.texture.id != 0) UnloadFont(s_ComboFont);
+    if (s_SuitFont.texture.id != 0) UnloadFont(s_SuitFont);
     s_EditorScene.Release();
 }

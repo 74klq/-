@@ -3,25 +3,22 @@
 #include <string>
 
 class AudioManager {
-private:
-    FMOD::System* system;
-    FMOD::Sound* bgmSound;
-    FMOD::Channel* bgmChannel;
-
+public:
     AudioManager();
     ~AudioManager();
 
-public:
-    static AudioManager& GetInstance() {
-        static AudioManager instance;
-        return instance;
-    }
+    bool init();
+    void update();
 
-    void Init();
-    void Update();
-    void PlayBGM(const std::string& path);
-    void StopBGM();
-    void Release();
+    void loadSound(const std::string& path, const std::string& key);
+    void playSound(const std::string& key);
 
-    unsigned int GetMusicPosition() const;
+    unsigned int getMusicPositionMs() const;
+
+    void release();
+
+private:
+    FMOD::System* fmodSystem;
+    FMOD::Sound* currentSound;
+    FMOD::Channel* currentChannel;
 };
