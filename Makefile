@@ -10,7 +10,7 @@ LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lopengl32 -lgdi32 -
 TARGET = RhythmGame
 BIN_DIR = bin
 
-OBJS = $(BIN_DIR)/b_main.o $(BIN_DIR)/main_Menu.o $(BIN_DIR)/background_rotation.o $(BIN_DIR)/play_scene.o $(BIN_DIR)/note.o $(BIN_DIR)/editor_scene.o $(BIN_DIR)/chart_editor.o $(BIN_DIR)/chart_save.o $(BIN_DIR)/editor_play.o $(BIN_DIR)/hit_effect.o
+OBJS = $(BIN_DIR)/b_main.o $(BIN_DIR)/main_Menu.o $(BIN_DIR)/background_rotation.o $(BIN_DIR)/play_scene.o $(BIN_DIR)/note.o $(BIN_DIR)/editor_scene.o $(BIN_DIR)/chart_editor.o $(BIN_DIR)/chart_save.o $(BIN_DIR)/editor_play.o $(BIN_DIR)/hit_effect.o $(BIN_DIR)/audio_manager.o
 
 all: $(BIN_DIR) $(TARGET)
 
@@ -52,6 +52,9 @@ $(BIN_DIR)/editor_play.o: source/editing/editor_play.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/hit_effect.o: source/vfx/hit_effect.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/audio_manager.o: source/AudioManager/audio_manager.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:

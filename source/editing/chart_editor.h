@@ -3,6 +3,8 @@
 
 #include "raylib.h"
 #include <vector>
+#include "../music_execute/music1_on.cpp"
+#include "../AudioManager/audio_manager.h"
 
 struct ChartNote {
     int lane;
@@ -20,12 +22,10 @@ public:
     void Release();
 
 private:
-    Texture2D noteLineTexture;
-    Texture2D arrowTexture;
-    Texture2D tileTexture;
-    
     float scrollOffset;
     std::vector<ChartNote> notes;
+    MusicExecute::MusicPlayer1 m_MusicPlayer;
+    AudioManager m_AudioManager;
 };
 
 #endif

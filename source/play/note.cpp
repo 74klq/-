@@ -16,7 +16,7 @@ void Note::Update() {
     }
 }
 
-void Note::Draw() { // 인자 제거
+void Note::Draw() {
     if (active) {
         DrawRectangle((int)(x - 30.0f), (int)(y - 7.5f), 60, 15, WHITE);
     }

@@ -14,7 +14,7 @@ struct Particle {
 
 class HitEffect {
 public:
-    static void Spawn(Vector2 pos, Color color);
+    static void Spawn(Vector2 pos);
     static void Update();
     static void Draw();
 
