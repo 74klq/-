@@ -44,6 +44,8 @@ void ChartEditor::Init() {
     notes.clear();
 
     if (m_AudioManager.Init()) {
+        m_AudioManager.Update();
+        
         if (m_MusicPlayer.Initialize(m_AudioManager)) {
             m_MusicPlayer.Play(m_AudioManager, 0);
         }
@@ -55,6 +57,7 @@ void ChartEditor::HandleInput() {
 #ifdef NDEBUG
     return;
 #else
+    m_AudioManager.Update();
     m_MusicPlayer.Update(GetFrameTime());
 
     if (s_IsTestPlaying) {

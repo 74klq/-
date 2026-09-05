@@ -4,14 +4,25 @@
 #include <raylib.h>
 
 namespace MusicExecuteUtils {
-    inline void HandleMusicControls(FMOD_CHANNEL* channel, bool& isPaused, float& outSpeedRatio, float& outMsgTimer) {
+    inline void HandleMusicControls(FMOD_CHANNEL* channel, bool& isPaused, float& outSpeedRatio, float& outMsgTimer, float& inputCooldownTimer) {
+        // 입력 쿨다운(잔상 방지 타이머)이 남아있다면 키 입력을 완전히 무시합니다.
+        if (inputCooldownTimer > 0.0f) {
+            inputCooldownTimer -= GetFrameTime();
+            // 쿨다운 중에는 입력 처리를 건너뜁니다.
+            return;
+        }
+
         if (IsKeyPressed(KEY_G)) {
             if (channel) {
-                FMOD_BOOL paused = 0;
-                FMOD_Channel_GetPaused(channel, &paused);
-                paused = !paused;
-                FMOD_Channel_SetPaused(channel, paused);
-                isPaused = (paused != 0);
+                FMOD_Channel_SetPaused(channel, 0);
+                isPaused = false;
+            }
+        }
+
+        if (IsKeyPressed(KEY_R)) {
+            if (channel) {
+                FMOD_Channel_SetPaused(channel, 1);
+                isPaused = true;
             }
         }
 

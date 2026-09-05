@@ -17,6 +17,10 @@ AudioManager::~AudioManager() {
 }
 
 bool AudioManager::Init() {
+    if (m_System != nullptr) {
+        return true;
+    }
+
     FMOD_System_Create(&m_System, FMOD_VERSION);
     FMOD_System_SetDSPBufferSize(m_System, 256, 4);
     FMOD_System_Init(m_System, 512, FMOD_INIT_NORMAL, nullptr);
@@ -30,6 +34,10 @@ void AudioManager::Update() {
 }
 
 bool AudioManager::CreateSound(const std::string& name, const std::string& filePath) {
+    if (m_Sounds.find(name) != m_Sounds.end()) {
+        return true;
+    }
+
     FMOD_SOUND* sound = nullptr;
     if (FMOD_System_CreateSound(m_System, filePath.c_str(), FMOD_CREATESAMPLE, 0, &sound) == FMOD_OK) {
         m_Sounds[name] = sound;
@@ -39,21 +47,25 @@ bool AudioManager::CreateSound(const std::string& name, const std::string& fileP
 }
 
 bool AudioManager::CreateStream(const std::string& name, const std::string& filePath) {
+    if (m_Sounds.find(name) != m_Sounds.end()) {
+        return true;
+    }
+
     FMOD_SOUND* sound = nullptr;
-    if (FMOD_System_CreateStream(m_System, filePath.c_str(), FMOD_DEFAULT, 0, &sound) == FMOD_OK) {
+    if (FMOD_System_CreateStream(m_System, filePath.c_str(), FMOD_CREATESTREAM, 0, &sound) == FMOD_OK) {
         m_Sounds[name] = sound;
         return true;
     }
     return false;
 }
 
-void AudioManager::PlaySoundWithDelay(const std::string& name, unsigned int delayMs) {
+FMOD_CHANNEL* AudioManager::PlaySoundWithDelay(const std::string& name, unsigned int delayMs) {
     auto it = m_Sounds.find(name);
-    if (it == m_Sounds.end()) return;
+    if (it == m_Sounds.end()) return nullptr;
 
     FMOD_CHANNEL* localChannel = nullptr;
     FMOD_RESULT result = FMOD_System_PlaySound(m_System, it->second, nullptr, true, &localChannel);
-    if (result != FMOD_OK || !localChannel) return;
+    if (result != FMOD_OK || !localChannel) return nullptr;
 
     int sampleRate = 0;
     FMOD_System_GetSoftwareFormat(m_System, &sampleRate, nullptr, nullptr);
@@ -64,7 +76,7 @@ void AudioManager::PlaySoundWithDelay(const std::string& name, unsigned int dela
         if (localChannel) {
             FMOD_Channel_Stop(localChannel);
         }
-        return;
+        return nullptr;
     }
 
     unsigned long long dspClock = 0;
@@ -74,7 +86,7 @@ void AudioManager::PlaySoundWithDelay(const std::string& name, unsigned int dela
     unsigned long long targetClock = dspClock + delaySamples;
 
     FMOD_Channel_SetDelay(localChannel, targetClock, 0, false);
-    FMOD_Channel_SetPaused(localChannel, false); 
+    return localChannel;
 }
 
 void AudioManager::PlayPreview(const std::string& name, unsigned int startMs) {

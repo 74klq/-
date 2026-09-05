@@ -13,7 +13,7 @@ public:
     void Update();
     bool CreateSound(const std::string& name, const std::string& filePath);
     bool CreateStream(const std::string& name, const std::string& filePath);
-    void PlaySoundWithDelay(const std::string& name, unsigned int delayMs);
+    FMOD_CHANNEL* PlaySoundWithDelay(const std::string& name, unsigned int delayMs);
     void PlayPreview(const std::string& name, unsigned int startMs);
     void StopPreview();
 
