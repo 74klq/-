@@ -15,7 +15,6 @@ int main() {
     
     MainMenu mainMenu;
     PlayScene playScene;
-    // 참고: 프로그램 시작 시의 Init()은 최초 1회 빈 상태 방지용입니다.
     playScene.Init();
 
     while (!WindowShouldClose()) {
@@ -24,7 +23,7 @@ int main() {
 
             if (mainMenu.IsGameStartSelected()) {
                 currentState = STATE_PLAYING;
-                playScene.Init(); // <--- 메인 메뉴에서 넘어올 때 PlayScene(및 내부 곡 선택창)을 리셋/초기화합니다.
+                playScene.Init();
             } else if (mainMenu.IsExitSelected()) {
                 break;
             }

@@ -34,7 +34,7 @@ static const float LANE_X_COORDS[4] = {
     LANE_START_X + LANE_WIDTH * 3.5f
 };
 static const float JUDGMENT_LINE_Y = 595.0f;
-static const float NOTE_SPEED = 400.0f;
+static const float NOTE_SPEED = 200.0f;
 
 EditorPlay::EditorPlay() {
 }

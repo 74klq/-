@@ -67,6 +67,12 @@ namespace MusicExecute {
             }
         }
 
+        void SetPitch(float pitch) {
+            if (m_Channel) {
+                FMOD_Channel_SetPitch(m_Channel, pitch);
+            }
+        }
+
         bool IsPaused() const { return m_IsPaused; }
         float GetSpeedRatio() const { return m_SpeedRatio; }
         float GetMsgTimer() const { return m_MsgTimer; }
