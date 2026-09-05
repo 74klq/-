@@ -7,10 +7,10 @@ RAYLIB_DIR = C:/Users/me/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_m
 INCLUDES = -I./inc -I./resource -I"$(RAYLIB_DIR)/include"
 LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lopengl32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++ -mwindows
 
-TARGET = RhythmGame
+TARGET = The_Line
 BIN_DIR = bin
 
-OBJS = $(BIN_DIR)/b_main.o $(BIN_DIR)/main_Menu.o $(BIN_DIR)/background_rotation.o $(BIN_DIR)/play_scene.o $(BIN_DIR)/note.o $(BIN_DIR)/editor_scene.o $(BIN_DIR)/chart_editor.o $(BIN_DIR)/chart_save.o $(BIN_DIR)/editor_play.o $(BIN_DIR)/hit_effect.o $(BIN_DIR)/audio_manager.o
+OBJS = $(BIN_DIR)/b_main.o $(BIN_DIR)/main_Menu.o $(BIN_DIR)/background_rotation.o $(BIN_DIR)/play_scene.o $(BIN_DIR)/note.o $(BIN_DIR)/editor_scene.o $(BIN_DIR)/chart_editor.o $(BIN_DIR)/chart_save.o $(BIN_DIR)/editor_play.o $(BIN_DIR)/hit_effect.o $(BIN_DIR)/audio_manager.o $(BIN_DIR)/Selection.o
 
 all: $(BIN_DIR) $(TARGET)
 
@@ -55,6 +55,9 @@ $(BIN_DIR)/hit_effect.o: source/vfx/hit_effect.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/audio_manager.o: source/AudioManager/audio_manager.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/Selection.o: source/Menu/Map_Selection/Selection.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:

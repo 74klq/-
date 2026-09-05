@@ -2,7 +2,7 @@
 #include <fstream>
 #include <filesystem>
 
-void ChartSave::SaveToJSON(const char* filename, const std::vector<SaveNoteData>& notes) {
+void ChartSave::SaveToJSON(const char* filename, const std::string& musicPath, const std::vector<SaveNoteData>& notes) {
     std::string dirPath = "map_data";
     if (!std::filesystem::exists(dirPath)) {
         std::filesystem::create_directory(dirPath);
@@ -15,6 +15,7 @@ void ChartSave::SaveToJSON(const char* filename, const std::vector<SaveNoteData>
     }
 
     file << "{\n";
+    file << "  \"musicPath\": \"" << musicPath << "\",\n";
     file << "  \"noteCount\": " << notes.size() << ",\n";
     file << "  \"notes\": [\n";
     

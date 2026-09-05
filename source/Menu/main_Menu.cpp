@@ -8,27 +8,54 @@ static Texture2D settingTexture = { 0 };
 static Texture2D exitTexture = { 0 };
 static Texture2D menuUiTextures[4] = { { 0 }, { 0 }, { 0 }, { 0 } };
 static bool isAssetsLoaded = false;
+static int activeFrames = 0; // 곡 선택 화면 진입 후 프레임 경과를 체크하기 위한 변수
 
 MainMenu::MainMenu() {
     selectedIndex = 0;
     pulseTimer = 0.0f;
+    currentState = MenuState::Main;
 }
 
 void MainMenu::Update() {
-    bgRotation.Update();
+    if (currentState == MenuState::Main) {
+        activeFrames = 0;
+        bgRotation.Update();
 
-    float dt = GetFrameTime();
-    pulseTimer += dt * 4.0f;
+        float dt = GetFrameTime();
+        pulseTimer += dt * 4.0f;
 
-    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-        selectedIndex = (selectedIndex - 1 + totalOptions) % totalOptions;
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
+            selectedIndex = (selectedIndex - 1 + totalOptions) % totalOptions;
+        }
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
+            selectedIndex = (selectedIndex + 1 + totalOptions) % totalOptions;
+        }
+
+        // 메인 메뉴에서 Play(인덱스 0)를 엔터로 누를 때 곡 선택 화면으로 진입
+        if (selectedIndex == 0 && IsKeyPressed(KEY_ENTER)) {
+            currentState = MenuState::SongSelect;
+            songSelect.Init();
+            activeFrames = 0; // 진입 시 프레임 카운터 리셋
+        }
     }
-    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-        selectedIndex = (selectedIndex + 1 + totalOptions) % totalOptions;
+    else if (currentState == MenuState::SongSelect) {
+        activeFrames++; // 프레임 증가
+        songSelect.Update();
+
+        // 곡 선택 화면에서 ESC를 누르면 다시 메인 메뉴로 복귀
+        if (songSelect.IsBackSelected()) {
+            currentState = MenuState::Main;
+            activeFrames = 0;
+        }
     }
 }
 
 void MainMenu::Draw(int screenWidth, int screenHeight) {
+    if (currentState == MenuState::SongSelect) {
+        songSelect.Draw(screenWidth, screenHeight);
+        return;
+    }
+
     if (!isAssetsLoaded) {
         playTexture = LoadTexture("assets/play.png");
         settingTexture = LoadTexture("assets/setting.png");
@@ -158,14 +185,20 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 }
 
 bool MainMenu::IsGameStartSelected() const {
-    return (selectedIndex == 0 && IsKeyPressed(KEY_ENTER));
+    // 곡 선택 화면 진입 직후의 잔여 키 입력을 무시하기 위해 
+    // 최소 10프레임 이상 지난 뒤에만 플레이 키 입력을 허용함
+    if (activeFrames < 10) return false;
+
+    return (currentState == MenuState::SongSelect && songSelect.IsPlaySelected());
 }
 
 bool MainMenu::IsExitSelected() const {
-    return (selectedIndex == 2 && IsKeyPressed(KEY_ENTER));
+    return (currentState == MenuState::Main && selectedIndex == 2 && IsKeyPressed(KEY_ENTER));
 }
 
 void MainMenu::Reset() {
     selectedIndex = 0;
     pulseTimer = 0.0f;
+    currentState = MenuState::Main;
+    activeFrames = 0;
 }

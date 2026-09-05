@@ -2,31 +2,56 @@
 #include "../AudioManager/audio_manager.h"
 #include <fmod.h>
 #include <raylib.h>
+#include <string>
 
 namespace MusicExecuteUtils {
-    inline void HandleMusicControls(FMOD_CHANNEL* channel, bool& isPaused, float& outSpeedRatio, float& outMsgTimer, float& inputCooldownTimer) {
-        // 입력 쿨다운(잔상 방지 타이머)이 남아있다면 키 입력을 완전히 무시합니다.
+    inline void HandleMusicControls(FMOD_CHANNEL* channel, bool& isPaused, float& outSpeedRatio, float& outMsgTimer, float& inputCooldownTimer, std::string& outMsgText) {
         if (inputCooldownTimer > 0.0f) {
             inputCooldownTimer -= GetFrameTime();
-            // 쿨다운 중에는 입력 처리를 건너뜁니다.
             return;
         }
 
-        if (IsKeyPressed(KEY_G)) {
-            if (channel) {
-                FMOD_Channel_SetPaused(channel, 0);
-                isPaused = false;
-            }
-        }
-
-        if (IsKeyPressed(KEY_R)) {
-            if (channel) {
-                FMOD_Channel_SetPaused(channel, 1);
-                isPaused = true;
-            }
-        }
-
         if (!channel) return;
+
+        if (IsKeyPressed(KEY_SPACE)) {
+            FMOD_BOOL paused = 0;
+            FMOD_Channel_GetPaused(channel, &paused);
+            FMOD_Channel_SetPaused(channel, !paused);
+            isPaused = !paused;
+            
+            outMsgText = isPaused ? "Music Paused" : "Music Playing";
+            outMsgTimer = 2.0f;
+        }
+
+        unsigned int currentPosMs = 0;
+        FMOD_Channel_GetPosition(channel, &currentPosMs, FMOD_TIMEUNIT_MS);
+
+        if (IsKeyPressed(KEY_G)) {
+            int newPosMs = (int)currentPosMs - 5000;
+            if (newPosMs < 0) newPosMs = 0;
+            FMOD_Channel_SetPosition(channel, (unsigned int)newPosMs, FMOD_TIMEUNIT_MS);
+
+            int sec = newPosMs / 1000;
+            int min = sec / 60;
+            sec %= 60;
+            char timeBuf[32];
+            snprintf(timeBuf, sizeof(timeBuf), "-5s (%02d:%02d)", min, sec);
+            outMsgText = timeBuf;
+            outMsgTimer = 2.0f;
+        }
+
+        if (IsKeyPressed(KEY_H)) {
+            unsigned int newPosMs = currentPosMs + 5000;
+            FMOD_Channel_SetPosition(channel, newPosMs, FMOD_TIMEUNIT_MS);
+
+            int sec = newPosMs / 1000;
+            int min = sec / 60;
+            sec %= 60;
+            char timeBuf[32];
+            snprintf(timeBuf, sizeof(timeBuf), "+5s (%02d:%02d)", min, sec);
+            outMsgText = timeBuf;
+            outMsgTimer = 2.0f;
+        }
 
         float currentFrequency = 0.0f;
         FMOD_SOUND* currentSound = nullptr;
@@ -67,7 +92,9 @@ namespace MusicExecuteUtils {
 
         outSpeedRatio = currentSpeedRatio;
         if (speedChanged) {
-            outMsgTimer = 3.0f;
+            int percent = (int)(currentSpeedRatio * 100.0f + 0.5f);
+            outMsgText = "Speed: " + std::to_string(percent) + "%";
+            outMsgTimer = 2.0f;
         }
     }
 }

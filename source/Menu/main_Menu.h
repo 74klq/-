@@ -3,6 +3,12 @@
 
 #include "raylib.h"
 #include "background_rotation.h"
+#include "Map_Selection/Selection.h"
+
+enum class MenuState {
+    Main,
+    SongSelect
+};
 
 class MainMenu {
 private:
@@ -10,6 +16,9 @@ private:
     int selectedIndex;
     float pulseTimer;
     const int totalOptions = 3;
+
+    MenuState currentState;
+    SongSelect songSelect;
 
 public:
      MainMenu();

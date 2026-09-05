@@ -17,6 +17,7 @@ static float s_JudgmentLinePulse = 0.0f;
 static float s_JudgmentAnimTimer = 0.0f;
 static float s_ComboAnimTimer = 0.0f;
 static int s_LastCombo = 0;
+static float s_PlayElapsedTime = 0.0f;
 
 static const float PLAYFIELD_X = 410.0f;
 static const float PLAYFIELD_Y = 0.0f;
@@ -33,6 +34,7 @@ static const float LANE_X_COORDS[4] = {
     LANE_START_X + LANE_WIDTH * 3.5f
 };
 static const float JUDGMENT_LINE_Y = 595.0f;
+static const float NOTE_SPEED = 400.0f;
 
 EditorPlay::EditorPlay() {
 }
@@ -52,6 +54,7 @@ void EditorPlay::Init(const std::vector<SaveNoteData>& notes, Texture2D noteTex)
     s_JudgmentAnimTimer = 0.0f;
     s_ComboAnimTimer = 0.0f;
     s_LastCombo = 0;
+    s_PlayElapsedTime = 0.0f;
 
     s_ComboFont = LoadFont("fonts/combo_font.ttf");
     s_SuitFont = LoadFont("fonts/SUIT-Medium.ttf");
@@ -64,6 +67,7 @@ void EditorPlay::Update(bool& isPlaying) {
     }
 
     float dt = GetFrameTime();
+    s_PlayElapsedTime += dt;
     s_ClockAngle += dt * 180.0f;
 
     if (s_JudgmentLinePulse > 0.0f) {
@@ -79,14 +83,16 @@ void EditorPlay::Update(bool& isPlaying) {
         s_ComboAnimTimer -= dt;
     }
 
-    float noteSpeed = 400.0f; 
-    for (auto& note : playNotes) {
-        note.posX += noteSpeed * dt;
+    float currentWorldY = 0.0f;
+    if (s_PlayElapsedTime > 0.0f) {
+        currentWorldY = s_PlayElapsedTime * NOTE_SPEED;
     }
 
     for (size_t i = 0; i < playNotes.size(); ++i) {
         if (i < s_NoteActiveStates.size() && s_NoteActiveStates[i]) {
-            if (playNotes[i].posX - JUDGMENT_LINE_Y > 35.0f) {
+            float screenNoteY = JUDGMENT_LINE_Y - (playNotes[i].posX - currentWorldY);
+            
+            if (screenNoteY > JUDGMENT_LINE_Y + 80.0f) {
                 s_NoteActiveStates[i] = false;
                 s_Combo = 0;
                 s_LastCombo = 0;
@@ -108,11 +114,11 @@ void EditorPlay::Update(bool& isPlaying) {
         bool hitRecorded = false;
         for (size_t i = 0; i < playNotes.size(); ++i) {
             if (playNotes[i].lane != inputLane) continue;
+            if (i < s_NoteActiveStates.size() && !s_NoteActiveStates[i]) continue;
 
-            float noteCenterY = playNotes[i].posX;
-            float diff = fabsf(noteCenterY - JUDGMENT_LINE_Y);
+            float diff = fabsf(playNotes[i].posX - currentWorldY);
 
-            if (i < s_NoteActiveStates.size() && s_NoteActiveStates[i] && diff <= 35.0f) {
+            if (diff <= 50.0f) {
                 s_NoteActiveStates[i] = false;
 
                 s_ShowJudgment = true;
@@ -120,10 +126,10 @@ void EditorPlay::Update(bool& isPlaying) {
                 s_JudgmentLinePulse = 1.0f;
                 s_JudgmentAnimTimer = 0.3f;
 
-                if (diff <= 12.0f) {
+                if (diff <= 15.0f) {
                     s_CurrentJudgment = "PERFECT";
                     s_Combo++;
-                } else if (diff <= 24.0f) {
+                } else if (diff <= 35.0f) {
                     s_CurrentJudgment = "GREAT";
                     s_Combo++;
                 } else {
@@ -161,16 +167,13 @@ void EditorPlay::Draw() {
     bool isKPressed = IsKeyDown(KEY_K);
     bool pressedStates[4] = { isDPressed, isFPressed, isJPressed, isKPressed };
 
-    // 배경
     DrawRectangle(0, 0, 1280, 720, Color{ 8, 8, 8, 255 });
     DrawRectangle(0, 0, (int)PLAYFIELD_X, 720, Color{ 4, 4, 4, 245 });
     DrawRectangle((int)(PLAYFIELD_X + PLAYFIELD_WIDTH), 0, (int)(1280 - (PLAYFIELD_X + PLAYFIELD_WIDTH)), 720, Color{ 4, 4, 4, 245 });
 
-    // 플레이필드
     DrawRectangleRounded(Rectangle{ PLAYFIELD_X, PLAYFIELD_Y, PLAYFIELD_WIDTH, PLAYFIELD_HEIGHT }, 0.03f, 4, Color{ 14, 14, 14, 250 });
     DrawRectangleRoundedLines(Rectangle{ PLAYFIELD_X, PLAYFIELD_Y, PLAYFIELD_WIDTH, PLAYFIELD_HEIGHT }, 0.03f, 4, Fade(WHITE, 0.3f));
 
-    // 레인
     for (int i = 0; i < LANE_COUNT; ++i) {
         float laneX = LANE_START_X + (LANE_WIDTH * i);
         DrawRectangle((int)laneX, 0, (int)LANE_WIDTH, (int)JUDGMENT_LINE_Y, Fade(WHITE, i % 2 == 0 ? 0.015f : 0.003f));
@@ -182,26 +185,29 @@ void EditorPlay::Draw() {
         }
     }
 
-    // 노트
+    float currentWorldY = 0.0f;
+    if (s_PlayElapsedTime > 0.0f) {
+        currentWorldY = s_PlayElapsedTime * NOTE_SPEED;
+    }
+
     for (size_t i = 0; i < playNotes.size(); ++i) {
         if (playNotes[i].lane < 0 || playNotes[i].lane >= 4) continue;
         if (i < s_NoteActiveStates.size() && !s_NoteActiveStates[i]) continue;
 
-        float noteY = playNotes.at(i).posX;
-        if (noteY >= -40.0f && noteY <= JUDGMENT_LINE_Y + 40.0f) {
+        float screenNoteY = JUDGMENT_LINE_Y - (playNotes[i].posX - currentWorldY);
+
+        if (screenNoteY >= -40.0f && screenNoteY <= JUDGMENT_LINE_Y + 40.0f) {
             float noteX = LANE_X_COORDS[playNotes[i].lane];
-            DrawRectangleRounded(Rectangle{ noteX - 29.0f, noteY - 7.0f, 58.0f, 14.0f }, 0.4f, 4, Fade(WHITE, 0.25f));
-            DrawRectangleRounded(Rectangle{ noteX - 26.0f, noteY - 5.0f, 52.0f, 10.0f }, 0.3f, 4, WHITE);
-            DrawRectangleRounded(Rectangle{ noteX - 22.0f, noteY - 2.0f, 44.0f, 4.0f }, 0.3f, 4, Color{ 25, 25, 25, 255 });
+            DrawRectangleRounded(Rectangle{ noteX - 29.0f, screenNoteY - 7.0f, 58.0f, 14.0f }, 0.4f, 4, Fade(WHITE, 0.25f));
+            DrawRectangleRounded(Rectangle{ noteX - 26.0f, screenNoteY - 5.0f, 52.0f, 10.0f }, 0.3f, 4, WHITE);
+            DrawRectangleRounded(Rectangle{ noteX - 22.0f, screenNoteY - 2.0f, 44.0f, 4.0f }, 0.3f, 4, Color{ 25, 25, 25, 255 });
         }
     }
 
-    // 판정선
     float glowThickness = 2.0f + s_JudgmentLinePulse * 4.0f;
     DrawRectangleRec(Rectangle{ PLAYFIELD_X + 10.0f, JUDGMENT_LINE_Y - glowThickness / 2.0f, PLAYFIELD_WIDTH - 20.0f, glowThickness }, Fade(WHITE, 0.25f + s_JudgmentLinePulse * 0.4f));
     DrawLineEx({ LANE_START_X, JUDGMENT_LINE_Y }, { LANE_START_X + LANE_AREA_WIDTH, JUDGMENT_LINE_Y }, 2.0f, WHITE);
 
-    // 판정 텍스트
     if (s_ShowJudgment && s_SuitFont.texture.id != 0) {
         float scale = 1.0f + (s_JudgmentAnimTimer > 0.0f ? s_JudgmentAnimTimer * 0.25f : 0.0f);
         float fontSize = 24.0f * scale;
@@ -217,7 +223,6 @@ void EditorPlay::Draw() {
         DrawTextEx(s_SuitFont, s_CurrentJudgment, { PLAYFIELD_X + (PLAYFIELD_WIDTH - jSize.x) / 2.0f, 515.0f }, fontSize, 1.0f, col);
     }
 
-    // 입력 패널 슬롯
     float panelY = 636.0f;
     float panelH = 72.0f;
     DrawRectangleRounded(Rectangle{ PLAYFIELD_X + 6.0f, panelY, PLAYFIELD_WIDTH - 12.0f, panelH }, 0.15f, 4, Color{ 16, 16, 16, 255 });
@@ -248,7 +253,6 @@ void EditorPlay::Draw() {
         }
     }
 
-    // 입력 패널 하단 시계 피드백
     float centerX = PLAYFIELD_X + PLAYFIELD_WIDTH / 2.0f;
     float centerY = 672.0f;
     float radius = 18.0f;
@@ -276,7 +280,6 @@ void EditorPlay::Draw() {
     DrawLineEx({ centerX, centerY }, { needleX, needleY }, 1.0f, RED);
     DrawCircle((int)centerX, (int)centerY, 2.0f, WHITE);
 
-    // 콤보 HUD
     if (s_Combo > 1 && s_ComboFont.texture.id != 0) {
         std::string comboStr = std::to_string(s_Combo);
         float scale = 1.0f + (s_ComboAnimTimer > 0.0f ? s_ComboAnimTimer * 0.4f : 0.0f);

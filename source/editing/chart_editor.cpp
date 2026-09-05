@@ -1,6 +1,8 @@
 #include "chart_editor.h"
 #include "chart_save.h"
 #include "editor_play.h"
+#include "../music_execute/music1_on.cpp"
+#include "../AudioManager/audio_manager.h"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -26,9 +28,12 @@ static const float LANE_X_COORDS[4] = {
 };
 
 static const float JUDGMENT_LINE_Y = 595.0f;
+static const float PIXELS_PER_SECOND = 100.0f;
 
 ChartEditor::ChartEditor() 
     : scrollOffset(0.0f) {
+    m_MusicPlayer = new MusicExecute::MusicPlayer1();
+    m_AudioManager = new AudioManager();
 }
 
 ChartEditor::~ChartEditor() {
@@ -43,11 +48,11 @@ void ChartEditor::Init() {
     s_IsTestPlaying = false;
     notes.clear();
 
-    if (m_AudioManager.Init()) {
-        m_AudioManager.Update();
+    if (m_AudioManager->Init()) {
+        m_AudioManager->Update();
         
-        if (m_MusicPlayer.Initialize(m_AudioManager)) {
-            m_MusicPlayer.Play(m_AudioManager, 0);
+        if (m_MusicPlayer->Initialize(*m_AudioManager)) {
+            m_MusicPlayer->Play(*m_AudioManager, 0);
         }
     }
 #endif
@@ -57,35 +62,48 @@ void ChartEditor::HandleInput() {
 #ifdef NDEBUG
     return;
 #else
-    m_AudioManager.Update();
-    m_MusicPlayer.Update(GetFrameTime());
+    m_AudioManager->Update();
 
     if (s_IsTestPlaying) {
         if (IsKeyPressed(KEY_U)) {
             s_IsTestPlaying = false;
+            m_MusicPlayer->Stop(); 
             return;
         }
         s_EditorPlay.Update(s_IsTestPlaying);
         return;
     }
 
+    // 에디터 화면에서는 스페이스바로 완전 독립 제어 (음악 업데이트 및 입력 반영)
+    m_MusicPlayer->Update(GetFrameTime());
+
     if (IsKeyPressed(KEY_ENTER)) {
-        s_IsTestPlaying = true;
         std::vector<SaveNoteData> saveData;
-        for (const auto& note : notes) {
-            saveData.push_back({ note.lane, note.posX });
+        
+        for (size_t i = 0; i < notes.size(); ++i) {
+            SaveNoteData tempNote;
+            tempNote.lane = notes[i].lane;
+            tempNote.posX = notes[i].posX;
+            saveData.push_back(tempNote);
         }
+        
         Texture2D dummyTex = { 0 };
         s_EditorPlay.Init(saveData, dummyTex);
+        
+        m_MusicPlayer->Play(*m_AudioManager, 0);
+        m_MusicPlayer->PlayImmediate();
+        
+        s_IsTestPlaying = true;
         return;
     }
 
     float wheelMove = GetMouseWheelMove();
     if (wheelMove != 0.0f) {
-        scrollOffset -= wheelMove * 40.0f;
-        if (scrollOffset > 0.0f) {
-            scrollOffset = 0.0f;
-        }
+        scrollOffset += wheelMove * 40.0f;
+    }
+
+    if (scrollOffset < 0.0f) {
+        scrollOffset = 0.0f;
     }
 
     if (IsKeyPressed(KEY_BACKSPACE)) {
@@ -99,7 +117,7 @@ void ChartEditor::HandleInput() {
         for (const auto& note : notes) {
             saveData.push_back({ note.lane, note.posX });
         }
-        ChartSave::SaveToJSON("my_map.json", saveData);
+        ChartSave::SaveToJSON("my_map.json", "music/A_Night_Without_Visible_Stars.ogg", saveData);
     }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -118,8 +136,10 @@ void ChartEditor::HandleInput() {
             }
 
             if (clickedLane != -1) {
-                float worldY = mousePos.y + scrollOffset;
-                notes.push_back({ clickedLane, worldY });
+                float worldY = JUDGMENT_LINE_Y - mousePos.y + scrollOffset;
+                if (worldY >= 0.0f) {
+                    notes.push_back({ clickedLane, worldY });
+                }
             }
         }
     }
@@ -151,11 +171,13 @@ void ChartEditor::Render() {
     }
 
     float gridSize = 50.0f;
-    float startWorldY = floorf(scrollOffset / gridSize) * gridSize;
+    float startWorldY = scrollOffset - JUDGMENT_LINE_Y;
+    if (startWorldY < 0.0f) startWorldY = 0.0f;
     float endWorldY = scrollOffset + JUDGMENT_LINE_Y;
 
-    for (float worldY = startWorldY; worldY <= endWorldY; worldY += gridSize) {
-        float screenY = worldY - scrollOffset;
+    float firstGridY = ceilf(startWorldY / gridSize) * gridSize;
+    for (float worldY = firstGridY; worldY <= endWorldY; worldY += gridSize) {
+        float screenY = JUDGMENT_LINE_Y - (worldY - scrollOffset);
         if (screenY >= 0.0f && screenY <= JUDGMENT_LINE_Y) {
             bool isBarLine = (int(worldY) % int(gridSize * 4)) == 0;
             float alpha = isBarLine ? 0.25f : 0.08f;
@@ -166,7 +188,7 @@ void ChartEditor::Render() {
     DrawLineEx({ LANE_START_X, JUDGMENT_LINE_Y }, { LANE_START_X + LANE_AREA_WIDTH, JUDGMENT_LINE_Y }, 2.0f, WHITE);
 
     for (const auto& note : notes) {
-        float screenNoteY = note.posX - scrollOffset;
+        float screenNoteY = JUDGMENT_LINE_Y - (note.posX - scrollOffset);
         if (screenNoteY >= -30.0f && screenNoteY <= JUDGMENT_LINE_Y + 30.0f) {
             float noteX = LANE_X_COORDS[note.lane];
             DrawRectangleRounded(Rectangle{ noteX - 26.0f, screenNoteY - 5.0f, 52.0f, 10.0f }, 0.3f, 4, WHITE);
@@ -197,15 +219,22 @@ void ChartEditor::Render() {
         DrawRectangleRoundedLines(slotRect, roundness, 4, Fade(WHITE, 0.4f));
     }
 
-    float msgTimer = m_MusicPlayer.GetMsgTimer();
+    float msgTimer = m_MusicPlayer->GetMsgTimer();
     if (msgTimer > 0.0f) {
         float alpha = (msgTimer > 0.5f) ? 1.0f : (msgTimer / 0.5f);
-        int speedPercent = (int)(m_MusicPlayer.GetSpeedRatio() * 100.0f + 0.5f);
-        std::string speedText = "Speed: " + std::to_string(speedPercent) + "%";
-        DrawText(speedText.c_str(), 1000, 50, 22, Fade(WHITE, alpha));
+        const std::string& msgText = m_MusicPlayer->GetMsgText();
+        DrawText(msgText.c_str(), 1000, 50, 22, Fade(WHITE, alpha));
     }
 #endif
 }
 
 void ChartEditor::Release() {
+    if (m_MusicPlayer) {
+        delete m_MusicPlayer;
+        m_MusicPlayer = nullptr;
+    }
+    if (m_AudioManager) {
+        delete m_AudioManager;
+        m_AudioManager = nullptr;
+    }
 }

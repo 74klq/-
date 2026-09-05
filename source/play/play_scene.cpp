@@ -172,26 +172,31 @@ static void DrawHUD() {
     if (s_Combo > 1 && s_ComboFont.texture.id != 0) {
         std::string comboStr = std::to_string(s_Combo);
         float scale = 1.0f + (s_ComboAnimTimer > 0.0f ? s_ComboAnimTimer * 0.4f : 0.0f);
-        float fontSize = 42.0f * scale;
+        float fontSize = 60.0f * scale;
         Vector2 textSize = MeasureTextEx(s_ComboFont, comboStr.c_str(), fontSize, 2.0f);
         
         DrawTextEx(s_ComboFont, comboStr.c_str(), { PLAYFIELD_X + (PLAYFIELD_WIDTH - textSize.x) / 2.0f, 180.0f }, fontSize, 2.0f, GOLD);
         
-        float labelSize = 12.0f;
+        float labelSize = 18.0f;
         Vector2 labelSizeVec = MeasureTextEx(s_ComboFont, "COMBO", labelSize, 2.0f);
-        DrawTextEx(s_ComboFont, "COMBO", { PLAYFIELD_X + (PLAYFIELD_WIDTH - labelSizeVec.x) / 2.0f, 230.0f }, labelSize, 2.0f, Fade(WHITE, 0.7f));
+        DrawTextEx(s_ComboFont, "COMBO", { PLAYFIELD_X + (PLAYFIELD_WIDTH - labelSizeVec.x) / 2.0f, 235.0f }, labelSize, 2.0f, Fade(WHITE, 0.7f));
     }
 }
 
-PlayScene::PlayScene() {
-    judgmentLineY = 595.0f;
+PlayScene::PlayScene() 
+    : m_State(PlaySceneState::SongSelect), m_BackToMenu(false), judgmentLineY(595.0f) {
 }
 
 PlayScene::~PlayScene() {
 }
 
 void PlayScene::Init() {
+    m_State = PlaySceneState::SongSelect;
+    m_BackToMenu = false;
     judgmentLineY = 595.0f;
+    
+    m_SongSelect.Init();
+
     s_Notes.clear();
     s_SpawnTimer = 0.0f;
     s_Combo = 0;
@@ -209,6 +214,22 @@ void PlayScene::Init() {
 }
 
 void PlayScene::Update() {
+    if (m_State == PlaySceneState::SongSelect) {
+        m_SongSelect.Update();
+
+        if (m_SongSelect.IsBackSelected()) {
+            m_BackToMenu = true;
+        }
+        else if (m_SongSelect.IsPlaySelected()) {
+            m_State = PlaySceneState::Playing;
+        }
+    }
+    else if (m_State == PlaySceneState::Playing) {
+        UpdatePlaying();
+    }
+}
+
+void PlayScene::UpdatePlaying() {
     if (IsKeyPressed(KEY_P)) {
         s_IsEditorMode = !s_IsEditorMode;
         if (s_IsEditorMode) {
@@ -217,11 +238,16 @@ void PlayScene::Update() {
     }
 
     if (s_IsEditorMode) {
-        if (IsKeyPressed(KEY_SPACE)) {
+        if (IsKeyPressed(KEY_ONE)) {
             s_IsEditorMode = false;
             return;
         }
         s_EditorScene.HandleInput();
+        return;
+    }
+
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        m_State = PlaySceneState::SongSelect;
         return;
     }
 
@@ -258,6 +284,7 @@ void PlayScene::Update() {
         if (it->active && it->y > judgmentLineY + 35.0f) {
             it->active = false;
             s_Combo = 0;
+            s_LastCombo = 0;
             s_ShowJudgment = true;
             s_JudgmentTimer = 0.3f;
             s_CurrentJudgment = "MISS";
@@ -289,18 +316,20 @@ void PlayScene::Update() {
                     s_JudgmentLinePulse = 1.0f;
                     s_JudgmentAnimTimer = 0.3f;
 
-                    if (dist <= 12.0f) {
+                    if (dist <= 16.0f) {
                         s_CurrentJudgment = "PERFECT";
                         s_Combo++;
-                    } else if (dist <= 24.0f) {
+                    } else if (dist <= 26.0f) {
                         s_CurrentJudgment = "GREAT";
-                        s_Combo++;
+                        s_Combo = 0;
+                        s_LastCombo = 0;
                     } else {
                         s_CurrentJudgment = "GOOD";
-                        s_Combo++;
+                        s_Combo = 0;
+                        s_LastCombo = 0;
                     }
 
-                    if (s_Combo != s_LastCombo) {
+                    if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo) {
                         s_ComboAnimTimer = 0.2f;
                         s_LastCombo = s_Combo;
                     }
@@ -325,6 +354,15 @@ void PlayScene::Update() {
 }
 
 void PlayScene::Draw() {
+    if (m_State == PlaySceneState::SongSelect) {
+        m_SongSelect.Draw(GetScreenWidth(), GetScreenHeight());
+    }
+    else if (m_State == PlaySceneState::Playing) {
+        DrawPlaying();
+    }
+}
+
+void PlayScene::DrawPlaying() {
     if (s_IsEditorMode) {
         s_EditorScene.Render();
         return;

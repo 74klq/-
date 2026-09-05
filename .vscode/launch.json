@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Rhythm Game Run",
+            "name": "The Line build",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/RhythmGame.exe",
+            "program": "${workspaceFolder}/The_Line.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

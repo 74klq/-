@@ -3,8 +3,12 @@
 
 #include "raylib.h"
 #include <vector>
-#include "../music_execute/music1_on.cpp"
-#include "../AudioManager/audio_manager.h"
+
+class AudioManager;
+
+namespace MusicExecute {
+    class MusicPlayer1;
+}
 
 struct ChartNote {
     int lane;
@@ -24,8 +28,10 @@ public:
 private:
     float scrollOffset;
     std::vector<ChartNote> notes;
-    MusicExecute::MusicPlayer1 m_MusicPlayer;
-    AudioManager m_AudioManager;
+    
+    // 💡 [최종 수정] 메모리 꼬임을 완벽히 차단하기 위해 둘 다 포인터(*) 구조로 관리합니다.
+    MusicExecute::MusicPlayer1* m_MusicPlayer; 
+    AudioManager* m_AudioManager; 
 };
 
 #endif
