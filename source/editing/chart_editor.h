@@ -1,0 +1,36 @@
+#ifndef CHART_EDITOR_H
+#define CHART_EDITOR_H
+
+#include "raylib.h"
+#include <vector>
+
+class AudioManager;
+
+namespace MusicExecute {
+    class MusicPlayer1;
+}
+
+struct ChartNote {
+    int lane;
+    float posX;
+};
+
+class ChartEditor {
+public:
+    ChartEditor();
+    ~ChartEditor();
+
+    void Init();
+    void HandleInput();
+    void Render();
+    void Release();
+
+private:
+    float scrollOffset;
+    std::vector<ChartNote> notes;
+    
+    MusicExecute::MusicPlayer1* m_MusicPlayer;
+    AudioManager* m_AudioManager;
+};
+
+#endif
