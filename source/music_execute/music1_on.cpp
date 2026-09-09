@@ -9,6 +9,7 @@ namespace MusicExecute {
         MusicPlayer1() 
             : m_Channel(nullptr), m_IsPaused(true), m_IsLoaded(false), m_SpeedRatio(1.0f), m_MsgTimer(0.0f), m_InputCooldownTimer(0.0f), m_WaitFrames(0), m_MsgText("") {}
         ~MusicPlayer1() {}
+        FMOD_CHANNEL* GetChannelRaw() const { return m_Channel; }
 
         bool Initialize(AudioManager& audioManager) {
             std::string musicName = "Music1";
