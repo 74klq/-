@@ -18,7 +18,7 @@
 static std::vector<std::string> editorTexts = {
     "오디오를 눈에 보여주는거",
     "채보 에디터 프로그램",
-    "'7'(수동: 꾹 누르면 롱노트) 또는 'A'(자동) 키를 눌러 레코딩",
+    "'7'(수동) 또는 'A'(자동) 키를 눌러 레코딩",
     "현재 피치: ",
     "레코딩 중...- U 키로 정지",
     "'7': 실시간 에디팅 | 'A': 자동 에디팅 (AI) | '엔터': 테스트 | '0': 저장 | 'T': 차트 속도? | 'Q': 음악 선택",
@@ -74,22 +74,10 @@ static const float JUDGMENT_LINE_Y = 595.0f;
 
 struct EditorNoteData {
     int lane;
-    float posX; // worldY
+    float posX; 
     float snapErrorMs; 
     Color feedbackColor; 
-    bool isLong;
-    float length;
 };
-
-// 수동 레코딩 시 레인별 꾹 누름(롱노트) 상태 추적 구조체
-struct ActiveLongNoteRecord {
-    bool isPressed;
-    int lane;
-    float startWorldY;
-    float startTime;
-    float snapErrorMs;
-};
-static ActiveLongNoteRecord s_ActiveLongNotes[4] = { {false, 0, 0, 0, 0}, {false, 0, 0, 0, 0}, {false, 0, 0, 0, 0}, {false, 0, 0, 0, 0} };
 
 static std::vector<EditorNoteData> s_EditorNotes; 
 
@@ -116,34 +104,39 @@ static int s_PatternSubIndex = 0;
 
 static float s_LastNoteTimeByLane[4] = { -10.0f, -10.0f, -10.0f, -10.0f };
 
-static const float MIN_SAME_LANE_Y_GAP = 30.0f;
-static const float MIN_GLOBAL_Y_GAP = 12.0f;    
+// ============================================================================
+// 수동 레코딩용 잔잔한 4~6노트 단위 패턴 풀 (45가지 기본 패턴)
+// 조합에 따라 수백~수만 가지의 자연스러운 플레이 흐름을 만듭니다.
+// ============================================================================
+static const std::vector<std::vector<int>> EASY_PATTERN_POOL = {
+    // [1. 계단 & 파도형]
+    {0, 1, 2, 3}, {3, 2, 1, 0}, {0, 1, 2, 1}, {3, 2, 1, 2},
+    {1, 2, 3, 2}, {2, 1, 0, 1}, {0, 1, 3, 2}, {3, 2, 0, 1},
+    {1, 0, 2, 3}, {2, 3, 1, 0}, {0, 2, 1, 2}, {3, 1, 2, 1},
 
-static bool IsValidNotePlacement(int lane, float worldY, const std::vector<EditorNoteData>& notesList, bool allowChord = false) {
-    for (const auto& note : notesList) {
-        float diffY = fabsf(note.posX - worldY);
-        if (note.lane == lane && diffY < MIN_SAME_LANE_Y_GAP) {
-            return false;
-        }
-        if (!allowChord && diffY < MIN_GLOBAL_Y_GAP) {
-            return false;
-        }
-    }
-    return true;
-}
+    // [2. 양손 번갈아 치기 (Trill/Alternating)]
+    {0, 2, 1, 3}, {1, 3, 0, 2}, {0, 3, 1, 2}, {1, 2, 0, 3},
+    {2, 0, 3, 1}, {3, 1, 2, 0}, {2, 1, 3, 0}, {3, 0, 2, 1},
+    {0, 2, 1, 2}, {3, 1, 2, 0}, {1, 3, 2, 0}, {2, 0, 1, 3},
 
-static int FindSafeLane(int preferredLane, float worldY, const std::vector<EditorNoteData>& notesList, bool allowChord = false) {
-    if (IsValidNotePlacement(preferredLane, worldY, notesList, allowChord)) {
-        return preferredLane;
-    }
-    for (int offset = 1; offset < LANE_COUNT; ++offset) {
-        int altLane = (preferredLane + offset) % LANE_COUNT;
-        if (IsValidNotePlacement(altLane, worldY, notesList, allowChord)) {
-            return altLane;
-        }
-    }
-    return -1;
-}
+    // [3. 피벗 & 잔잔한 반복]
+    {0, 2, 0, 3}, {3, 1, 3, 0}, {1, 3, 1, 0}, {2, 0, 2, 3},
+    {0, 1, 0, 2}, {3, 2, 3, 1}, {1, 0, 1, 3}, {2, 3, 2, 0},
+    {0, 3, 0, 1}, {3, 0, 3, 2}, {1, 2, 1, 0}, {2, 1, 2, 3},
+
+    // [4. 지그재그 & 부드러운 도약]
+    {0, 2, 3, 1}, {3, 1, 0, 2}, {1, 0, 3, 2}, {2, 3, 0, 1},
+    {0, 1, 3, 1}, {3, 2, 0, 2}, {1, 2, 0, 2}, {2, 1, 3, 1},
+
+    // [5. 6노트 긴 잔잔한 흐름]
+    {0, 1, 2, 3, 2, 1}, {3, 2, 1, 0, 1, 2},
+    {0, 2, 1, 3, 2, 0}, {3, 1, 2, 0, 1, 3},
+    {1, 0, 2, 1, 3, 2}, {2, 3, 1, 2, 0, 1},
+    {0, 1, 0, 2, 1, 3}, {3, 2, 3, 1, 2, 0}
+};
+
+static int s_ManualPatternIndex = -1;
+static int s_ManualPatternStep = 0;
 
 static float ApplyQuantizeFilter(float rawTimeSec, float beatIntervalSec, float& outSnapErrorMs) {
     float interval16 = beatIntervalSec / 4.0f;
@@ -248,10 +241,9 @@ void ChartEditor::Init() {
     s_SameHandCount = 0;
     s_ActivePatternType = 0;
     s_PatternSubIndex = 0;
-    for (int i = 0; i < 4; ++i) {
-        s_LastNoteTimeByLane[i] = -10.0f;
-        s_ActiveLongNotes[i] = { false, 0, 0.0f, 0.0f, 0.0f };
-    }
+    s_ManualPatternIndex = -1;
+    s_ManualPatternStep = 0;
+    for (int i = 0; i < 4; ++i) s_LastNoteTimeByLane[i] = -10.0f;
     std::fill(std::begin(s_EnergyHistory), std::end(s_EnergyHistory), 0.0f);
     s_EditorNotes.clear();
     notes.clear();
@@ -283,8 +275,6 @@ void ChartEditor::HandleInput() {
         if (IsKeyPressed(KEY_U)) {
             s_IsRecording = false;
             s_IsAutoRecording = false;
-            // 레코딩 중단 시 누르던 롱노트 상태 초기화
-            for (int i = 0; i < 4; ++i) s_ActiveLongNotes[i].isPressed = false;
             m_MusicPlayer->Stop();
             return;
         }
@@ -341,127 +331,122 @@ void ChartEditor::HandleInput() {
                         bool isOnset = (totalEnergy > dynamicThreshold && energyDelta > 0.02f) || (isBurstMode && energyDelta > 0.010f);
 
                         if (isOnset && (s_LastAutoNoteTime < 0.0f || (nearestBeatTime - s_LastAutoNoteTime >= minNoteIntervalSec))) {
-                            bool isLowBpmMode = (s_EditorBPM < 150.0f);
-                            bool isLaurHardcoreKick = (lowEnergy > midEnergy * 1.30f) && (lowEnergy > highEnergy * 1.30f) && (totalEnergy > avgEnergy * 1.30f);
-                            bool isHighMelody = (highEnergy > midEnergy * 1.15f) && (highEnergy > lowEnergy * 1.15f);
+                            bool duplicate = false;
+                            for (const auto& note : s_EditorNotes) {
+                                if (fabsf(note.posX - snappedWorldY) < 1.0f) {
+                                    duplicate = true;
+                                    break;
+                                }
+                            }
 
-                            if (!isLowBpmMode && (isLaurHardcoreKick || (isBurstMode && lowEnergy > avgEnergy * 1.70f))) {
-                                static bool s_AlternateChord = false;
-                                int laneA = s_AlternateChord ? 1 : 0;
-                                int laneB = s_AlternateChord ? 2 : 3;
-                                s_AlternateChord = !s_AlternateChord;
+                            if (!duplicate) {
+                                bool isLowBpmMode = (s_EditorBPM < 150.0f);
+                                bool isLaurHardcoreKick = (lowEnergy > midEnergy * 1.30f) && (lowEnergy > highEnergy * 1.30f) && (totalEnergy > avgEnergy * 1.30f);
+                                bool isHighMelody = (highEnergy > midEnergy * 1.15f) && (highEnergy > lowEnergy * 1.15f);
 
-                                if (IsValidNotePlacement(laneA, snappedWorldY, s_EditorNotes, true) &&
-                                    IsValidNotePlacement(laneB, snappedWorldY, s_EditorNotes, true)) {
-                                    
+                                if (!isLowBpmMode && (isLaurHardcoreKick || (isBurstMode && lowEnergy > avgEnergy * 1.70f))) {
+                                    static bool s_AlternateChord = false;
+                                    int laneA = s_AlternateChord ? 1 : 0;
+                                    int laneB = s_AlternateChord ? 2 : 3;
+                                    s_AlternateChord = !s_AlternateChord;
+
                                     Color kickColor = isBurstMode ? RED : PURPLE;
-                                    s_EditorNotes.push_back({ laneA, snappedWorldY, bestSnapErrorMs, kickColor, false, 0.0f });
-                                    s_EditorNotes.push_back({ laneB, snappedWorldY, bestSnapErrorMs, kickColor, false, 0.0f });
+                                    s_EditorNotes.push_back({ laneA, snappedWorldY, bestSnapErrorMs, kickColor });
+                                    s_EditorNotes.push_back({ laneB, snappedWorldY, bestSnapErrorMs, kickColor });
                                     s_LanePulseTimers[laneA] = 0.15f;
                                     s_LanePulseTimers[laneB] = 0.15f;
-
-                                    s_LastNoteTimeByLane[laneA] = nearestBeatTime;
-                                    s_LastNoteTimeByLane[laneB] = nearestBeatTime;
 
                                     s_LastAssignedLane = -1;
                                     s_SameLaneCount = 0;
                                     s_SameHandCount = 0;
                                     s_LastHand = -1;
-                                    s_LastAutoNoteTime = nearestBeatTime;
-                                }
-                            } else {
-                                bool isFastStream = !isLowBpmMode && (isBurstMode || (s_LastAutoNoteTime > 0.0f && (nearestBeatTime - s_LastAutoNoteTime <= interval16 * 1.25f)));
-                                int candidateLane = 0;
-
-                                if (isLowBpmMode) {
-                                    s_PatternSubIndex = 0;
-                                    int targetHand = (s_LastHand == 0) ? 1 : 0;
-                                    if (targetHand == 0) {
-                                        candidateLane = (s_LastAssignedLane == 0) ? 1 : 0;
-                                    } else {
-                                        candidateLane = (s_LastAssignedLane == 2) ? 3 : 2;
-                                    }
-                                } else if (isFastStream) {
-                                    static const int PATTERNS[3][4] = {
-                                        { 0, 1, 2, 3 },
-                                        { 3, 2, 1, 0 },
-                                        { 1, 2, 1, 2 }
-                                    };
-                                    candidateLane = PATTERNS[s_ActivePatternType][s_PatternSubIndex];
-                                    s_PatternSubIndex = (s_PatternSubIndex + 1) % 4;
-                                    if (s_PatternSubIndex == 0) {
-                                        s_ActivePatternType = (s_ActivePatternType + 1) % 3;
-                                    }
                                 } else {
-                                    s_PatternSubIndex = 0;
-                                    if (isHighMelody) {
-                                        candidateLane = (s_LastAssignedLane == 1) ? 2 : 1;
-                                    } else {
-                                        candidateLane = (s_LastAssignedLane + s_PatternDirection + LANE_COUNT) % LANE_COUNT;
-                                    }
-                                }
+                                    bool isFastStream = !isLowBpmMode && (isBurstMode || (s_LastAutoNoteTime > 0.0f && (nearestBeatTime - s_LastAutoNoteTime <= interval16 * 1.25f)));
+                                    int candidateLane = 0;
 
-                                int candidateHand = (candidateLane < 2) ? 0 : 1;
-                                if (s_LastHand != -1 && s_SameHandCount >= 3 && candidateHand == s_LastHand) {
-                                    int forcedHand = 1 - s_LastHand;
-                                    if (forcedHand == 0) {
-                                        candidateLane = (candidateLane == 2) ? 1 : 0;
-                                    } else {
-                                        candidateLane = (candidateLane == 0) ? 3 : 2;
-                                    }
-                                    candidateHand = forcedHand;
-                                }
-
-                                if (candidateLane == s_LastAssignedLane && s_SameLaneCount >= 2) {
-                                    for (int offset = 1; offset < LANE_COUNT; ++offset) {
-                                        int testLane = (candidateLane + offset) % LANE_COUNT;
-                                        int testHand = (testLane < 2) ? 0 : 1;
-                                        if (s_LastHand != -1 && s_SameHandCount >= 3 && testHand == s_LastHand) {
-                                            continue;
+                                    if (isLowBpmMode) {
+                                        s_PatternSubIndex = 0;
+                                        int targetHand = (s_LastHand == 0) ? 1 : 0;
+                                        if (targetHand == 0) {
+                                            candidateLane = (s_LastAssignedLane == 0) ? 1 : 0;
+                                        } else {
+                                            candidateLane = (s_LastAssignedLane == 2) ? 3 : 2;
                                         }
-                                        if (testLane != s_LastAssignedLane) {
-                                            candidateLane = testLane;
-                                            candidateHand = testHand;
-                                            break;
+                                    } else if (isFastStream) {
+                                        static const int PATTERNS[3][4] = {
+                                            { 0, 1, 2, 3 },
+                                            { 3, 2, 1, 0 },
+                                            { 1, 2, 1, 2 }
+                                        };
+                                        candidateLane = PATTERNS[s_ActivePatternType][s_PatternSubIndex];
+                                        s_PatternSubIndex = (s_PatternSubIndex + 1) % 4;
+                                        if (s_PatternSubIndex == 0) {
+                                            s_ActivePatternType = (s_ActivePatternType + 1) % 3;
+                                        }
+                                    } else {
+                                        s_PatternSubIndex = 0;
+                                        if (isHighMelody) {
+                                            candidateLane = (s_LastAssignedLane == 1) ? 2 : 1;
+                                        } else {
+                                            candidateLane = (s_LastAssignedLane + s_PatternDirection + LANE_COUNT) % LANE_COUNT;
                                         }
                                     }
-                                }
 
-                                int safeLane = FindSafeLane(candidateLane, snappedWorldY, s_EditorNotes, false);
+                                    int candidateHand = (candidateLane < 2) ? 0 : 1;
+                                    if (s_LastHand != -1 && s_SameHandCount >= 3 && candidateHand == s_LastHand) {
+                                        int forcedHand = 1 - s_LastHand;
+                                        if (forcedHand == 0) {
+                                            candidateLane = (candidateLane == 2) ? 1 : 0;
+                                        } else {
+                                            candidateLane = (candidateLane == 0) ? 3 : 2;
+                                        }
+                                        candidateHand = forcedHand;
+                                    }
 
-                                if (safeLane != -1) {
-                                    int safeHand = (safeLane < 2) ? 0 : 1;
+                                    if (candidateLane == s_LastAssignedLane && s_SameLaneCount >= 2) {
+                                        for (int offset = 1; offset < LANE_COUNT; ++offset) {
+                                            int testLane = (candidateLane + offset) % LANE_COUNT;
+                                            int testHand = (testLane < 2) ? 0 : 1;
+                                            if (s_LastHand != -1 && s_SameHandCount >= 3 && testHand == s_LastHand) {
+                                                continue;
+                                            }
+                                            if (testLane != s_LastAssignedLane) {
+                                                candidateLane = testLane;
+                                                candidateHand = testHand;
+                                                break;
+                                            }
+                                        }
+                                    }
 
-                                    if (safeLane == s_LastAssignedLane) {
+                                    if (candidateLane == s_LastAssignedLane) {
                                         s_SameLaneCount++;
                                     } else {
                                         s_SameLaneCount = 1;
                                     }
 
-                                    if (safeHand == s_LastHand) {
+                                    if (candidateHand == s_LastHand) {
                                         s_SameHandCount++;
                                     } else {
                                         s_SameHandCount = 1;
-                                        s_LastHand = safeHand;
+                                        s_LastHand = candidateHand;
                                     }
 
-                                    s_LastAssignedLane = safeLane;
+                                    s_LastAssignedLane = candidateLane;
 
                                     Color noteColor = (bestSnapErrorMs <= s_QuantizeThresholdMs) ? SKYBLUE : ORANGE;
                                     if (isHighMelody) noteColor = (bestSnapErrorMs <= s_QuantizeThresholdMs) ? GOLD : VIOLET;
                                     if (isBurstMode) noteColor = YELLOW;
 
-                                    s_EditorNotes.push_back({ safeLane, snappedWorldY, bestSnapErrorMs, noteColor, false, 0.0f });
-                                    s_LanePulseTimers[safeLane] = 0.15f;
-                                    s_LastNoteTimeByLane[safeLane] = nearestBeatTime;
-                                    s_LastAutoNoteTime = nearestBeatTime;
+                                    s_EditorNotes.push_back({ candidateLane, snappedWorldY, bestSnapErrorMs, noteColor });
+                                    s_LanePulseTimers[candidateLane] = 0.15f;
                                 }
-                            }
 
-                            s_PatternStep++;
-                            notes.clear();
-                            for (const auto& n : s_EditorNotes) {
-                                notes.push_back({ n.lane, n.posX });
+                                s_PatternStep++;
+                                notes.clear();
+                                for (const auto& n : s_EditorNotes) {
+                                    notes.push_back({ n.lane, n.posX });
+                                }
+                                s_LastAutoNoteTime = nearestBeatTime;
                             }
                         }
                     }
@@ -469,56 +454,70 @@ void ChartEditor::HandleInput() {
                 }
             }
         } else if (!s_IsAutoRecording) {
-            // [수동 레코딩 롱노트 시스템]: 4개 레인(0, 1, 2, 3)에 대응하는 지정된 키 설정
-            int recordKeys[4] = { KEY_ONE, KEY_TWO, KEY_E, KEY_BACKSLASH };
+            // 요청 키: 1, 2, E, \, INS, HOME
+            int recordKeys[] = { 
+                KEY_ONE, KEY_TWO, KEY_E, KEY_BACKSLASH, 
+                KEY_INSERT, KEY_HOME
+            };
 
-            float exactInputTime = currentSec - s_InputLatency;
-            if (exactInputTime < 0.0f) exactInputTime = 0.0f;
+            bool anyKeyPressed = false;
+            for (int idx = 0; idx < 6; ++idx) {
+                if (IsKeyPressed(recordKeys[idx])) {
+                    anyKeyPressed = true;
+                    break;
+                }
+            }
 
-            float beatIntervalSec = 60.0f / s_EditorBPM;
-
-            for (int i = 0; i < 4; ++i) {
-                int key = recordKeys[i];
-                int lane = i;
-
-                // 1. 버튼을 누르는 순간: 롱노트 시작점(Head) 기록
-                if (IsKeyPressed(key)) {
-                    if (!s_IsAudioStarted) {
-                        s_IsAudioStarted = true;
-                    }
-
-                    float bestSnapErrorMs = 0.0f;
-                    float nearestBeatTime = ApplyQuantizeFilter(exactInputTime, beatIntervalSec, bestSnapErrorMs);
-                    float snappedWorldY = nearestBeatTime * s_ScrollSpeed;
-
-                    s_ActiveLongNotes[i] = { true, lane, snappedWorldY, nearestBeatTime, bestSnapErrorMs };
-                    s_LanePulseTimers[lane] = 0.15f;
+            if (anyKeyPressed) {
+                if (!s_IsAudioStarted) {
+                    s_IsAudioStarted = true;
                 }
 
-                // 2. 버튼을 꾹 누르고 있는 동안: 펄스 유지
-                if (s_ActiveLongNotes[i].isPressed && IsKeyDown(key)) {
-                    s_LanePulseTimers[lane] = 0.05f;
+                float exactInputTime = currentSec - s_InputLatency;
+                if (exactInputTime < 0.0f) exactInputTime = 0.0f;
+
+                float beatIntervalSec = 60.0f / s_EditorBPM;
+                float bestSnapErrorMs = 0.0f;
+                float nearestBeatTime = ApplyQuantizeFilter(exactInputTime, beatIntervalSec, bestSnapErrorMs);
+                float snappedWorldY = nearestBeatTime * s_ScrollSpeed;
+
+                // [동타 및 중복 방지]: 해당 비트 위치에 이미 노트가 있으면 무시
+                bool beatAlreadyHasNote = false;
+                for (const auto& note : s_EditorNotes) {
+                    if (fabsf(note.posX - snappedWorldY) < 1.0f) {
+                        beatAlreadyHasNote = true;
+                        break;
+                    }
                 }
 
-                // 3. 버튼을 뗄 때: 누른 시간(길이)에 따라 롱노트 혹은 일반 노트로 확정 등록 후 에디팅 지속 가능
-                if (s_ActiveLongNotes[i].isPressed && IsKeyReleased(key)) {
-                    float currentWorldY = exactInputTime * s_ScrollSpeed;
-                    float length = currentWorldY - s_ActiveLongNotes[i].startWorldY;
-                    if (length < 0.0f) length = 0.0f;
+                if (!beatAlreadyHasNote) {
+                    // 패턴 체이닝 엔진: 새로운 잔잔한 패턴 선택 및 경계 연타 방지
+                    if (s_ManualPatternIndex < 0 || s_ManualPatternStep >= (int)EASY_PATTERN_POOL[s_ManualPatternIndex].size()) {
+                        std::vector<int> validPatternIndices;
+                        
+                        // 이전 패턴과 이어질 때 연타(폭타)가 발생하지 않는 패턴만 무작위 선택
+                        for (size_t p = 0; p < EASY_PATTERN_POOL.size(); ++p) {
+                            if (s_LastAssignedLane == -1 || EASY_PATTERN_POOL[p][0] != s_LastAssignedLane) {
+                                validPatternIndices.push_back((int)p);
+                            }
+                        }
 
-                    bool isLongNote = (length > 25.0f); // 25픽셀 이상 길면 롱노트, 짧으면 일반 노트
-                    Color noteColor = (lane % 2 == 0) ? SKYBLUE : ORANGE;
-                    if (s_ActiveLongNotes[i].snapErrorMs <= s_QuantizeThresholdMs) noteColor = GOLD;
-
-                    if (isLongNote) {
-                        s_EditorNotes.push_back({ lane, s_ActiveLongNotes[i].startWorldY, s_ActiveLongNotes[i].snapErrorMs, noteColor, true, length });
-                    } else {
-                        s_EditorNotes.push_back({ lane, s_ActiveLongNotes[i].startWorldY, s_ActiveLongNotes[i].snapErrorMs, noteColor, false, 0.0f });
+                        if (!validPatternIndices.empty()) {
+                            s_ManualPatternIndex = validPatternIndices[rand() % validPatternIndices.size()];
+                        } else {
+                            s_ManualPatternIndex = rand() % EASY_PATTERN_POOL.size();
+                        }
+                        s_ManualPatternStep = 0;
                     }
 
-                    s_LanePulseTimers[lane] = 0.2f;
-                    s_LastNoteTimeByLane[lane] = s_ActiveLongNotes[i].startWorldY / s_ScrollSpeed;
-                    s_ActiveLongNotes[i].isPressed = false;
+                    int targetLane = EASY_PATTERN_POOL[s_ManualPatternIndex][s_ManualPatternStep++];
+                    s_LastAssignedLane = targetLane;
+
+                    Color noteColor = (targetLane % 2 == 0) ? SKYBLUE : ORANGE;
+                    if (bestSnapErrorMs <= s_QuantizeThresholdMs) noteColor = GOLD;
+
+                    s_EditorNotes.push_back({ targetLane, snappedWorldY, bestSnapErrorMs, noteColor });
+                    s_LanePulseTimers[targetLane] = 0.15f;
 
                     notes.clear();
                     for (const auto& n : s_EditorNotes) {
@@ -612,7 +611,7 @@ void ChartEditor::HandleInput() {
         Rectangle box = { (float)screenWidth / 2.f - boxWidth / 2.f, (float)screenHeight / 2.f - boxHeight / 2.f, boxWidth, boxHeight };
 
         float startY = box.y + 30.f;
-        for (size_t i = 0; i < s_MusicFileList.size(); ++i) {
+        for (size_t i = 0; i < s_MusicFileList.size(); ++i) { // size_t로 올바르게 사용
             Rectangle itemBox = { box.x + 20.f, startY + (float)(i * 45.f), boxWidth - 40.f, 35.f };
             if (CheckCollisionPointRec(mousePos, itemBox)) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -657,7 +656,7 @@ void ChartEditor::HandleInput() {
         s_EditorNotes.clear();
         notes.clear();
         for (const auto& n : loadedNotes) {
-            s_EditorNotes.push_back({ n.lane, n.posX, 0.0f, WHITE, false, 0.0f });
+            s_EditorNotes.push_back({ n.lane, n.posX, 0.0f, WHITE });
             notes.push_back({ n.lane, n.posX });
         }
         fileLoaded = false;
@@ -710,10 +709,9 @@ void ChartEditor::HandleInput() {
         s_SameHandCount = 0;
         s_ActivePatternType = 0;
         s_PatternSubIndex = 0;
-        for (int i = 0; i < 4; ++i) {
-            s_LastNoteTimeByLane[i] = -10.0f;
-            s_ActiveLongNotes[i] = { false, 0, 0.0f, 0.0f, 0.0f };
-        }
+        s_ManualPatternIndex = -1;
+        s_ManualPatternStep = 0;
+        for (int i = 0; i < 4; ++i) s_LastNoteTimeByLane[i] = -10.0f;
         std::fill(std::begin(s_EnergyHistory), std::end(s_EnergyHistory), 0.0f);
         m_MusicPlayer->Stop();
         m_MusicPlayer->Play(*m_AudioManager, 0);
@@ -745,10 +743,9 @@ void ChartEditor::HandleInput() {
         s_SameHandCount = 0;
         s_ActivePatternType = 0;
         s_PatternSubIndex = 0;
-        for (int i = 0; i < 4; ++i) {
-            s_LastNoteTimeByLane[i] = -10.0f;
-            s_ActiveLongNotes[i] = { false, 0, 0.0f, 0.0f, 0.0f };
-        }
+        s_ManualPatternIndex = -1;
+        s_ManualPatternStep = 0;
+        for (int i = 0; i < 4; ++i) s_LastNoteTimeByLane[i] = -10.0f;
         std::fill(std::begin(s_EnergyHistory), std::end(s_EnergyHistory), 0.0f);
         m_MusicPlayer->Stop();
         m_MusicPlayer->Play(*m_AudioManager, 0);
@@ -953,47 +950,13 @@ void ChartEditor::Render() {
     DrawLineEx({ LANE_START_X - 6.0f, JUDGMENT_LINE_Y }, { LANE_START_X + LANE_AREA_WIDTH + 6.0f, JUDGMENT_LINE_Y }, 5.0f, Fade(PURPLE, 0.7f));
     DrawLineEx({ LANE_START_X, JUDGMENT_LINE_Y }, { LANE_START_X + LANE_AREA_WIDTH, JUDGMENT_LINE_Y }, 2.0f, RAYWHITE);
 
-    // 저장된 노트(일반/롱노트) 렌더링
     for (const auto& note : s_EditorNotes) {
         float screenNoteY = JUDGMENT_LINE_Y - (note.posX - scrollOffset);
-        if (screenNoteY >= -200.0f && screenNoteY <= JUDGMENT_LINE_Y + 300.0f) {
+        if (screenNoteY >= -30.0f && screenNoteY <= JUDGMENT_LINE_Y + 30.0f) {
             float noteX = LANE_X_COORDS[note.lane];
-            if (note.isLong) {
-                float bodyHeight = note.length;
-                float bodyY = screenNoteY - bodyHeight;
-
-                DrawRectangle((int)(noteX - 26.0f), (int)bodyY, 52, (int)bodyHeight, (Color){ 80, 220, 240, 160 });
-                DrawRectangleLines((int)(noteX - 26.0f), (int)bodyY, 52, (int)bodyHeight, (Color){ 160, 240, 255, 200 });
-
-                DrawRectangle((int)(noteX - 30.0f), (int)(screenNoteY - 7.5f), 60, 15, (Color){ 120, 240, 255, 255 });
-                DrawRectangleLines((int)(noteX - 30.0f), (int)(screenNoteY - 7.5f), 60, 15, WHITE);
-
-                DrawRectangle((int)(noteX - 30.0f), (int)(bodyY - 7.5f), 60, 8, (Color){ 80, 220, 240, 220 });
-            } else {
-                DrawRectangleRounded(Rectangle{ noteX - 28.0f, screenNoteY - 6.0f, 56.0f, 12.0f }, 0.4f, 4, Fade(note.feedbackColor, 0.4f));
-                DrawRectangleRounded(Rectangle{ noteX - 26.0f, screenNoteY - 5.0f, 52.0f, 10.0f }, 0.3f, 4, note.feedbackColor);
-                DrawRectangleRounded(Rectangle{ noteX - 22.0f, screenNoteY - 2.0f, 44.0f, 4.0f }, 0.3f, 4, Color{ 20, 20, 20, 255 });
-            }
-        }
-    }
-
-    // [수동 레코딩 중 누르고 있는 롱노트 실시간 미리보기 렌더링]
-    if (s_IsRecording && !s_IsAutoRecording && m_MusicPlayer) {
-        float currentSec = (float)m_MusicPlayer->GetCurrentPositionMs() / 1000.0f;
-        float currentWorldY = currentSec * s_ScrollSpeed;
-
-        for (int i = 0; i < 4; ++i) {
-            if (s_ActiveLongNotes[i].isPressed) {
-                float headScreenY = JUDGMENT_LINE_Y - (s_ActiveLongNotes[i].startWorldY - scrollOffset);
-                float currentLength = currentWorldY - s_ActiveLongNotes[i].startWorldY;
-                if (currentLength < 0.0f) currentLength = 0.0f;
-                float bodyY = headScreenY - currentLength;
-                float noteX = LANE_X_COORDS[i];
-
-                DrawRectangle((int)(noteX - 26.0f), (int)bodyY, 52, (int)currentLength, (Color){ 80, 220, 240, 120 });
-                DrawRectangleLines((int)(noteX - 26.0f), (int)bodyY, 52, (int)currentLength, (Color){ 160, 240, 255, 180 });
-                DrawRectangle((int)(noteX - 30.0f), (int)(headScreenY - 7.5f), 60, 15, (Color){ 120, 240, 255, 200 });
-            }
+            DrawRectangleRounded(Rectangle{ noteX - 28.0f, screenNoteY - 6.0f, 56.0f, 12.0f }, 0.4f, 4, Fade(note.feedbackColor, 0.4f));
+            DrawRectangleRounded(Rectangle{ noteX - 26.0f, screenNoteY - 5.0f, 52.0f, 10.0f }, 0.3f, 4, note.feedbackColor);
+            DrawRectangleRounded(Rectangle{ noteX - 22.0f, screenNoteY - 2.0f, 44.0f, 4.0f }, 0.3f, 4, Color{ 20, 20, 20, 255 });
         }
     }
 
@@ -1017,7 +980,7 @@ void ChartEditor::Render() {
         Rectangle slotRect = { slotX, slotY, slotW, slotH };
 
         Color slotColor = Color{ 30, 36, 52, 255 };
-        if (i < 4 && (s_LanePulseTimers[i] > 0.0f || s_LanePulseTimers[i + 2] > 0.0f || s_ActiveLongNotes[i].isPressed)) {
+        if (i < 4 && (s_LanePulseTimers[i] > 0.0f || s_LanePulseTimers[i + 2] > 0.0f)) {
             slotColor = Color{ 0, 220, 255, 255 }; 
             DrawRectangle(static_cast<int>(slotX), static_cast<int>(JUDGMENT_LINE_Y - 12.0f), static_cast<int>(slotW), 20, Fade(SKYBLUE, 0.8f));
         }
@@ -1027,8 +990,8 @@ void ChartEditor::Render() {
     }
 
     if (s_IsRecording) {
-        std::string statusText = s_IsAutoRecording ? "자동 레코딩 중 (지연 시간: 40ms) - U 키로 정지" : "수동 롱노트 레코딩 중 (레인 키 꾹 누름/떼기) - U 키로 정지";
-        DrawTextEx(s_SuitFont, statusText.c_str(), Vector2{ PLAYFIELD_X + 10.0f, 20.0f }, 11.0f, 1.0f, RED);
+        std::string statusText = s_IsAutoRecording ? "자동 레코딩 중 (지연 시간: 40ms) - U 키로 정지" : editorTexts[4];
+        DrawTextEx(s_SuitFont, statusText.c_str(), Vector2{ PLAYFIELD_X + 10.0f, 20.0f }, 12.0f, 1.0f, RED);
     } else {
         DrawTextEx(s_SuitFont, editorTexts[5].c_str(), Vector2{ PLAYFIELD_X + 10.0f, 20.0f }, 11.0f, 1.0f, GREEN);
     }

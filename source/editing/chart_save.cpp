@@ -35,6 +35,10 @@ void ChartSave::SaveToJSON(const char* filename, const std::string& musicPath, f
     file << "{\n";
     file << "  \"musicPath\": \"" << musicPath << "\",\n";
     file << "  \"speed\": " << speed << ",\n";
+    file << "  \"sections\": [\n";
+    file << "    { \"section\": 0, \"end_time\": 15.0 },\n";
+    file << "    { \"section\": 1, \"end_time\": 35.0 }\n";
+    file << "  ],\n";
     file << "  \"noteCount\": " << notes.size() << ",\n";
     file << "  \"notes\": [\n";
     
@@ -65,13 +69,11 @@ std::vector<std::string> ChartSave::GetSavedChartList() {
     return fileList;
 }
 
-// 구버전 LoadFromJSON (임시 speed 변수 생성 후 위임)
 bool ChartSave::LoadFromJSON(const char* filename, std::string& outMusicPath, std::vector<SaveNoteData>& outNotes) {
     float dummySpeed = 1.0f;
     return LoadFromJSON(filename, outMusicPath, dummySpeed, outNotes);
 }
 
-// 신버전 LoadFromJSON
 bool ChartSave::LoadFromJSON(const char* filename, std::string& outMusicPath, float& outSpeed, std::vector<SaveNoteData>& outNotes) {
     std::string fullPath = std::string("map_data/") + filename;
     std::ifstream file(fullPath);
@@ -128,14 +130,12 @@ bool ChartSave::LoadFromJSON(const char* filename, std::string& outMusicPath, fl
     return true;
 }
 
-// 구버전 HandleChartInput (임시 speed 변수 생성 후 위임)
 void ChartSave::HandleChartInput(const std::string& musicPath, const std::vector<SaveNoteData>& notes, std::string& outMusicPath, std::vector<SaveNoteData>& outNotes, bool& fileLoaded) {
     float dummySpeed = 1.0f;
     float outSpeed = 1.0f;
     HandleChartInput(musicPath, dummySpeed, notes, outMusicPath, outSpeed, outNotes, fileLoaded);
 }
 
-// 신버전 HandleChartInput
 void ChartSave::HandleChartInput(const std::string& musicPath, float speed, const std::vector<SaveNoteData>& notes, std::string& outMusicPath, float& outSpeed, std::vector<SaveNoteData>& outNotes, bool& fileLoaded) {
     if (!s_FontLoaded) {
         if (FileExists("fonts/Pretendard-Black.ttf")) {
