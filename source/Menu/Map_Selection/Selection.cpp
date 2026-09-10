@@ -6,6 +6,8 @@
 #include <set>
 #include <string>
 
+static std::vector<Texture2D> g_jacketTextures;
+
 static inline float EaseOutCubic(float x) {
     return 1.0f - std::pow(1.0f - x, 3.0f);
 }
@@ -23,24 +25,50 @@ SongSelect::~SongSelect() {
     if (fontLoaded) {
         UnloadFont(suitFont);
     }
+
+    for (auto& tex : g_jacketTextures) {
+        if (tex.id != 0) {
+            UnloadTexture(tex);
+        }
+    }
+    g_jacketTextures.clear();
 }
 
 void SongSelect::Init() {
     LoadSongs();
     
+    for (auto& tex : g_jacketTextures) {
+        if (tex.id != 0) UnloadTexture(tex);
+    }
+    g_jacketTextures.clear();
+
+    std::vector<std::string> jacketPaths = {
+        "album_assets/stars.png",
+        "album_assets/kaleidoscope.png",
+        "album_assets/Timeline.png",
+        "album_assets/R.png"
+    };
+
+    for (const auto& path : jacketPaths) {
+        Texture2D tex = LoadTexture(path.c_str());
+        if (tex.id != 0) {
+            SetTextureFilter(tex, TEXTURE_FILTER_BILINEAR);
+        }
+        g_jacketTextures.push_back(tex);
+    }
+
     if (!fontLoaded) {
         std::set<int> cpSet;
         for (int i = 32; i <= 126; ++i) cpSet.insert(i);
         
         std::vector<std::string> texts = {
             "A Night Without Visible Stars", "Four Beat Sounds", "Mapper_A",
-            "별이 보이지 않는 밤", "Plum", "boyangsic",
+            "별이 보이지 않는 밤", "Plum", "boyangsic", "Kaleidoscope", "Timeline", "R",
             "Cybernetic Dream", "Neo Synth", "Mapper_C",
             "Neon Highway", "Retro Pulse", "Mapper_B",
-            "작곡가:", "에디터:", "BPM:", "길이:", "노트 수:", "최대 콤보:", "난이도 레이팅:",
-            "곡 이동", "난이도 변경", "플레이", "뒤로가기",
-            "DIFFICULTY SELECT (A / D)", "JACKET ART", "PLAY GAME",
-            "EASY", "NORMAL", "HARD", "EXPERT", "MASTER"
+            "작곡가:", "에디터:", "BPM:", "길이:",
+            "곡 선택", "플레이", "뒤로가기",
+            "엔터 누르면 시작 가능"
         };
 
         for (const auto& text : texts) {
@@ -80,7 +108,7 @@ void SongSelect::Init() {
         }
 
         std::vector<int> codepoints(cpSet.begin(), cpSet.end());
-        suitFont = LoadFontEx("fonts/Pretendard-Black.ttf", 68, codepoints.data(), (int)codepoints.size());
+        suitFont = LoadFontEx("fonts/Pretendard-Black.ttf", 72, codepoints.data(), (int)codepoints.size());
 
         if (suitFont.texture.id != 0) {
             SetTextureFilter(suitFont.texture, TEXTURE_FILTER_BILINEAR);
@@ -93,6 +121,7 @@ void SongSelect::Init() {
     animScrollOffset = 0.0f;
     targetScrollOffset = 0.0f;
     carouselAnimProgress = 1.0f;
+    bgTransitionAlpha = 1.0f;
 }
 
 void SongSelect::LoadSongs() {
@@ -105,12 +134,7 @@ void SongSelect::LoadSongs() {
     song1.bpm = 88.0f;
     song1.length = 152.0f;
     song1.cleared = true;
-    song1.difficulties = {
-        {"EASY", 3, 140.0f, 210, 450, 4.0f},
-        {"NORMAL", 7, 140.0f, 430, 890, 6.0f},
-        {"HARD", 12, 140.0f, 780, 1520, 6.0f},
-        {"EXPERT", 16, 140.0f, 1150, 2300, 6.5f}
-    };
+    song1.difficulties = { {"NORMAL", 7, 140.0f, 430, 890, 6.0f} };
     songs.push_back(song1);
 
     SongData song2;
@@ -120,11 +144,7 @@ void SongSelect::LoadSongs() {
     song2.bpm = 128.0f;
     song2.length = 135.0f;
     song2.cleared = false;
-    song2.difficulties = {
-        {"NORMAL", 5, 128.0f, 320, 640, 4.0f},
-        {"HARD", 10, 128.0f, 650, 1300, 6.0f},
-        {"EXPERT", 15, 128.0f, 1020, 2100, 6.5f}
-    };
+    song2.difficulties = { {"HARD", 10, 128.0f, 650, 1300, 6.0f} };
     songs.push_back(song2);
 
     SongData song3;
@@ -134,13 +154,7 @@ void SongSelect::LoadSongs() {
     song3.bpm = 155.0f;
     song3.length = 168.0f;
     song3.cleared = true;
-    song3.difficulties = {
-        {"EASY", 2, 155.0f, 180, 390, 4.0f},
-        {"NORMAL", 6, 155.0f, 390, 810, 6.0f},
-        {"HARD", 11, 155.0f, 720, 1450, 6.0f},
-        {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f},
-        {"MASTER", 20, 155.0f, 1750, 3500, 6.5f}
-    };
+    song3.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
     songs.push_back(song3);
 
     SongData song4;
@@ -150,18 +164,15 @@ void SongSelect::LoadSongs() {
     song4.bpm = 170.0f;
     song4.length = 142.0f;
     song4.cleared = false;
-    song4.difficulties = {
-        {"NORMAL", 6, 170.0f, 400, 800, 4.0f},
-        {"HARD", 13, 170.0f, 850, 1700, 6.0f},
-        {"EXPERT", 18, 170.0f, 1400, 2800, 6.5f}
-    };
+    song4.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
     songs.push_back(song4);
 }
 
 void SongSelect::Update() {
     float dt = GetFrameTime();
 
-    animScrollOffset += (targetScrollOffset - animScrollOffset) * (dt * 16.0f);
+    float lerpFactor = 1.0f - std::exp(-16.0f * dt);
+    animScrollOffset += (targetScrollOffset - animScrollOffset) * lerpFactor;
     
     if (carouselAnimProgress < 1.0f) {
         carouselAnimProgress += dt * 6.0f;
@@ -177,34 +188,22 @@ void SongSelect::Update() {
         if (selectedSongIndex > 0) {
             previousSongIndex = selectedSongIndex;
             selectedSongIndex--;
-            targetScrollOffset = (float)selectedSongIndex * 1.0f; 
+            targetScrollOffset = (float)selectedSongIndex; 
             carouselAnimProgress = 0.0f;
             bgTransitionAlpha = 0.0f;
-            selectedDiffIndex = std::min(selectedDiffIndex, (int)songs[selectedSongIndex].difficulties.size() - 1);
+            selectedDiffIndex = 0;
         }
     }
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         if (selectedSongIndex < (int)songs.size() - 1) {
             previousSongIndex = selectedSongIndex;
             selectedSongIndex++;
-            targetScrollOffset = (float)selectedSongIndex * 1.0f;
+            targetScrollOffset = (float)selectedSongIndex;
             carouselAnimProgress = 0.0f;
             bgTransitionAlpha = 0.0f;
-            selectedDiffIndex = std::min(selectedDiffIndex, (int)songs[selectedSongIndex].difficulties.size() - 1);
+            selectedDiffIndex = 0;
         }
     }
-
-    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-        if (selectedDiffIndex > 0) {
-            selectedDiffIndex--;
-        }
-    }
-    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-        if (selectedDiffIndex < (int)songs[selectedSongIndex].difficulties.size() - 1) {
-            selectedDiffIndex++;
-        }
-    }
-
 
     float wheel = GetMouseWheelMove();
     if (wheel != 0.0f) {
@@ -213,29 +212,29 @@ void SongSelect::Update() {
         if (newIndex != selectedSongIndex) {
             previousSongIndex = selectedSongIndex;
             selectedSongIndex = newIndex;
-            targetScrollOffset = (float)selectedSongIndex * 1.0f;
+            targetScrollOffset = (float)selectedSongIndex;
             carouselAnimProgress = 0.0f;
             bgTransitionAlpha = 0.0f;
-            selectedDiffIndex = std::min(selectedDiffIndex, (int)songs[selectedSongIndex].difficulties.size() - 1);
+            selectedDiffIndex = 0;
         }
     }
 }
 
 float SongSelect::GetSongCardY(int index, float centerY) const {
     float relativePos = (float)index - animScrollOffset;
-    return centerY + relativePos * 150.0f;
+    return centerY + relativePos * 145.0f;
 }
 
 float SongSelect::GetSongCardScale(int index) const {
     float dist = std::abs((float)index - animScrollOffset);
-    float scale = 1.0f - dist * 0.25f;
-    return std::clamp(scale, 0.65f, 1.0f);
+    float scale = 1.0f - dist * 0.18f;
+    return std::clamp(scale, 0.72f, 1.0f);
 }
 
 float SongSelect::GetSongCardAlpha(int index) const {
     float dist = std::abs((float)index - animScrollOffset);
-    float alpha = 1.0f - dist * 0.35f;
-    return std::clamp(alpha, 0.2f, 1.0f);
+    float alpha = 1.0f - dist * 0.30f;
+    return std::clamp(alpha, 0.25f, 1.0f);
 }
 
 void SongSelect::Draw(int screenWidth, int screenHeight) {
@@ -246,113 +245,194 @@ void SongSelect::Draw(int screenWidth, int screenHeight) {
 }
 
 void SongSelect::DrawBackground(int screenWidth, int screenHeight) {
-    DrawRectangle(0, 0, screenWidth, screenHeight, (Color){ 10, 10, 12, 255 });
-    DrawRectangleGradientV(0, 0, screenWidth, screenHeight, (Color){ 20, 22, 28, 255 }, (Color){ 8, 8, 10, 255 });
+    // 1. 기본 배경 레이어
+    DrawRectangle(0, 0, screenWidth, screenHeight, (Color){ 12, 14, 20, 255 });
+
+    // 2. Pan, Zoom & Slow Rotation 변수 계산
+    float time = (float)GetTime();
+    float scale = 1.10f + 0.02f * std::sin(time * 0.3f); // 기본 110% 확대 + 미세 줌
+    float rotation = 1.2f * std::sin(time * 0.15f);      // 미세 회전 (-1.2° ~ +1.2°)
+    
+    // 대각선 이동 (Pan)
+    float panX = 18.0f * std::cos(time * 0.25f);
+    float panY = 14.0f * std::sin(time * 0.20f);
+
+    float bgW = screenWidth * scale;
+    float bgH = screenHeight * scale;
+
+    // 화면 중심 기준 원점 연산
+    Vector2 origin = { bgW * 0.5f, bgH * 0.5f };
+    Rectangle destRect = {
+        (screenWidth * 0.5f) + panX,
+        (screenHeight * 0.5f) + panY,
+        bgW,
+        bgH
+    };
+
+    // 불투명도 레벨 조정 (약간 더 진하게)
+    float maxBgAlpha = 0.28f;
+
+    // 이전 곡 배경 Fade Out
+    if (bgTransitionAlpha < 1.0f && previousSongIndex >= 0 && previousSongIndex < (int)g_jacketTextures.size()) {
+        if (g_jacketTextures[previousSongIndex].id != 0) {
+            unsigned char pAlpha = (unsigned char)(255.0f * maxBgAlpha * (1.0f - bgTransitionAlpha));
+            DrawTexturePro(
+                g_jacketTextures[previousSongIndex],
+                (Rectangle){ 0, 0, (float)g_jacketTextures[previousSongIndex].width, (float)g_jacketTextures[previousSongIndex].height },
+                destRect, origin, rotation,
+                (Color){ 255, 255, 255, pAlpha }
+            );
+        }
+    }
+
+    // 현재 곡 배경 Fade In
+    if (selectedSongIndex >= 0 && selectedSongIndex < (int)g_jacketTextures.size()) {
+        if (g_jacketTextures[selectedSongIndex].id != 0) {
+            unsigned char cAlpha = (unsigned char)(255.0f * maxBgAlpha * bgTransitionAlpha);
+            DrawTexturePro(
+                g_jacketTextures[selectedSongIndex],
+                (Rectangle){ 0, 0, (float)g_jacketTextures[selectedSongIndex].width, (float)g_jacketTextures[selectedSongIndex].height },
+                destRect, origin, rotation,
+                (Color){ 255, 255, 255, cAlpha }
+            );
+        }
+    }
+
+    // 3. 어두운 오버레이 그라데이션
+    DrawRectangleGradientV(0, 0, screenWidth, screenHeight, (Color){ 20, 24, 34, 130 }, (Color){ 8, 9, 14, 180 });
+    
+    // 4. 격자 사선 효과
+    for (int i = -screenWidth; i < screenWidth + screenHeight; i += 80) {
+        DrawLine(i, 0, i + screenHeight, screenHeight, (Color){ 255, 255, 255, 6 });
+    }
 }
 
 void SongSelect::DrawSongCarousel(int screenWidth, int screenHeight) {
-    float centerX = (float)screenWidth * 0.32f;
-    float centerY = (float)screenHeight * 0.45f;
+    float centerX = (float)screenWidth * 0.30f;
+    float centerY = (float)screenHeight * 0.48f;
 
     for (int i = 0; i < (int)songs.size(); ++i) {
         float cardY = GetSongCardY(i, centerY);
         float scale = GetSongCardScale(i);
         float alpha = GetSongCardAlpha(i);
 
-        if (cardY < -150.0f || cardY > (float)screenHeight + 150.0f) continue;
+        if (cardY < -160.0f || cardY > (float)screenHeight + 160.0f) continue;
 
         bool isCurrent = (i == selectedSongIndex);
 
-        float cardWidth = 340.0f * scale;
-        float cardHeight = 110.0f * scale;
+        float cardWidth = 380.0f * scale;
+        float cardHeight = 120.0f * scale;
         float cardX = centerX - cardWidth / 2.0f;
 
-        Color cardBg = isCurrent ? (Color){ 35, 40, 50, 240 } : (Color){ 18, 20, 25, (unsigned char)(200 * alpha) };
-        Color borderColor = isCurrent ? WHITE : (Color){ 255, 255, 255, (unsigned char)(50 * alpha) };
+        Color cardBg = isCurrent ? (Color){ 32, 38, 52, 245 } : (Color){ 18, 21, 28, (unsigned char)(210 * alpha) };
+        Color borderColor = isCurrent ? (Color){ 255, 255, 255, 255 } : (Color){ 255, 255, 255, (unsigned char)(40 * alpha) };
 
-        DrawRectangleRounded((Rectangle){ cardX + 4.0f, cardY + 4.0f, cardWidth, cardHeight }, 0.12f, 4, (Color){ 0, 0, 0, (unsigned char)(120 * alpha) });
+        DrawRectangleRounded((Rectangle){ cardX + 5.0f, cardY + 5.0f, cardWidth, cardHeight }, 0.12f, 4, (Color){ 0, 0, 0, (unsigned char)(140 * alpha) });
 
         if (isCurrent) {
-            float pulse = 1.0f + 0.015f * std::sin((float)GetTime() * 8.0f);
+            float pulse = 1.0f + 0.012f * std::sin((float)GetTime() * 8.0f);
             float pWidth = cardWidth * pulse;
             float pHeight = cardHeight * pulse;
             float pX = cardX - (pWidth - cardWidth) / 2.0f;
             float pY = cardY - (pHeight - cardHeight) / 2.0f;
+            
             DrawRectangleRounded((Rectangle){ pX, pY, pWidth, pHeight }, 0.12f, 4, cardBg);
             DrawRectangleRoundedLines((Rectangle){ pX, pY, pWidth, pHeight }, 0.12f, 4, WHITE);
-            DrawRectangleRounded((Rectangle){ pX, pY, 8.0f, pHeight }, 0.3f, 4, WHITE);
+            DrawRectangleRounded((Rectangle){ pX, pY, 8.0f, pHeight }, 0.25f, 4, WHITE);
         } else {
             DrawRectangleRounded((Rectangle){ cardX, cardY, cardWidth, cardHeight }, 0.12f, 4, cardBg);
             DrawRectangleRoundedLines((Rectangle){ cardX, cardY, cardWidth, cardHeight }, 0.12f, 4, borderColor);
         }
 
         float jacketSize = cardHeight - 24.0f * scale;
-        float jacketX = cardX + 16.0f * scale;
+        float jacketX = cardX + 18.0f * scale;
         float jacketY = cardY + 12.0f * scale;
         
-        DrawRectangleRounded((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.08f, 4, (Color){ 60, 70, 85, (unsigned char)(255 * alpha) });
+        if (i < (int)g_jacketTextures.size() && g_jacketTextures[i].id != 0) {
+            DrawTexturePro(
+                g_jacketTextures[i],
+                (Rectangle){ 0, 0, (float)g_jacketTextures[i].width, (float)g_jacketTextures[i].height },
+                (Rectangle){ jacketX, jacketY, jacketSize, jacketSize },
+                (Vector2){ 0, 0 }, 0.0f,
+                (Color){ 255, 255, 255, (unsigned char)(255 * alpha) }
+            );
+            DrawRectangleRoundedLines((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.10f, 4, (Color){ 255, 255, 255, (unsigned char)(100 * alpha) });
+        } else {
+            DrawRectangleRounded((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.10f, 4, (Color){ 50, 60, 78, (unsigned char)(255 * alpha) });
+        }
         
         Color titleColor = isCurrent ? WHITE : (Color){ 200, 210, 225, (unsigned char)(220 * alpha) };
-        Color artistColor = isCurrent ? (Color){ 220, 220, 220, 255 } : (Color){ 150, 160, 175, (unsigned char)(180 * alpha) };
+        Color artistColor = isCurrent ? (Color){ 210, 220, 235, 255 } : (Color){ 140, 150, 170, (unsigned char)(180 * alpha) };
 
-        float textX = jacketX + jacketSize + 14.0f * scale;
+        float textX = jacketX + jacketSize + 16.0f * scale;
         
         if (fontLoaded) {
-            DrawTextEx(suitFont, songs[i].title.c_str(), (Vector2){ textX, jacketY + 8.0f * scale }, 17.0f * scale, 1.0f, titleColor);
-            DrawTextEx(suitFont, songs[i].artist.c_str(), (Vector2){ textX, jacketY + 36.0f * scale }, 13.0f * scale, 1.0f, artistColor);
+            DrawTextEx(suitFont, songs[i].title.c_str(), (Vector2){ textX, jacketY + 10.0f * scale }, 20.0f * scale, 1.0f, titleColor);
+            DrawTextEx(suitFont, songs[i].artist.c_str(), (Vector2){ textX, jacketY + 44.0f * scale }, 15.0f * scale, 1.0f, artistColor);
         } else {
-            DrawText(songs[i].title.c_str(), (int)textX, (int)(jacketY + 8.0f * scale), (int)(16 * scale), titleColor);
-            DrawText(songs[i].artist.c_str(), (int)textX, (int)(jacketY + 36.0f * scale), (int)(12 * scale), artistColor);
+            DrawText(songs[i].title.c_str(), (int)textX, (int)(jacketY + 10.0f * scale), (int)(18 * scale), titleColor);
+            DrawText(songs[i].artist.c_str(), (int)textX, (int)(jacketY + 44.0f * scale), (int)(14 * scale), artistColor);
         }
     }
 }
 
 void SongSelect::DrawCurrentSongInfo(int screenWidth, int screenHeight) {
     const SongData& curSong = songs[selectedSongIndex];
-    const DifficultyData& curDiff = curSong.difficulties[selectedDiffIndex];
 
-    float infoPanelX = (float)screenWidth * 0.53f;
-    float infoPanelY = (float)screenHeight * 0.12f;
-    float infoPanelW = (float)screenWidth * 0.42f;
-    float infoPanelH = (float)screenHeight * 0.72f;
+    float infoPanelX = (float)screenWidth * 0.52f;
+    float infoPanelY = (float)screenHeight * 0.10f;
+    float infoPanelW = (float)screenWidth * 0.44f;
+    float infoPanelH = (float)screenHeight * 0.78f;
 
-    DrawRectangleRounded((Rectangle){ infoPanelX + 6.0f, infoPanelY + 6.0f, infoPanelW, infoPanelH }, 0.03f, 4, (Color){ 0, 0, 0, 150 });
-    DrawRectangleRounded((Rectangle){ infoPanelX, infoPanelY, infoPanelW, infoPanelH }, 0.03f, 4, (Color){ 22, 26, 35, 245 });
-    DrawRectangleRoundedLines((Rectangle){ infoPanelX, infoPanelY, infoPanelW, infoPanelH }, 0.03f, 4, WHITE);
+    DrawRectangleRounded((Rectangle){ infoPanelX + 8.0f, infoPanelY + 8.0f, infoPanelW, infoPanelH }, 0.04f, 4, (Color){ 0, 0, 0, 160 });
+    DrawRectangleRounded((Rectangle){ infoPanelX, infoPanelY, infoPanelW, infoPanelH }, 0.04f, 4, (Color){ 20, 24, 34, 250 });
+    DrawRectangleRoundedLines((Rectangle){ infoPanelX, infoPanelY, infoPanelW, infoPanelH }, 0.04f, 4, (Color){ 255, 255, 255, 45 });
 
     float animProgressEase = EaseOutCubic(carouselAnimProgress);
     float baseArtSize = 220.0f;
-    float currentArtSize = baseArtSize * (0.92f + 0.08f * animProgressEase);
-    float artX = infoPanelX + 30.0f;
-    float artY = infoPanelY + 30.0f;
+    float currentArtSize = baseArtSize * (0.94f + 0.06f * animProgressEase);
+    float margin = 35.0f;
+    float artX = infoPanelX + margin;
+    float artY = infoPanelY + margin;
 
-    DrawRectangleRounded((Rectangle){ artX + 4.0f, artY + 4.0f, currentArtSize, currentArtSize }, 0.04f, 4, (Color){ 0, 0, 0, 100 });
-    DrawRectangleRounded((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.04f, 4, (Color){ 35, 42, 55, 255 });
-    DrawRectangleRoundedLines((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.04f, 4, WHITE);
+    DrawRectangleRounded((Rectangle){ artX + 5.0f, artY + 5.0f, currentArtSize, currentArtSize }, 0.06f, 4, (Color){ 0, 0, 0, 120 });
 
-    if (fontLoaded) {
-        DrawTextEx(suitFont, "JACKET ART", (Vector2){ artX + currentArtSize / 2.0f - 48.0f, artY + currentArtSize / 2.0f - 10.0f }, 15.0f, 1.0f, WHITE);
-    }
-
-    float titleX = artX + currentArtSize + 25.0f;
-    float titleY = artY + 5.0f;
-
-    if (fontLoaded) {
-        DrawTextEx(suitFont, curSong.title.c_str(), (Vector2){ titleX, titleY }, 25.0f, 1.0f, WHITE);
+    if (selectedSongIndex < (int)g_jacketTextures.size() && g_jacketTextures[selectedSongIndex].id != 0) {
+        DrawTexturePro(
+            g_jacketTextures[selectedSongIndex],
+            (Rectangle){ 0, 0, (float)g_jacketTextures[selectedSongIndex].width, (float)g_jacketTextures[selectedSongIndex].height },
+            (Rectangle){ artX, artY, currentArtSize, currentArtSize },
+            (Vector2){ 0, 0 }, 0.0f, WHITE
+        );
     } else {
-        DrawText(curSong.title.c_str(), (int)titleX, (int)titleY, 22, WHITE);
+        DrawRectangleRounded((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.06f, 4, (Color){ 35, 43, 58, 255 });
+    }
+    DrawRectangleRoundedLines((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.06f, 4, WHITE);
+
+    float titleX = artX + currentArtSize + 28.0f;
+    float titleY = artY + 10.0f;
+
+    if (fontLoaded) {
+        DrawTextEx(suitFont, curSong.title.c_str(), (Vector2){ titleX, titleY }, 32.0f, 1.0f, WHITE);
+        DrawTextEx(suitFont, curSong.artist.c_str(), (Vector2){ titleX, titleY + 45.0f }, 20.0f, 1.0f, (Color){ 170, 182, 200, 255 });
+    } else {
+        DrawText(curSong.title.c_str(), (int)titleX, (int)titleY, 28, WHITE);
+        DrawText(curSong.artist.c_str(), (int)titleX, (int)(titleY + 40.0f), 18, (Color){ 170, 182, 200, 255 });
     }
 
-    float metaStartY = titleY + 45.0f;
-    float rowSpacing = 28.0f;
+    float metaStartY = artY + currentArtSize + 30.0f;
+    float panelContentW = infoPanelW - (margin * 2.0f);
+    DrawLine((int)artX, (int)(metaStartY - 15.0f), (int)(artX + panelContentW), (int)(metaStartY - 15.0f), (Color){ 255, 255, 255, 40 });
 
-    auto DrawMetaRow = [&](const char* label, const std::string& value, float yOffset, Color valColor = WHITE) {
+    float rowSpacing = 36.0f;
+
+    auto DrawMetaRow = [&](const char* label, const std::string& value, float yOffset) {
         if (fontLoaded) {
-            DrawTextEx(suitFont, label, (Vector2){ titleX, metaStartY + yOffset }, 14.0f, 1.0f, (Color){ 180, 190, 205, 255 });
-            DrawTextEx(suitFont, value.c_str(), (Vector2){ titleX + 85.0f, metaStartY + yOffset - 1.0f }, 16.0f, 1.0f, valColor);
+            DrawTextEx(suitFont, label, (Vector2){ artX, metaStartY + yOffset }, 22.0f, 1.0f, (Color){ 160, 175, 195, 255 });
+            DrawTextEx(suitFont, value.c_str(), (Vector2){ artX + 130.0f, metaStartY + yOffset }, 24.0f, 1.0f, (Color){ 240, 245, 255, 255 });
         } else {
-            DrawText(label, (int)titleX, (int)(metaStartY + yOffset), 13, (Color){ 180, 190, 205, 255 });
-            DrawText(value.c_str(), (int)(titleX + 85.0f), (int)(metaStartY + yOffset), 14, valColor);
+            DrawText(label, (int)artX, (int)(metaStartY + yOffset), 20, (Color){ 160, 175, 195, 255 });
+            DrawText(value.c_str(), (int)(artX + 130.0f), (int)(metaStartY + yOffset), 22, (Color){ 240, 245, 255, 255 });
         }
     };
 
@@ -368,102 +448,47 @@ void SongSelect::DrawCurrentSongInfo(int screenWidth, int screenHeight) {
     DrawMetaRow("BPM:", bpmBuf, rowSpacing * 2.0f);
     DrawMetaRow("길이:", lenBuf, rowSpacing * 3.0f);
 
-    float diffSectionY = artY + currentArtSize + 25.0f;
-    float diffBoxW = infoPanelW - 60.0f;
-
-    if (fontLoaded) {
-        DrawTextEx(suitFont, "DIFFICULTY SELECT (A / D)", (Vector2){ artX, diffSectionY }, 13.0f, 1.0f, WHITE);
-    }
-
-    diffSectionY += 22.0f;
-    for (size_t i = 0; i < curSong.difficulties.size(); ++i) {
-        bool isDiffSelected = (int)i == selectedDiffIndex;
-        float dx = artX + (i * (diffBoxW / curSong.difficulties.size()));
-        float dw = (diffBoxW / curSong.difficulties.size()) - 6.0f;
-        
-        Rectangle dRect = { dx, diffSectionY, dw, 40.0f };
-        
-        DrawRectangleRounded((Rectangle){ dx + 2.0f, diffSectionY + 2.0f, dw, 40.0f }, 0.2f, 4, (Color){ 0, 0, 0, 100 });
-
-        if (isDiffSelected) {
-            DrawRectangleRounded(dRect, 0.2f, 4, WHITE);
-            DrawRectangleRoundedLines(dRect, 0.2f, 4, WHITE);
-        } else {
-            DrawRectangleRounded(dRect, 0.2f, 4, (Color){ 32, 38, 50, 255 });
-            DrawRectangleRoundedLines(dRect, 0.2f, 4, (Color){ 120, 130, 150, 255 });
-        }
-
-        if (fontLoaded) {
-            char diffLabel[32];
-            snprintf(diffLabel, sizeof(diffLabel), "%s Lv.%d", curSong.difficulties[i].diffName.c_str(), curSong.difficulties[i].level);
-            int tW = (int)MeasureTextEx(suitFont, diffLabel, 13.0f, 1.0f).x;
-            Color textColor = isDiffSelected ? BLACK : WHITE;
-            DrawTextEx(suitFont, diffLabel, (Vector2){ dRect.x + (dRect.width - (float)tW) / 2.0f, dRect.y + 11.0f }, 13.0f, 1.0f, textColor);
-        }
-    }
-
-    float statsY = diffSectionY + 55.0f;
-    DrawLine((int)artX, (int)statsY, (int)(artX + diffBoxW), (int)statsY, WHITE);
-
-    char statBuf1[64], statBuf2[64];
-    snprintf(statBuf1, sizeof(statBuf1), "노트 수: %d", curDiff.noteCount);
-    snprintf(statBuf2, sizeof(statBuf2), "최대 콤보: %d", curDiff.maxCombo);
-
-    if (fontLoaded) {
-        DrawTextEx(suitFont, statBuf1, (Vector2){ artX, statsY + 12.0f }, 14.0f, 1.0f, WHITE);
-        DrawTextEx(suitFont, statBuf2, (Vector2){ artX + 150.0f, statsY + 12.0f }, 14.0f, 1.0f, WHITE);
-        DrawTextEx(suitFont, "난이도:", (Vector2){ artX, statsY + 36.0f }, 14.0f, 1.0f, WHITE);
-    }
-
-    float circleStartX = artX + 105.0f;
-    float circleY = statsY + 43.0f;
-    float circleRadius = 5.5f;
-    float circleSpacing = 16.0f;
-
-    for (int c = 0; c < 10; ++c) {
-        float cx = circleStartX + (float)c * circleSpacing;
-        DrawRing((Vector2){ cx, circleY }, circleRadius - 1.2f, circleRadius, 0.0f, 360.0f, 16, (Color){ 150, 160, 175, 255 });
-
-        float ratingValue = curDiff.difficultyRating;
-        if ((float)c < ratingValue) {
-            if ((float)c + 0.5f == ratingValue) {
-                DrawRectangle((int)(cx - circleRadius), (int)(circleY - circleRadius), (int)circleRadius, (int)(circleRadius * 2.0f), WHITE);
-            } else {
-                DrawCircle((int)cx, (int)circleY, circleRadius - 0.8f, WHITE);
-            }
-        }
-    }
-
-    Rectangle playBtnRect = { artX, statsY + 72.0f, diffBoxW, 52.0f };
-    DrawRectangleRounded((Rectangle){ playBtnRect.x + 3.0f, playBtnRect.y + 3.0f, playBtnRect.width, playBtnRect.height }, 0.25f, 4, (Color){ 0, 0, 0, 120 });
+    float btnHeight = 58.0f;
+    float btnY = infoPanelY + infoPanelH - margin - btnHeight;
+    Rectangle playBtnRect = { artX, btnY, panelContentW, btnHeight };
     
-    float playPulse = 1.0f + 0.008f * std::sin((float)GetTime() * 10.0f);
+    float playPulse = 1.0f + 0.012f * std::sin((float)GetTime() * 8.0f);
     Rectangle pBtnScaled = { 
         playBtnRect.x - (playBtnRect.width * (playPulse - 1.0f)) / 2.0f, 
         playBtnRect.y - (playBtnRect.height * (playPulse - 1.0f)) / 2.0f, 
         playBtnRect.width * playPulse, 
         playBtnRect.height * playPulse 
     };
-    
-    DrawRectangleRounded(pBtnScaled, 0.25f, 4, WHITE);
-    DrawRectangleRoundedLines(pBtnScaled, 0.25f, 4, WHITE);
 
+    DrawRectangleRounded((Rectangle){ playBtnRect.x + 4.0f, playBtnRect.y + 4.0f, playBtnRect.width, playBtnRect.height }, 0.20f, 4, (Color){ 0, 0, 0, 140 });
+    DrawRectangleRounded(pBtnScaled, 0.20f, 4, WHITE);
+    DrawRectangleRoundedLines(pBtnScaled, 0.20f, 4, (Color){ 220, 225, 235, 255 });
+
+    const char* playStr = "엔터 누르면 시작 가능";
+    float fontSize = 24.0f;
     if (fontLoaded) {
-        const char* playStr = "[ ENTER / SPACE ] PLAY GAME  |  [ P ] CHART EDITOR";
-        int pW = (int)MeasureTextEx(suitFont, playStr, 17.0f, 1.0f).x;
-        DrawTextEx(suitFont, playStr, (Vector2){ pBtnScaled.x + (pBtnScaled.width - (float)pW) / 2.0f, pBtnScaled.y + 17.0f }, 17.0f, 1.0f, BLACK);
+        Vector2 textSize = MeasureTextEx(suitFont, playStr, fontSize, 1.0f);
+        float textX = pBtnScaled.x + (pBtnScaled.width - textSize.x) / 2.0f;
+        float textY = pBtnScaled.y + (pBtnScaled.height - textSize.y) / 2.0f;
+        DrawTextEx(suitFont, playStr, (Vector2){ textX, textY }, fontSize, 1.0f, (Color){ 15, 18, 25, 255 });
     } else {
-        DrawText("PLAY GAME", (int)(playBtnRect.x + 120.0f), (int)(playBtnRect.y + 17.0f), 16, BLACK);
+        int textWidth = MeasureText(playStr, 22);
+        int textX = (int)(pBtnScaled.x + (pBtnScaled.width - (float)textWidth) / 2.0f);
+        int textY = (int)(pBtnScaled.y + (pBtnScaled.height - 22.0f) / 2.0f);
+        DrawText(playStr, textX, textY, 22, (Color){ 15, 18, 25, 255 });
     }
 }
 
 void SongSelect::DrawInputHints(int screenWidth, int screenHeight) {
-    const char* guideText = "[ W / S 또는 UP / DOWN ] 곡 이동    |    [ A / D ] 난이도 변경    |    [ ENTER / SPACE ] 플레이    |    [ P ] 에디터    |    [ ESC ] 뒤로가기";
+    const char* guideText = "[ W / S ] 곡 선택    |    [ ENTER ] 플레이    |    [ ESC ] 뒤로가기";
     
+    DrawRectangle(0, screenHeight - 50, screenWidth, 50, (Color){ 10, 12, 16, 220 });
+    DrawLine(0, screenHeight - 50, screenWidth, screenHeight - 50, (Color){ 255, 255, 255, 20 });
+
     if (fontLoaded) {
-        DrawTextEx(suitFont, guideText, (Vector2){ 60.0f, (float)screenHeight - 38.0f }, 14.0f, 1.0f, WHITE);
+        DrawTextEx(suitFont, guideText, (Vector2){ 50.0f, (float)screenHeight - 36.0f }, 16.0f, 1.0f, (Color){ 200, 210, 225, 255 });
     } else {
-        DrawText(guideText, 60, screenHeight - 38, 13, WHITE);
+        DrawText(guideText, 50, screenHeight - 36, 15, (Color){ 200, 210, 225, 255 });
     }
 }
 

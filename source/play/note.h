@@ -13,7 +13,7 @@ public:
 
     Note(float startX, float startY, float moveSpeed, int noteLane);
     void Update();
-    void Draw(); // 인자 제거
+    void Draw();
 };
 
 #endif

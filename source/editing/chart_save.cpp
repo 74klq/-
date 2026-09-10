@@ -16,12 +16,10 @@ bool ChartSave::IsPopupOpen() {
     return s_IsSaveOpen || s_IsLoadOpen || s_KeyCooldown > 0;
 }
 
-// 구버전 SaveToJSON (기본 speed 1.0f로 위임)
 void ChartSave::SaveToJSON(const char* filename, const std::string& musicPath, const std::vector<SaveNoteData>& notes) {
     SaveToJSON(filename, musicPath, 1.0f, notes);
 }
 
-// 신버전 SaveToJSON
 void ChartSave::SaveToJSON(const char* filename, const std::string& musicPath, float speed, const std::vector<SaveNoteData>& notes) {
     std::string dirPath = "map_data";
     if (!std::filesystem::exists(dirPath)) {
