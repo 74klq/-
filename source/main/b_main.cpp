@@ -21,10 +21,9 @@ int main() {
         if (currentState == STATE_MENU) {
             mainMenu.Update();
 
-            // 🎯 곡 선택 화면이나 메뉴 상태일 때 P키를 누르면 무조건 에디터 모드로 강제 실행!
             if (IsKeyPressed(KEY_P)) {
                 currentState = STATE_PLAYING;
-                playScene.Init(); // 플레이 씬을 초기화하여 인게임 화면으로 진입할 준비를 합니다.
+                playScene.Init();
             }
             else if (mainMenu.IsGameStartSelected()) {
                 currentState = STATE_PLAYING;

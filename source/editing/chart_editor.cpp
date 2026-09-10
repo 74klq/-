@@ -16,18 +16,19 @@
 #include <random>
 
 static std::vector<std::string> editorTexts = {
-    /* 0 */ "AUDIO SPECTRUM & PITCH VISUALIZER",
-    /* 1 */ "에디팅 프로그램",
-    /* 2 */ "Press '7' to play music & start live spectrum analysis",
-    /* 3 */ "Current Pitch: ",
-    /* 4 */ "RECORDING (Latency: 40ms) - U to Stop",
-    /* 5 */ "'7': Record | 'ENTER': Test | '0': Save | 'T': Spd | 'Q': Music",
-    /* 6 */ "speed = ",
-    /* 7 */ "Select Music (Click & Enter):"
+    "오디오 스펙트럼 & 피치 시각화",
+    "채보 에디터 프로그램",
+    "'7'(수동) 또는 'A'(자동) 키를 눌러 레코딩",
+    "현재 피치: ",
+    "수동 레코딩 중 (지연 시간: 40ms) - U 키로 정지",
+    "'7': 수동 레코딩 | 'A': 자동 레코딩 | 'ENTER': 테스트 | '0': 저장 | 'T': 속도 | 'Q': 음악 선택",
+    "속도 = ",
+    "음악 선택 (클릭 & 엔터):"
 };
 
 static EditorPlay s_EditorPlay;
 static bool s_IsRecording = false;
+static bool s_IsAutoRecording = false;
 static bool s_IsTestPlaying = false;
 static float s_CurrentPitch = 1.0f;
 static float s_ScrollSpeed = 200.0f;
@@ -35,7 +36,14 @@ static bool s_IsSpeedInputActive = false;
 static std::string s_SpeedInputString = "";
 
 static float s_InputLatency = 0.040f; 
-static float s_EditorBPM = 130.0f;     
+static float s_EditorBPM = 220.0f;
+static float s_SongOffsetSec = 0.0f;
+static float s_QuantizeThresholdMs = 45.0f; 
+
+static const int ENERGY_HISTORY_SIZE = 20;
+static float s_EnergyHistory[ENERGY_HISTORY_SIZE] = { 0.0f };
+static int s_EnergyHistoryIndex = 0;
+static int s_EnergyHistoryCount = 0;
 
 static bool s_IsMusicSelectOpen = false;
 static std::vector<std::string> s_MusicFileList;
@@ -78,6 +86,50 @@ static float s_MetronomeFlashAlpha = 0.0f;
 
 static FMOD_DSP* s_FftDsp = nullptr;
 static bool s_IsFftInitialized = false;
+
+static float s_PrevEnergy = 0.0f;
+static float s_LastAutoNoteTime = -1.0f;
+
+static int s_PatternStep = 0;
+static int s_LastAssignedLane = -1;
+static int s_PatternDirection = 1;
+
+static bool s_IsAudioStarted = false;
+
+static int s_SameLaneCount = 0;
+static int s_LastHand = -1;
+static int s_SameHandCount = 0;
+static int s_ActivePatternType = 0;
+static int s_PatternSubIndex = 0;
+
+static float s_LastNoteTimeByLane[4] = { -10.0f, -10.0f, -10.0f, -10.0f };
+
+static float ApplyQuantizeFilter(float rawTimeSec, float beatIntervalSec, float& outSnapErrorMs) {
+    float interval16 = beatIntervalSec / 4.0f;
+    float interval12 = beatIntervalSec / 3.0f;
+
+    float relTime = rawTimeSec - s_SongOffsetSec;
+    if (relTime < 0.0f) relTime = 0.0f;
+
+    float index16 = roundf(relTime / interval16);
+    float snapTime16 = s_SongOffsetSec + (index16 * interval16);
+    float error16Ms = fabsf(relTime - snapTime16) * 1000.0f;
+
+    float index12 = roundf(relTime / interval12);
+    float snapTime12 = s_SongOffsetSec + (index12 * interval12);
+    float error12Ms = fabsf(relTime - snapTime12) * 1000.0f;
+
+    bool is16BitGrid = (error16Ms <= error12Ms);
+    float nearestBeatTime = is16BitGrid ? snapTime16 : snapTime12;
+    float bestSnapErrorMs = is16BitGrid ? error16Ms : error12Ms;
+
+    outSnapErrorMs = bestSnapErrorMs;
+
+    if (bestSnapErrorMs <= s_QuantizeThresholdMs) {
+        return nearestBeatTime;
+    }
+    return rawTimeSec;
+}
 
 static void LoadSuitFontWithKorean() {
     if (s_IsFontLoaded) return;
@@ -133,6 +185,7 @@ ChartEditor::~ChartEditor() {
 void ChartEditor::Init() {
     scrollOffset = 0.0f;
     s_IsRecording = false;
+    s_IsAutoRecording = false;
     s_IsTestPlaying = false;
     s_CurrentPitch = 1.0f;
     s_ScrollSpeed = 200.0f;
@@ -141,6 +194,21 @@ void ChartEditor::Init() {
     s_IsMusicSelectOpen = false;
     s_CurrentMusicPath = "";
     s_IsFftInitialized = false;
+    s_PrevEnergy = 0.0f;
+    s_LastAutoNoteTime = -1.0f;
+    s_PatternStep = 0;
+    s_LastAssignedLane = -1;
+    s_PatternDirection = 1;
+    s_EnergyHistoryIndex = 0;
+    s_EnergyHistoryCount = 0;
+    s_IsAudioStarted = false;
+    s_SameLaneCount = 0;
+    s_LastHand = -1;
+    s_SameHandCount = 0;
+    s_ActivePatternType = 0;
+    s_PatternSubIndex = 0;
+    for (int i = 0; i < 4; ++i) s_LastNoteTimeByLane[i] = -10.0f;
+    std::fill(std::begin(s_EnergyHistory), std::end(s_EnergyHistory), 0.0f);
     s_EditorNotes.clear();
     notes.clear();
 
@@ -163,6 +231,304 @@ void ChartEditor::HandleInput() {
             s_LanePulseTimers[i] -= GetFrameTime();
             if (s_LanePulseTimers[i] < 0.0f) s_LanePulseTimers[i] = 0.0f;
         }
+    }
+
+    if (s_IsRecording) {
+        if (!m_MusicPlayer) return;
+
+        if (IsKeyPressed(KEY_U)) {
+            s_IsRecording = false;
+            s_IsAutoRecording = false;
+            m_MusicPlayer->Stop();
+            return;
+        }
+
+        float currentSec = (float)m_MusicPlayer->GetCurrentPositionMs() / 1000.0f;
+        if (currentSec < 0.0f) currentSec = 0.0f;
+        scrollOffset = currentSec * s_ScrollSpeed;
+
+        if (s_IsAutoRecording && s_FftDsp) {
+            void* fftData = nullptr;
+            unsigned int dataLen = 0;
+            if (FMOD_DSP_GetParameterData(s_FftDsp, FMOD_DSP_FFT_SPECTRUMDATA, &fftData, &dataLen, nullptr, 0) == FMOD_OK && fftData != nullptr) {
+                FMOD_DSP_PARAMETER_FFT* fft = (FMOD_DSP_PARAMETER_FFT*)fftData;
+                if (fft->numchannels > 0) {
+                    float lowEnergy = 0.0f;
+                    float midEnergy = 0.0f;
+                    float highEnergy = 0.0f;
+
+                    for (int i = 0; i < 4; ++i) lowEnergy += fft->spectrum[0][i];
+                    for (int i = 4; i < 12; ++i) midEnergy += fft->spectrum[0][i];
+                    for (int i = 12; i < 32; ++i) highEnergy += fft->spectrum[0][i];
+
+                    float totalEnergy = lowEnergy + midEnergy + highEnergy;
+                    float energyDelta = totalEnergy - s_PrevEnergy;
+
+                    if (!s_IsAudioStarted) {
+                        if (energyDelta > 0.15f || (totalEnergy >= 0.35f && energyDelta > 0.10f)) {
+                            s_IsAudioStarted = true;
+                        }
+                    }
+
+                    if (s_IsAudioStarted) {
+                        s_EnergyHistory[s_EnergyHistoryIndex] = totalEnergy;
+                        s_EnergyHistoryIndex = (s_EnergyHistoryIndex + 1) % ENERGY_HISTORY_SIZE;
+                        if (s_EnergyHistoryCount < ENERGY_HISTORY_SIZE) s_EnergyHistoryCount++;
+
+                        float avgEnergy = 0.0f;
+                        for (int i = 0; i < s_EnergyHistoryCount; ++i) {
+                            avgEnergy += s_EnergyHistory[i];
+                        }
+                        avgEnergy /= (float)s_EnergyHistoryCount;
+
+                        bool isBurstMode = (s_EnergyHistoryCount >= 5) && (totalEnergy > avgEnergy * 2.0f) && (avgEnergy > 0.003f);
+                        float dynamicThreshold = isBurstMode ? (avgEnergy * 1.05f + 0.005f) : (avgEnergy * 1.25f + 0.010f);
+
+                        float beatIntervalSec = 60.0f / s_EditorBPM;
+                        float bestSnapErrorMs = 0.0f;
+                        float nearestBeatTime = ApplyQuantizeFilter(currentSec, beatIntervalSec, bestSnapErrorMs);
+                        float snappedWorldY = nearestBeatTime * s_ScrollSpeed;
+
+                        float interval16 = beatIntervalSec / 4.0f;
+                        float minNoteIntervalSec = isBurstMode ? (interval16 * 0.40f) : (interval16 * 0.60f);
+
+                        bool isOnset = (totalEnergy > dynamicThreshold && energyDelta > 0.02f) || (isBurstMode && energyDelta > 0.010f);
+
+                        if (isOnset && (s_LastAutoNoteTime < 0.0f || (nearestBeatTime - s_LastAutoNoteTime >= minNoteIntervalSec))) {
+                            bool duplicate = false;
+                            for (const auto& note : s_EditorNotes) {
+                                if (fabsf(note.posX - snappedWorldY) < 1.0f) {
+                                    duplicate = true;
+                                    break;
+                                }
+                            }
+
+                            if (!duplicate) {
+                                bool isLowBpmMode = (s_EditorBPM < 150.0f);
+                                bool isLaurHardcoreKick = (lowEnergy > midEnergy * 1.30f) && (lowEnergy > highEnergy * 1.30f) && (totalEnergy > avgEnergy * 1.30f);
+                                bool isHighMelody = (highEnergy > midEnergy * 1.15f) && (highEnergy > lowEnergy * 1.15f);
+
+                                if (!isLowBpmMode && (isLaurHardcoreKick || (isBurstMode && lowEnergy > avgEnergy * 1.70f))) {
+                                    static bool s_AlternateChord = false;
+                                    int laneA = s_AlternateChord ? 1 : 0;
+                                    int laneB = s_AlternateChord ? 2 : 3;
+                                    s_AlternateChord = !s_AlternateChord;
+
+                                    Color kickColor = isBurstMode ? RED : PURPLE;
+                                    s_EditorNotes.push_back({ laneA, snappedWorldY, bestSnapErrorMs, kickColor });
+                                    s_EditorNotes.push_back({ laneB, snappedWorldY, bestSnapErrorMs, kickColor });
+                                    s_LanePulseTimers[laneA] = 0.15f;
+                                    s_LanePulseTimers[laneB] = 0.15f;
+
+                                    s_LastAssignedLane = -1;
+                                    s_SameLaneCount = 0;
+                                    s_SameHandCount = 0;
+                                    s_LastHand = -1;
+                                } else {
+                                    bool isFastStream = !isLowBpmMode && (isBurstMode || (s_LastAutoNoteTime > 0.0f && (nearestBeatTime - s_LastAutoNoteTime <= interval16 * 1.25f)));
+                                    int candidateLane = 0;
+
+                                    if (isLowBpmMode) {
+                                        s_PatternSubIndex = 0;
+                                        int targetHand = (s_LastHand == 0) ? 1 : 0;
+                                        if (targetHand == 0) {
+                                            candidateLane = (s_LastAssignedLane == 0) ? 1 : 0;
+                                        } else {
+                                            candidateLane = (s_LastAssignedLane == 2) ? 3 : 2;
+                                        }
+                                    } else if (isFastStream) {
+                                        static const int PATTERNS[3][4] = {
+                                            { 0, 1, 2, 3 },
+                                            { 3, 2, 1, 0 },
+                                            { 1, 2, 1, 2 }
+                                        };
+                                        candidateLane = PATTERNS[s_ActivePatternType][s_PatternSubIndex];
+                                        s_PatternSubIndex = (s_PatternSubIndex + 1) % 4;
+                                        if (s_PatternSubIndex == 0) {
+                                            s_ActivePatternType = (s_ActivePatternType + 1) % 3;
+                                        }
+                                    } else {
+                                        s_PatternSubIndex = 0;
+                                        if (isHighMelody) {
+                                            candidateLane = (s_LastAssignedLane == 1) ? 2 : 1;
+                                        } else {
+                                            candidateLane = (s_LastAssignedLane + s_PatternDirection + LANE_COUNT) % LANE_COUNT;
+                                        }
+                                    }
+
+                                    int candidateHand = (candidateLane < 2) ? 0 : 1;
+                                    if (s_LastHand != -1 && s_SameHandCount >= 3 && candidateHand == s_LastHand) {
+                                        int forcedHand = 1 - s_LastHand;
+                                        if (forcedHand == 0) {
+                                            candidateLane = (candidateLane == 2) ? 1 : 0;
+                                        } else {
+                                            candidateLane = (candidateLane == 0) ? 3 : 2;
+                                        }
+                                        candidateHand = forcedHand;
+                                    }
+
+                                    if (candidateLane == s_LastAssignedLane && s_SameLaneCount >= 2) {
+                                        for (int offset = 1; offset < LANE_COUNT; ++offset) {
+                                            int testLane = (candidateLane + offset) % LANE_COUNT;
+                                            int testHand = (testLane < 2) ? 0 : 1;
+                                            if (s_LastHand != -1 && s_SameHandCount >= 3 && testHand == s_LastHand) {
+                                                continue;
+                                            }
+                                            if (testLane != s_LastAssignedLane) {
+                                                candidateLane = testLane;
+                                                candidateHand = testHand;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    if (candidateLane == s_LastAssignedLane) {
+                                        s_SameLaneCount++;
+                                    } else {
+                                        s_SameLaneCount = 1;
+                                    }
+
+                                    if (candidateHand == s_LastHand) {
+                                        s_SameHandCount++;
+                                    } else {
+                                        s_SameHandCount = 1;
+                                        s_LastHand = candidateHand;
+                                    }
+
+                                    s_LastAssignedLane = candidateLane;
+
+                                    Color noteColor = (bestSnapErrorMs <= s_QuantizeThresholdMs) ? SKYBLUE : ORANGE;
+                                    if (isHighMelody) noteColor = (bestSnapErrorMs <= s_QuantizeThresholdMs) ? GOLD : VIOLET;
+                                    if (isBurstMode) noteColor = YELLOW;
+
+                                    s_EditorNotes.push_back({ candidateLane, snappedWorldY, bestSnapErrorMs, noteColor });
+                                    s_LanePulseTimers[candidateLane] = 0.15f;
+                                }
+
+                                s_PatternStep++;
+                                notes.clear();
+                                for (const auto& n : s_EditorNotes) {
+                                    notes.push_back({ n.lane, n.posX });
+                                }
+                                s_LastAutoNoteTime = nearestBeatTime;
+                            }
+                        }
+                    }
+                    s_PrevEnergy = totalEnergy;
+                }
+            }
+        } else if (!s_IsAutoRecording) {
+            int recordKeys[] = { 
+                KEY_Q, KEY_W, KEY_E, KEY_R, 
+                KEY_P, KEY_LEFT_BRACKET, KEY_RIGHT_BRACKET, KEY_BACKSLASH
+            };
+
+            std::vector<int> pressedKeys;
+            for (int idx = 0; idx < 8; ++idx) {
+                if (IsKeyPressed(recordKeys[idx])) {
+                    pressedKeys.push_back(idx);
+                }
+            }
+
+            if (!pressedKeys.empty()) {
+                if (!s_IsAudioStarted) {
+                    s_IsAudioStarted = true;
+                }
+
+                float exactInputTime = currentSec - s_InputLatency;
+                if (exactInputTime < 0.0f) exactInputTime = 0.0f;
+
+                float beatIntervalSec = 60.0f / s_EditorBPM;
+                float bestSnapErrorMs = 0.0f;
+                float nearestBeatTime = ApplyQuantizeFilter(exactInputTime, beatIntervalSec, bestSnapErrorMs);
+                float snappedWorldY = nearestBeatTime * s_ScrollSpeed;
+
+                int keyIdx = pressedKeys[0];
+                int candidateLane = 0;
+
+                s_PatternStep++;
+                
+                int simpleDist = keyIdx % 4; 
+                int patternSelector = (s_PatternStep + keyIdx) % 10;
+
+                if (patternSelector == 0 && s_LastAssignedLane != -1) {
+                    candidateLane = (s_LastAssignedLane + 1) % LANE_COUNT;
+                } else {
+                    candidateLane = simpleDist;
+                    if (candidateLane == s_LastAssignedLane) {
+                        candidateLane = (candidateLane + 2) % LANE_COUNT;
+                    }
+                }
+
+                bool isChord = (pressedKeys.size() >= 2) || (keyIdx >= 4 && (s_PatternStep % 7 == 0));
+                if (isChord) {
+                    int laneA = s_PatternStep % 2;
+                    int laneB = 3 - laneA;
+                    s_EditorNotes.push_back({ laneA, snappedWorldY, bestSnapErrorMs, RED });
+                    s_EditorNotes.push_back({ laneB, snappedWorldY, bestSnapErrorMs, RED });
+                    s_LanePulseTimers[laneA] = 0.15f;
+                    s_LanePulseTimers[laneB] = 0.15f;
+                    s_LastAssignedLane = -1;
+                    s_SameLaneCount = 0;
+                } else {
+                    if (candidateLane == s_LastAssignedLane) {
+                        s_SameLaneCount++;
+                        if (s_SameLaneCount >= 2) {
+                            candidateLane = (s_LastAssignedLane + 2) % LANE_COUNT;
+                            s_SameLaneCount = 1;
+                        }
+                    } else {
+                        s_SameLaneCount = 1;
+                    }
+
+                    s_LastAssignedLane = candidateLane;
+                    Color noteColor = (keyIdx < 4) ? SKYBLUE : ORANGE;
+                    if (keyIdx >= 4) noteColor = GOLD;
+                    s_EditorNotes.push_back({ candidateLane, snappedWorldY, bestSnapErrorMs, noteColor });
+                    s_LanePulseTimers[candidateLane] = 0.15f;
+                }
+
+                notes.clear();
+                for (const auto& n : s_EditorNotes) {
+                    notes.push_back({ n.lane, n.posX });
+                }
+            }
+        }
+
+        return;
+    }
+
+    if (s_IsTestPlaying) {
+        if (IsKeyPressed(KEY_U)) {
+            s_IsTestPlaying = false;
+            m_MusicPlayer->Stop(); 
+            return;
+        }
+        if (IsKeyPressed(KEY_ENTER)) {
+            s_IsTestPlaying = false;
+            if (m_MusicPlayer) {
+                m_MusicPlayer->Stop();
+            }
+            return;
+        }
+        s_EditorPlay.Update(s_IsTestPlaying);
+        return;
+    }
+
+    if (IsKeyPressed(KEY_Q)) {
+        s_MusicFileList.clear();
+        if (std::filesystem::exists("music")) {
+            for (const auto& entry : std::filesystem::directory_iterator("music")) {
+                if (entry.is_regular_file()) {
+                    s_MusicFileList.push_back(entry.path().string());
+                }
+            }
+        }
+        if (s_MusicFileList.empty()) {
+            s_MusicFileList.push_back("music");
+        }
+        s_SelectedMusicIndex = 0;
+        s_IsMusicSelectOpen = true;
     }
 
     if (IsKeyPressed(KEY_T)) {
@@ -198,22 +564,6 @@ void ChartEditor::HandleInput() {
             s_IsSpeedInputActive = false;
         }
         return;
-    }
-
-    if (IsKeyPressed(KEY_Q) && !ChartSave::IsPopupOpen() && !s_IsTestPlaying && !s_IsRecording) {
-        s_IsMusicSelectOpen = !s_IsMusicSelectOpen;
-        if (s_IsMusicSelectOpen) {
-            s_MusicFileList.clear();
-            std::string dirPath = "music";
-            if (std::filesystem::exists(dirPath)) {
-                for (const auto& entry : std::filesystem::directory_iterator(dirPath)) {
-                    if (entry.path().extension() == ".ogg" || entry.path().extension() == ".mp3" || entry.path().extension() == ".wav") {
-                        s_MusicFileList.push_back("music/" + entry.path().filename().string());
-                    }
-                }
-            }
-            s_SelectedMusicIndex = 0;
-        }
     }
 
     if (s_IsMusicSelectOpen) {
@@ -299,95 +649,45 @@ void ChartEditor::HandleInput() {
 
     if (IsKeyPressed(KEY_THREE)) {
         s_CurrentPitch -= 0.05f;
-        if (s_CurrentPitch < 0.25f) {
-            s_CurrentPitch = 0.25f;
-        }
-        if (m_MusicPlayer) {
-            m_MusicPlayer->SetPitch(s_CurrentPitch);
-        }
+        if (s_CurrentPitch < 0.25f) s_CurrentPitch = 0.25f;
+        if (m_MusicPlayer) m_MusicPlayer->SetPitch(s_CurrentPitch);
     }
 
     if (IsKeyPressed(KEY_FOUR)) {
         s_CurrentPitch += 0.05f;
-        if (s_CurrentPitch > 1.0f) {
-            s_CurrentPitch = 1.0f;
-        }
+        if (s_CurrentPitch > 1.0f) s_CurrentPitch = 1.0f;
+        if (m_MusicPlayer) m_MusicPlayer->SetPitch(s_CurrentPitch);
+    }
+
+    if (IsKeyPressed(KEY_A)) {
+        if (s_CurrentMusicPath.empty()) return;
+        s_EditorNotes.clear();
+        notes.clear();
+        scrollOffset = 0.0f;
+        s_PrevEnergy = 0.0f;
+        s_LastAutoNoteTime = -1.0f;
+        s_PatternStep = 0;
+        s_LastAssignedLane = -1;
+        s_PatternDirection = 1;
+        s_EnergyHistoryIndex = 0;
+        s_EnergyHistoryCount = 0;
+        s_IsAudioStarted = false;
+        s_SameLaneCount = 0;
+        s_LastHand = -1;
+        s_SameHandCount = 0;
+        s_ActivePatternType = 0;
+        s_PatternSubIndex = 0;
+        for (int i = 0; i < 4; ++i) s_LastNoteTimeByLane[i] = -10.0f;
+        std::fill(std::begin(s_EnergyHistory), std::end(s_EnergyHistory), 0.0f);
+        m_MusicPlayer->Stop();
+        m_MusicPlayer->Play(*m_AudioManager, 0);
+        m_MusicPlayer->PlayImmediate();
         if (m_MusicPlayer) {
             m_MusicPlayer->SetPitch(s_CurrentPitch);
         }
-    }
-
-    if (s_IsTestPlaying) {
-        if (IsKeyPressed(KEY_U)) {
-            s_IsTestPlaying = false;
-            m_MusicPlayer->Stop(); 
-            return;
-        }
-        s_EditorPlay.Update(s_IsTestPlaying);
-        return;
-    }
-
-    if (s_IsRecording) {
-        if (!m_MusicPlayer) return;
-        float currentSec = (float)m_MusicPlayer->GetCurrentPositionMs() / 1000.0f;
-        
-        float exactInputTime = currentSec - s_InputLatency;
-        if (exactInputTime < 0.0f) exactInputTime = 0.0f;
-        
-        scrollOffset = currentSec * s_ScrollSpeed;
-        float worldY = exactInputTime * s_ScrollSpeed;
-
-        int recordKeys[] = { KEY_Z, KEY_X, KEY_C, KEY_B, KEY_N, KEY_M };
-        static float s_LastRecordedTime = -1.0f;
-
-        int triggeredKeyIndex = -1;
-        for (int idx = 0; idx < 6; ++idx) {
-            if (IsKeyPressed(recordKeys[idx])) {
-                triggeredKeyIndex = idx;
-                s_LanePulseTimers[idx] = 0.15f; 
-                break;
-            }
-        }
-
-        if (triggeredKeyIndex != -1) {
-            if (s_LastRecordedTime < 0.0f || (currentSec - s_LastRecordedTime >= 0.12f)) {
-                s_LastRecordedTime = currentSec;
-
-                static std::random_device rd;
-                static std::mt19937 gen(rd());
-                std::uniform_int_distribution<int> laneDist(0, LANE_COUNT - 1);
-                int chosenLane = laneDist(gen);
-
-                float beatIntervalSec = 60.0f / s_EditorBPM;
-                float subBeatIntervalSec = beatIntervalSec / 4.0f; 
-                
-                float nearestBeatTime = roundf(exactInputTime / subBeatIntervalSec) * subBeatIntervalSec;
-                float errorSec = exactInputTime - nearestBeatTime;
-                float errorMs = fabsf(errorSec) * 1000.0f;
-
-                Color noteColor = WHITE;
-                if (errorMs <= 30.0f) {
-                    noteColor = GREEN; 
-                } else if (errorMs <= 60.0f) {
-                    noteColor = YELLOW; 
-                } else {
-                    noteColor = RED; 
-                }
-
-                s_EditorNotes.push_back({ chosenLane, worldY, errorMs, noteColor });
-                
-                notes.clear();
-                for (const auto& n : s_EditorNotes) {
-                    notes.push_back({ n.lane, n.posX });
-                }
-            }
-        }
-
-        if (IsKeyPressed(KEY_U)) {
-            s_IsRecording = false;
-            m_MusicPlayer->Stop();
-            return;
-        }
+        s_IsRecording = true;
+        s_IsAutoRecording = true;
+        SetupFmodFft(m_MusicPlayer, m_AudioManager);
         return;
     }
 
@@ -396,6 +696,21 @@ void ChartEditor::HandleInput() {
         s_EditorNotes.clear();
         notes.clear();
         scrollOffset = 0.0f;
+        s_PrevEnergy = 0.0f;
+        s_LastAutoNoteTime = -1.0f;
+        s_PatternStep = 0;
+        s_LastAssignedLane = -1;
+        s_PatternDirection = 1;
+        s_EnergyHistoryIndex = 0;
+        s_EnergyHistoryCount = 0;
+        s_IsAudioStarted = false;
+        s_SameLaneCount = 0;
+        s_LastHand = -1;
+        s_SameHandCount = 0;
+        s_ActivePatternType = 0;
+        s_PatternSubIndex = 0;
+        for (int i = 0; i < 4; ++i) s_LastNoteTimeByLane[i] = -10.0f;
+        std::fill(std::begin(s_EnergyHistory), std::end(s_EnergyHistory), 0.0f);
         m_MusicPlayer->Stop();
         m_MusicPlayer->Play(*m_AudioManager, 0);
         m_MusicPlayer->PlayImmediate();
@@ -403,6 +718,7 @@ void ChartEditor::HandleInput() {
             m_MusicPlayer->SetPitch(s_CurrentPitch);
         }
         s_IsRecording = true;
+        s_IsAutoRecording = false;
         SetupFmodFft(m_MusicPlayer, m_AudioManager);
         return;
     }
@@ -536,7 +852,7 @@ void ChartEditor::Render() {
         DrawTextEx(s_SuitFont, editorTexts[2].c_str(), Vector2{ leftVisualizerX + 85.0f, leftVisualizerY + 295.0f }, 13.0f, 1.0f, Fade(SKYBLUE, 0.8f));
     }
 
-    std::string pitchStr = editorTexts[3] + std::to_string((int)(s_CurrentPitch * 100.0f)) + "% (Use 3/4)";
+    std::string pitchStr = editorTexts[3] + std::to_string((int)(s_CurrentPitch * 100.0f)) + "% (3/4 키 사용)";
     DrawTextEx(s_SuitFont, pitchStr.c_str(), Vector2{ leftVisualizerX + 25.0f, leftVisualizerY + 625.0f }, 14.0f, 1.0f, LIGHTGRAY);
 
     DrawRectangleRounded(Rectangle{ PLAYFIELD_X, PLAYFIELD_Y, PLAYFIELD_WIDTH, PLAYFIELD_HEIGHT }, 0.025f, 4, Color{ 12, 15, 24, 245 });
@@ -638,7 +954,8 @@ void ChartEditor::Render() {
     }
 
     if (s_IsRecording) {
-        DrawTextEx(s_SuitFont, editorTexts[4].c_str(), Vector2{ PLAYFIELD_X + 10.0f, 20.0f }, 12.0f, 1.0f, RED);
+        std::string statusText = s_IsAutoRecording ? "자동 레코딩 중 (지연 시간: 40ms) - U 키로 정지" : editorTexts[4];
+        DrawTextEx(s_SuitFont, statusText.c_str(), Vector2{ PLAYFIELD_X + 10.0f, 20.0f }, 12.0f, 1.0f, RED);
     } else {
         DrawTextEx(s_SuitFont, editorTexts[5].c_str(), Vector2{ PLAYFIELD_X + 10.0f, 20.0f }, 11.0f, 1.0f, GREEN);
     }
