@@ -1,4 +1,3 @@
-// source/vfx/hit_effect.h
 #pragma once
 #include "raylib.h"
 #include <vector>
@@ -10,6 +9,7 @@ struct Particle {
     float radius;
     float alpha;
     float life;
+    float maxLife;
 };
 
 class HitEffect {

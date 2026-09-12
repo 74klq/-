@@ -39,13 +39,17 @@ static const float LANE_X_COORDS[4] = {
     LANE_START_X + LANE_WIDTH * 3.5f
 };
 static const float JUDGMENT_LINE_Y = 595.0f;
-static float s_EditorScrollSpeed = 200.0f;
+static float s_EditorScrollSpeed = 0.0f;
 
 EditorPlay::EditorPlay() {
 }
 
 EditorPlay::~EditorPlay() {
     Unload();
+}
+
+void EditorPlay::SetScrollSpeed(float speed) {
+    s_EditorScrollSpeed = speed;
 }
 
 void EditorPlay::Init(const std::vector<SaveNoteData>& notes, Texture2D noteTex, MusicExecute::MusicPlayer1* musicPlayer) {

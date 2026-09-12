@@ -13,6 +13,7 @@ public:
     ~EditorPlay();
 
     void Init(const std::vector<SaveNoteData>& notes, Texture2D noteTex, MusicExecute::MusicPlayer1* musicPlayer);
+    void SetScrollSpeed(float speed);
     void Update(bool& isPlaying);
     void Draw();
     void Unload();
