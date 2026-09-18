@@ -1,0 +1,23 @@
+#pragma once
+#include "raylib.h"
+#include <vector>
+
+struct Particle {
+    Vector2 position;
+    Vector2 velocity;
+    Color color;
+    float radius;
+    float alpha;
+    float life;
+    float maxLife;
+};
+
+class HitEffect {
+public:
+    static void Spawn(Vector2 pos);
+    static void Update();
+    static void Draw();
+
+private:
+    static std::vector<Particle> s_Particles;
+};
