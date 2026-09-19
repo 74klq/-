@@ -7,7 +7,7 @@ RAYLIB_DIR = C:/Users/me/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_m
 INCLUDES = -I./inc -I./resource -I"$(RAYLIB_DIR)/include"
 LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lopengl32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++ -mwindows
 
-TARGET = The_Line
+TARGET = rhythm_Air
 BIN_DIR = bin
 
 # 1. OBJS 목록 끝에 auto_chart_generator.o를 추가했습니다.
