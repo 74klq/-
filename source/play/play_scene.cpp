@@ -6,6 +6,8 @@
 #include "../Animation/note_down_animation.h"
 #include "../AudioManager/audio_manager.h"
 #include "../music_execute/music1_on.cpp"
+#include "../music_execute/music2_on.cpp"
+#include "../music_execute/music3_on.cpp"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -112,8 +114,58 @@ LANE_START_X + LANE_WIDTH * 2.5f,
 LANE_START_X + LANE_WIDTH * 3.5f
 };
 
+struct MusicPlayerWrapper {
+    MusicExecute::MusicPlayer1* p1 = nullptr;
+    MusicExecute::MusicPlayer2* p2 = nullptr;
+    MusicExecute::MusicPlayer3* p3 = nullptr;
+    int active = 1;
+
+    void Init(AudioManager& am) {
+        if (p1) p1->Initialize(am);
+        if (p2) p2->Initialize(am);
+        if (p3) p3->Initialize(am);
+    }
+    void Update(float dt) {
+        if (active == 1 && p1) p1->Update(dt);
+        else if (active == 2 && p2) p2->Update(dt);
+        else if (active == 3 && p3) p3->Update(dt);
+    }
+    void Stop() {
+        if (p1) p1->Stop();
+        if (p2) p2->Stop();
+        if (p3) p3->Stop();
+    }
+    void Play(AudioManager& am, int i) {
+        if (active == 1 && p1) p1->Play(am, i);
+        else if (active == 2 && p2) p2->Play(am, i);
+        else if (active == 3 && p3) p3->Play(am, i);
+    }
+    void PlayImmediate() {
+        if (active == 1 && p1) p1->PlayImmediate();
+        else if (active == 2 && p2) p2->PlayImmediate();
+        else if (active == 3 && p3) p3->PlayImmediate();
+    }
+    void SetPitch(float p) {
+        if (active == 1 && p1) p1->SetPitch(p);
+        else if (active == 2 && p2) p2->SetPitch(p);
+        else if (active == 3 && p3) p3->SetPitch(p);
+    }
+    FMOD_CHANNEL* GetChannelRaw() const {
+        if (active == 1 && p1) return p1->GetChannelRaw();
+        if (active == 2 && p2) return p2->GetChannelRaw();
+        if (active == 3 && p3) return p3->GetChannelRaw();
+        return nullptr;
+    }
+    bool IsValid() const {
+        if (active == 1) return p1 != nullptr;
+        if (active == 2) return p2 != nullptr;
+        if (active == 3) return p3 != nullptr;
+        return false;
+    }
+};
+
 static AudioManager s_AudioManager;
-static MusicExecute::MusicPlayer1* s_MusicPlayer = nullptr;
+static MusicPlayerWrapper s_MusicPlayer;
 static FramedBeatmapClock s_BeatmapClock(true);
 
 static std::vector<Note> s_Notes;
@@ -1684,7 +1736,7 @@ static void DrawPauseUI()
             DrawRectangle((int)btnX + 8, (int)btnY + 11, 4, (int)btnH - 22, Color{ 120, 210, 255, 255 });
         }
 
-        std::string optText = (i == 0) ? texts[23] : texts[24]; // "계속하기", "나가기"
+        std::string optText = (i == 0) ? texts[23] : texts[24];
         Vector2 optSize = MeasureTextEx(fontToUse, optText.c_str(), 20.0f, 1.0f);
         DrawTextEx(fontToUse, optText.c_str(), { (screenW - optSize.x) * 0.5f, btnY + (btnH - optSize.y) * 0.5f }, 20.0f, 1.0f, textColor);
     }
@@ -1695,16 +1747,27 @@ PlayScene::PlayScene()
 m_BackToMenu(false),
 judgmentLineY(595.0f)
 {
-s_MusicPlayer =
-new MusicExecute::MusicPlayer1();
+s_MusicPlayer.p1 = new MusicExecute::MusicPlayer1();
+s_MusicPlayer.p2 = new MusicExecute::MusicPlayer2();
+s_MusicPlayer.p3 = new MusicExecute::MusicPlayer3();
 }
 
 PlayScene::~PlayScene()
 {
-if (s_MusicPlayer)
+if (s_MusicPlayer.p1)
 {
-delete s_MusicPlayer;
-s_MusicPlayer = nullptr;
+delete s_MusicPlayer.p1;
+s_MusicPlayer.p1 = nullptr;
+}
+if (s_MusicPlayer.p2)
+{
+delete s_MusicPlayer.p2;
+s_MusicPlayer.p2 = nullptr;
+}
+if (s_MusicPlayer.p3)
+{
+delete s_MusicPlayer.p3;
+s_MusicPlayer.p3 = nullptr;
 }
 }
 
@@ -1722,9 +1785,9 @@ s_BeatmapClock.LoadComplete();
 
 s_AudioManager.Init();
 
-if (s_MusicPlayer)
+if (s_MusicPlayer.IsValid())
 {
-    s_MusicPlayer->Initialize(
+    s_MusicPlayer.Init(
         s_AudioManager
     );
 }
@@ -1779,9 +1842,9 @@ s_IsEditorMode = true;
 
 s_AudioManager.Update();
 
-if (s_MusicPlayer)
+if (s_MusicPlayer.IsValid())
 {
-    s_MusicPlayer->Update(
+    s_MusicPlayer.Update(
         GetFrameTime()
     );
 }
@@ -1827,24 +1890,28 @@ if (m_State ==
         {
             osuFileName =
                 "G.osu";
+            s_MusicPlayer.active = 1;
         }
         else if (curSong.title ==
                  "Kaleidoscope")
         {
             osuFileName =
                 "Kaleidoscope.osu";
+            s_MusicPlayer.active = 1;
         }
         else if (curSong.title ==
                  "Timeline")
         {
             osuFileName =
                 "Timeline.osu";
+            s_MusicPlayer.active = 2;
         }
         else if (curSong.title ==
                  "R")
         {
             osuFileName =
                 "R.osu";
+            s_MusicPlayer.active = 3;
         }
 
         std::string outAudioFile, outTitle, outArtist, outCreator, outVersion;
@@ -1903,23 +1970,23 @@ if (m_State ==
 
         if (!outAudioFile.empty())
         {
-            if (s_MusicPlayer)
+            if (s_MusicPlayer.IsValid())
             {
-                s_MusicPlayer->Stop();
+                s_MusicPlayer.Stop();
 
-                s_MusicPlayer->Play(
+                s_MusicPlayer.Play(
                     s_AudioManager,
                     0
                 );
 
-                s_MusicPlayer->PlayImmediate();
+                s_MusicPlayer.PlayImmediate();
 
-                s_MusicPlayer->SetPitch(
+                s_MusicPlayer.SetPitch(
                     1.0f
                 );
 
                 FMOD_SYSTEM* system = s_AudioManager.GetSystemRaw();
-                FMOD_CHANNEL* channel = s_MusicPlayer->GetChannelRaw();
+                FMOD_CHANNEL* channel = s_MusicPlayer.GetChannelRaw();
                 s_BeatmapClock.SetSystem(system);
                 s_BeatmapClock.SetChannel(channel);
                 s_BeatmapClock.LoadComplete();
@@ -1947,7 +2014,7 @@ void PlayScene::UpdatePlaying()
             s_IsEditorMode = false;
             m_State = PlaySceneState::SongSelect;
             m_BackToMenu = true;
-            if (s_MusicPlayer) s_MusicPlayer->Stop();
+            if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
             return;
         }
 
@@ -1968,9 +2035,9 @@ void PlayScene::UpdatePlaying()
         {
             s_IsPaused = true;
             s_PauseSelection = 0;
-            if (s_MusicPlayer && s_MusicPlayer->GetChannelRaw())
+            if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw())
             {
-                FMOD_Channel_SetPaused(s_MusicPlayer->GetChannelRaw(), true);
+                FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), true);
             }
             return;
         }
@@ -1979,15 +2046,15 @@ void PlayScene::UpdatePlaying()
             if (s_PauseSelection == 0) 
             {
                 s_IsPaused = false;
-                if (s_MusicPlayer && s_MusicPlayer->GetChannelRaw())
+                if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw())
                 {
-                    FMOD_Channel_SetPaused(s_MusicPlayer->GetChannelRaw(), false);
+                    FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), false);
                 }
             }
             else if (s_PauseSelection == 1) 
             {
                 s_IsPaused = false;
-                if (s_MusicPlayer) s_MusicPlayer->Stop();
+                if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
                 m_State = PlaySceneState::SongSelect; 
             }
             return;
@@ -2010,15 +2077,15 @@ void PlayScene::UpdatePlaying()
             if (s_PauseSelection == 0) 
             {
                 s_IsPaused = false;
-                if (s_MusicPlayer && s_MusicPlayer->GetChannelRaw())
+                if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw())
                 {
-                    FMOD_Channel_SetPaused(s_MusicPlayer->GetChannelRaw(), false);
+                    FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), false);
                 }
             }
             else if (s_PauseSelection == 1) 
             {
                 s_IsPaused = false;
-                if (s_MusicPlayer) s_MusicPlayer->Stop();
+                if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
                 m_State = PlaySceneState::SongSelect; 
             }
         }
@@ -2043,15 +2110,15 @@ void PlayScene::UpdatePlaying()
                     if (i == 0) 
                     {
                         s_IsPaused = false;
-                        if (s_MusicPlayer && s_MusicPlayer->GetChannelRaw())
+                        if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw())
                         {
-                            FMOD_Channel_SetPaused(s_MusicPlayer->GetChannelRaw(), false);
+                            FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), false);
                         }
                     }
                     else if (i == 1) 
                     {
                         s_IsPaused = false;
-                        if (s_MusicPlayer) s_MusicPlayer->Stop();
+                        if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
                         m_State = PlaySceneState::SongSelect; 
                     }
                 }
@@ -2061,16 +2128,16 @@ void PlayScene::UpdatePlaying()
         return; 
     }
 
-    if (s_SongTimer > 1.0f && s_MusicPlayer)
+    if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
     {
-        FMOD_CHANNEL* ch = s_MusicPlayer->GetChannelRaw();
+        FMOD_CHANNEL* ch = s_MusicPlayer.GetChannelRaw();
         if (ch)
         {
             FMOD_BOOL isPlaying = false;
             FMOD_Channel_IsPlaying(ch, &isPlaying);
             if (!isPlaying)
             {
-                s_MusicPlayer->Stop();
+                s_MusicPlayer.Stop();
                 m_State = PlaySceneState::SongSelect; 
                 return;
             }
@@ -2296,9 +2363,9 @@ if (s_IsPaused)
 
 void PlayScene::Unload()
 {
-if (s_MusicPlayer)
+if (s_MusicPlayer.IsValid())
 {
-s_MusicPlayer->Stop();
+s_MusicPlayer.Stop();
 }
 
 if (s_ComboFont.texture.id != 0)

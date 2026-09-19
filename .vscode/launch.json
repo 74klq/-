@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "The Line build",
+            "name": "리듬에어 build",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/The_Line.exe",
+            "program": "${workspaceFolder}/rhythm_Air.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
