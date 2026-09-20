@@ -8,7 +8,7 @@ static Texture2D settingTexture = { 0 };
 static Texture2D exitTexture = { 0 };
 static Texture2D menuUiTextures[4] = { { 0 }, { 0 }, { 0 }, { 0 } };
 static bool isAssetsLoaded = false;
-static int activeFrames = 0; // 곡 선택 화면 진입 후 프레임 경과를 체크하기 위한 변수
+static int activeFrames = 0;
 
 MainMenu::MainMenu() {
     selectedIndex = 0;
@@ -31,24 +31,35 @@ void MainMenu::Update() {
             selectedIndex = (selectedIndex + 1 + totalOptions) % totalOptions;
         }
 
-        // 메인 메뉴에서 Play(인덱스 0)를 엔터로 누를 때 곡 선택 화면으로 진입
         if (selectedIndex == 0 && IsKeyPressed(KEY_ENTER)) {
             currentState = MenuState::SongSelect;
             songSelect.Init();
-            activeFrames = 0; // 진입 시 프레임 카운터 리셋
+            activeFrames = 0; 
+            return; // 엔터 누른 즉시 함수 종료하여 다음 프레임부터 곡 선택 조작 허용
         }
     }
     else if (currentState == MenuState::SongSelect) {
-        activeFrames++; // 프레임 증가
+        activeFrames++; 
+        
+        // [수정 핵심 1] 메인 메뉴에서 방금 넘어온 시점(최소 5프레임)에는 
+        // 이전 엔터키 찌꺼기 때문에 오작동하지 않도록 입력을 완전히 차단합니다.
+        if (activeFrames < 5) {
+            return;
+        }
+
         songSelect.Update();
 
-        // 곡 선택 화면에서 ESC를 누르면 다시 메인 메뉴로 복귀
+        if (songSelect.IsPlaySelected()) {
+            return;
+        }
+
         if (songSelect.IsBackSelected()) {
             currentState = MenuState::Main;
             activeFrames = 0;
         }
     }
 }
+
 
 void MainMenu::Draw(int screenWidth, int screenHeight) {
     if (currentState == MenuState::SongSelect) {

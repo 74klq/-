@@ -17,9 +17,17 @@ static inline float EaseInOutCubic(float x) {
 }
 
 SongSelect::SongSelect()
-    : selectedSongIndex(0), selectedDiffIndex(0), previousSongIndex(0),
-      animScrollOffset(0.0f), targetScrollOffset(0.0f), 
-      bgTransitionAlpha(1.0f), carouselAnimProgress(1.0f), fontLoaded(false) {}
+    : selectedSongIndex(0), 
+      selectedDiffIndex(0), 
+      previousSongIndex(0),
+      animScrollOffset(0.0f), 
+      targetScrollOffset(0.0f), 
+      bgTransitionAlpha(1.0f), 
+      carouselAnimProgress(1.0f), 
+      fontLoaded(false),
+      playRequested(false) 
+{
+}
 
 SongSelect::~SongSelect() {
     if (fontLoaded) {
@@ -116,12 +124,13 @@ void SongSelect::Init() {
         }
     }
     
-    selectedSongIndex = 0;
+    // selectedSongIndex = 0;
     selectedDiffIndex = 0;
-    animScrollOffset = 0.0f;
-    targetScrollOffset = 0.0f;
+    animScrollOffset = (float)selectedSongIndex;
+    targetScrollOffset = (float)selectedSongIndex;
     carouselAnimProgress = 1.0f;
     bgTransitionAlpha = 1.0f;
+    playRequested = false;
 }
 
 void SongSelect::LoadSongs() {
@@ -203,6 +212,10 @@ void SongSelect::Update() {
             bgTransitionAlpha = 0.0f;
             selectedDiffIndex = 0;
         }
+    }
+
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        playRequested = true;
     }
 
     float wheel = GetMouseWheelMove();
@@ -493,7 +506,7 @@ void SongSelect::DrawInputHints(int screenWidth, int screenHeight) {
 }
 
 bool SongSelect::IsPlaySelected() const {
-    return IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
+    return playRequested;
 }
 
 bool SongSelect::IsEditorSelected() const {
@@ -510,4 +523,8 @@ const SongData& SongSelect::GetCurrentSong() const {
 
 int SongSelect::GetCurrentDifficultyIndex() const {
     return selectedDiffIndex;
+}
+
+void SongSelect::ResetPlayRequest() {
+    playRequested = false;
 }

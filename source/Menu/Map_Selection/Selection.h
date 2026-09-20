@@ -37,6 +37,7 @@ private:
 
     bool fontLoaded;
     Font suitFont;
+    bool playRequested;
 
     void DrawBackground(int screenWidth, int screenHeight);
     void DrawSongCarousel(int screenWidth, int screenHeight);
@@ -55,6 +56,8 @@ public:
     void LoadSongs();
     void Update();
     void Draw(int screenWidth, int screenHeight);
+
+    void ResetPlayRequest();
 
     bool IsPlaySelected() const;
     bool IsEditorSelected() const;

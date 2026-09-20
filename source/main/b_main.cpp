@@ -29,6 +29,12 @@ int main() {
             else if (mainMenu.IsGameStartSelected()) {
                 currentState = STATE_PLAYING;
                 playScene.Init();
+                
+                BeginDrawing();
+                ClearBackground((Color){10, 12, 18, 255});
+                mainMenu.Draw(screenWidth, screenHeight);
+                EndDrawing();
+                continue; 
             } else if (mainMenu.IsExitSelected()) {
                 break;
             }
@@ -39,7 +45,6 @@ int main() {
             if (IsKeyPressed(KEY_ESCAPE) || playScene.ShouldGoBackToMenu()) {
                 currentState = STATE_MENU;
                 mainMenu.Reset();
-                
                 playScene.ResetBackToMenuFlag(); 
             }
         }

@@ -209,6 +209,8 @@ static float s_NoteScrollSpeed = 200.0f;
 
 static bool s_IsPaused = false;
 static int s_PauseSelection = 0; 
+static bool s_IgnoreFirstEnter = false;
+static float s_SongSelectEnterDelay = 0.0f;
 
 static float Clamp01(float value)
 {
@@ -1778,219 +1780,155 @@ s_MusicPlayer.p3 = nullptr;
 
 void PlayScene::Init()
 {
-m_State =
-PlaySceneState::SongSelect;
+    m_State = PlaySceneState::SongSelect;
+    m_BackToMenu = false;
+    judgmentLineY = 595.0f;
 
-m_BackToMenu = false;
+    s_BeatmapClock = FramedBeatmapClock(true);
+    s_BeatmapClock.LoadComplete();
 
-judgmentLineY = 595.0f;
+    s_AudioManager.Init();
 
-s_BeatmapClock = FramedBeatmapClock(true);
-s_BeatmapClock.LoadComplete();
+    if (s_MusicPlayer.IsValid())
+    {
+        s_MusicPlayer.Init(s_AudioManager);
+    }
 
-s_AudioManager.Init();
+    m_SongSelect.Init();
 
-if (s_MusicPlayer.IsValid())
-{
-    s_MusicPlayer.Init(
-        s_AudioManager
-    );
+    s_Notes.clear();
+    s_PlayableNotes.clear();
+
+    s_SongTimer = 0.0f;
+    s_SpawnTimer = 0.0f;
+    s_Combo = 0;
+
+    s_ShowJudgment = false;
+    s_JudgmentTimer = 0.0f;
+    s_IsEditorMode = false;
+    s_IsPaused = false;
+    s_PauseSelection = 0;
+    s_IgnoreFirstEnter = true; 
+    s_SongSelectEnterDelay = 0.0f;
+
+    s_JudgmentLinePulse = 0.0f;
+    s_JudgmentAnimTimer = 0.0f;
+    s_ComboAnimTimer = 0.0f;
+    s_LastCombo = 0;
+    s_NoteScrollSpeed = 200.0f;
+
+    s_ComboFont 
+    = LoadFont("fonts/Pretendard-Black.ttf");
+    s_SuitFont 
+    = LoadFont("fonts/Pretendard-Black.ttf");
 }
 
-m_SongSelect.Init();
-
-s_Notes.clear();
-s_PlayableNotes.clear();
-
-s_SongTimer = 0.0f;
-s_SpawnTimer = 0.0f;
-
-s_Combo = 0;
-
-s_ShowJudgment = false;
-s_JudgmentTimer = 0.0f;
-
-s_IsEditorMode = false;
-s_IsPaused = false;
-s_PauseSelection = 0;
-
-s_JudgmentLinePulse = 0.0f;
-
-s_JudgmentAnimTimer = 0.0f;
-s_ComboAnimTimer = 0.0f;
-
-s_LastCombo = 0;
-
-s_NoteScrollSpeed = 200.0f;
-
-s_ComboFont =
-    LoadFont("fonts/Pretendard-Black.ttf");
-
-s_SuitFont =
-    LoadFont("fonts/Pretendard-Black.ttf");
-
-}
 
 void PlayScene::Update()
 {
-if (IsKeyPressed(KEY_P))
-{
-s_IsEditorMode = true;
-
-    m_State =
-        PlaySceneState::Playing;
-
-    s_ChartEditor.Init();
-
-    return;
-}
-
-s_AudioManager.Update();
-
-if (s_MusicPlayer.IsValid())
-{
-    s_MusicPlayer.Update(
-        GetFrameTime()
-    );
-}
-
-if (m_State ==
-    PlaySceneState::SongSelect)
-{
-    m_SongSelect.Update();
-
-    if (m_SongSelect.IsBackSelected())
+    if (s_SongSelectEnterDelay > 0.0f)
     {
-        m_BackToMenu = true;
+        s_SongSelectEnterDelay -= GetFrameTime();
+        if (s_SongSelectEnterDelay < 0.0f) s_SongSelectEnterDelay = 0.0f;
     }
-    else if (m_SongSelect.IsEditorSelected())
+
+    if (IsKeyPressed(KEY_P))
     {
         s_IsEditorMode = true;
-
-        m_State =
-            PlaySceneState::Playing;
-
+        m_State = PlaySceneState::Playing;
         s_ChartEditor.Init();
+        return;
     }
-    else if (m_SongSelect.IsPlaySelected())
+
+    s_AudioManager.Update();
+
+    if (s_MusicPlayer.IsValid())
     {
-        m_State =
-            PlaySceneState::Playing;
+        s_MusicPlayer.Update(GetFrameTime());
+    }
 
-        s_Notes.clear();
-        s_PlayableNotes.clear();
+    if (m_State == PlaySceneState::SongSelect)
+    {
+        m_SongSelect.Update();
 
-        s_SongTimer = 0.0f;
-        s_IsPaused = false;
-        s_PauseSelection = 0;
-
-        const SongData& curSong =
-            m_SongSelect.GetCurrentSong();
-
-        std::string osuFileName =
-            "G.osu";
-
-        if (curSong.title ==
-            "별이 보이지 않는 밤")
+        if (m_SongSelect.IsBackSelected())
         {
-            osuFileName =
-                "G.osu";
-            s_MusicPlayer.active = 1;
+            m_BackToMenu = true;
+            return;
         }
-        else if (curSong.title ==
-                 "Kaleidoscope")
+        else if (m_SongSelect.IsEditorSelected())
         {
-            osuFileName =
-                "Kaleidoscope.osu";
-            s_MusicPlayer.active = 1;
+            s_IsEditorMode = true;
+            m_State = PlaySceneState::Playing;
+            s_ChartEditor.Init();
+            return;
         }
-        else if (curSong.title ==
-                 "Timeline")
+        else if (m_SongSelect.IsPlaySelected() && s_SongSelectEnterDelay <= 0.0f)
         {
-            osuFileName =
-                "Timeline.osu";
-            s_MusicPlayer.active = 2;
-        }
-        else if (curSong.title ==
-                 "R")
-        {
-            osuFileName =
-                "R.osu";
-            s_MusicPlayer.active = 3;
-        }
+            m_SongSelect.ResetPlayRequest(); 
+            
+            const SongData& curSong = m_SongSelect.GetCurrentSong();
+            std::string osuFileName = "G.osu";
 
-        std::string outAudioFile, outTitle, outArtist, outCreator, outVersion;
-        float outHP = 5.0f, outOD = 5.0f, outCS = 4.0f, outAR = 5.0f;
-        float outSliderMultiplier = 1.4f, outSliderTickRate = 1.0f;
-
-        std::vector<SaveNoteData>
-            loadedNotes;
-
-        if (
-            ChartSave::LoadFromOsu(
-                osuFileName.c_str(),
-                outAudioFile,
-                outTitle,
-                outArtist,
-                outCreator,
-                outVersion,
-                outHP,
-                outOD,
-                outCS,
-                outAR,
-                outSliderMultiplier,
-                outSliderTickRate,
-                loadedNotes
-            )
-        )
-        {
-             if (outAR <= 0.0f) outAR = 5.0f;
-            s_NoteScrollSpeed = outAR * 50.0f; 
-
-            for (
-                size_t i = 0;
-                i < loadedNotes.size();
-                ++i
-            )
+            if (curSong.title == "별이 보이지 않는 밤")
             {
-                const auto& saveNote =
-                    loadedNotes[i];
-
-                PlayableNote pNote;
-
-                pNote.timeSec =
-                    (float)saveNote.time / 1000.0f;
-
-                pNote.lane =
-                    saveNote.lane;
-
-                pNote.active =
-                    true;
-
-                s_PlayableNotes.push_back(
-                    pNote
-                );
+                osuFileName = "G.osu";
+                s_MusicPlayer.active = 1;
             }
-        }
+            else if (curSong.title == "Kaleidoscope")
+            {
+                osuFileName = "Kaleidoscope.osu";
+                s_MusicPlayer.active = 1; 
+            }
+            else if (curSong.title == "Timeline")
+            {
+                osuFileName = "Timeline.osu";
+                s_MusicPlayer.active = 2;
+            }
+            else if (curSong.title == "R")
+            {
+                osuFileName = "R.osu";
+                s_MusicPlayer.active = 3;
+            }
 
-        if (!outAudioFile.empty())
-        {
-            if (s_MusicPlayer.IsValid())
+            std::string outAudioFile, outTitle, outArtist, outCreator, outVersion;
+            float outHP = 5.0f, outOD = 5.0f, outCS = 4.0f, outAR = 5.0f;
+            float outSliderMultiplier = 1.4f, outSliderTickRate = 1.0f;
+            std::vector<SaveNoteData> loadedNotes;
+
+            if (ChartSave::LoadFromOsu(
+                    osuFileName.c_str(), outAudioFile, outTitle, outArtist, outCreator, outVersion,
+                    outHP, outOD, outCS, outAR, outSliderMultiplier, outSliderTickRate, loadedNotes))
+            {
+                if (outAR <= 0.0f) outAR = 5.0f;
+                s_NoteScrollSpeed = outAR * 50.0f;
+
+                s_Notes.clear();
+                s_PlayableNotes.clear();
+
+                for (size_t i = 0; i < loadedNotes.size(); ++i)
+                {
+                    const auto& saveNote = loadedNotes[i];
+                    PlayableNote pNote;
+                    pNote.timeSec = (float)saveNote.time / 1000.0f;
+                    pNote.lane = saveNote.lane;
+                    pNote.active = true;
+                    s_PlayableNotes.push_back(pNote);
+                }
+            }
+            else
+            {
+                m_State = PlaySceneState::SongSelect;
+                return;
+            }
+
+            if (!outAudioFile.empty() && s_MusicPlayer.IsValid())
             {
                 s_MusicPlayer.Stop();
-
                 s_BeatmapClock.SetChannel(nullptr);
-
-                s_MusicPlayer.Play(
-                    s_AudioManager,
-                    0
-                );
-
+                s_MusicPlayer.Play(s_AudioManager, 0);
                 s_MusicPlayer.PlayImmediate();
-
-                s_MusicPlayer.SetPitch(
-                    1.0f
-                );
+                s_MusicPlayer.SetPitch(1.0f);
 
                 FMOD_SYSTEM* system = s_AudioManager.GetSystemRaw();
                 FMOD_CHANNEL* channel = s_MusicPlayer.GetChannelRaw();
@@ -1999,18 +1937,22 @@ if (m_State ==
                 s_BeatmapClock.LoadComplete();
                 s_BeatmapClock.Start();
             }
+
+            s_SongTimer = 0.0f;
+            s_IsPaused = false;
+            s_PauseSelection = 0;
+            
+            s_IgnoreFirstEnter = true; 
+            m_State = PlaySceneState::Playing;
+            return; 
         }
     }
-}
-else if (
-    m_State ==
-    PlaySceneState::Playing
-)
-{
-    UpdatePlaying();
+    else if (m_State == PlaySceneState::Playing)
+    {
+        UpdatePlaying();
+    }
 }
 
-}
 
 void PlayScene::UpdatePlaying()
 {
@@ -2028,11 +1970,18 @@ void PlayScene::UpdatePlaying()
         if (IsKeyPressed(KEY_ESCAPE))
         {
             s_IsEditorMode = false;
+            s_SongSelectEnterDelay = 0.3f;
             m_State = PlaySceneState::SongSelect;
             return;
         }
 
         s_ChartEditor.HandleInput();
+        return;
+    }
+
+    if (s_IgnoreFirstEnter)
+    {
+        s_IgnoreFirstEnter = false;
         return;
     }
 
@@ -2060,12 +2009,16 @@ void PlayScene::UpdatePlaying()
             }
             else if (s_PauseSelection == 1) 
             {
-                s_IsPaused = false;
                 if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
                 s_PlayableNotes.clear();
-                s_SongTimer = 0.0f;
+                s_PlayableNotes.shrink_to_fit();
+                s_Notes.clear();
+                s_Notes.shrink_to_fit();
                 s_BeatmapClock.SetChannel(nullptr);
-                m_State = PlaySceneState::SongSelect; 
+                s_SongTimer = 0.0f;
+                s_IsPaused = false;
+                s_SongSelectEnterDelay = 0.3f;
+                m_State = PlaySceneState::SongSelect;
             }
             return;
         }
@@ -2094,12 +2047,16 @@ void PlayScene::UpdatePlaying()
             }
             else if (s_PauseSelection == 1) 
             {
-                s_IsPaused = false;
                 if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
                 s_PlayableNotes.clear();
-                s_SongTimer = 0.0f;
+                s_PlayableNotes.shrink_to_fit();
+                s_Notes.clear();
+                s_Notes.shrink_to_fit();
                 s_BeatmapClock.SetChannel(nullptr);
-                m_State = PlaySceneState::SongSelect; 
+                s_SongTimer = 0.0f;
+                s_IsPaused = false;
+                s_SongSelectEnterDelay = 0.3f;
+                m_State = PlaySceneState::SongSelect;
             }
         }
 
@@ -2130,12 +2087,16 @@ void PlayScene::UpdatePlaying()
                     }
                     else if (i == 1) 
                     {
-                        s_IsPaused = false;
                         if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
                         s_PlayableNotes.clear();
-                        s_SongTimer = 0.0f;
+                        s_PlayableNotes.shrink_to_fit();
+                        s_Notes.clear();
+                        s_Notes.shrink_to_fit();
                         s_BeatmapClock.SetChannel(nullptr);
-                        m_State = PlaySceneState::SongSelect; 
+                        s_SongTimer = 0.0f;
+                        s_IsPaused = false;
+                        s_SongSelectEnterDelay = 0.3f;
+                        m_State = PlaySceneState::SongSelect;
                     }
                 }
             }
@@ -2157,6 +2118,7 @@ void PlayScene::UpdatePlaying()
                 s_PlayableNotes.clear();
                 s_SongTimer = 0.0f;
                 s_BeatmapClock.SetChannel(nullptr);
+                s_SongSelectEnterDelay = 0.3f;
                 m_State = PlaySceneState::SongSelect; 
                 return;
             }
