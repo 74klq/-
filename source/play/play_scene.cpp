@@ -22,37 +22,27 @@ private:
     FMOD_SYSTEM* system;
     FMOD_CHANNEL* channel;
     double userGlobalOffset;
+    bool isFirstFrame;
 
 public:
     FramedBeatmapClock(bool applyOffsets = true, FMOD_CHANNEL* source = nullptr)
         : system(nullptr),
           channel(source),
-          userGlobalOffset(0.0)
+          userGlobalOffset(0.0),
+          isFirstFrame(true)
     {
     }
 
     ~FramedBeatmapClock() = default;
 
-    void SetSystem(FMOD_SYSTEM* newSystem)
-    {
-        system = newSystem;
+    void SetSystem(FMOD_SYSTEM* newSystem) { system = newSystem; }
+    void SetChannel(FMOD_CHANNEL* newChannel) 
+    { 
+        channel = newChannel; 
+        isFirstFrame = true;
     }
-
-    void SetChannel(FMOD_CHANNEL* newChannel)
-    {
-        channel = newChannel;
-    }
-
-    void SetUserGlobalOffset(double offsetMs)
-    {
-        userGlobalOffset = offsetMs;
-    }
-    
-    double GetUserGlobalOffset() const
-    {
-        return userGlobalOffset;
-    }
-
+    void SetUserGlobalOffset(double offsetMs) { userGlobalOffset = offsetMs; }
+    double GetUserGlobalOffset() const { return userGlobalOffset; }
     void SetUserBeatmapOffset(double offsetMs) {}
     void SetPlatformOffset(double offsetMs) {}
     void UpdatePlatformOffset(bool isWindows = true, bool useExperimentalWasapi = false) {}
@@ -60,9 +50,9 @@ public:
     bool IsLoaded() const { return true; }
     double GetTotalAppliedOffset() const { return userGlobalOffset; }
     void ProcessFrame(double deltaTimeMs) {}
-    void Start() {}
+    void Start() { isFirstFrame = true; }
     void Stop() {}
-    void Reset() {}
+    void Reset() { isFirstFrame = true; }
     bool Seek(double positionMs) { return true; }
     double GetElapsedFrameTime() const { return 0.0; }
     bool IsRunning() const { return true; }
@@ -75,8 +65,21 @@ public:
     {
         if (!channel || !system) return 0.0;
 
+        FMOD_BOOL isPlaying = false;
+        FMOD_Channel_IsPlaying(channel, &isPlaying);
+        if (!isPlaying) return 0.0;
+
         unsigned long long dspClock = 0;
         FMOD_Channel_GetDSPClock(channel, &dspClock, nullptr);
+
+        if (isFirstFrame) {
+            unsigned int currentPos = 0;
+            FMOD_Channel_GetPosition(channel, &currentPos, FMOD_TIMEUNIT_MS);
+            if (currentPos < 50 && dspClock > 100000) { 
+                return 0.0; 
+            }
+            const_cast<FramedBeatmapClock*>(this)->isFirstFrame = false; 
+        }
 
         int sampleRate = 0;
         FMOD_System_GetSoftwareFormat(system, &sampleRate, nullptr, nullptr);
@@ -88,8 +91,10 @@ public:
         if (sampleRate > 0)
         {
             double hardwareLatencyMs = ((double)bufferLength * numBuffers * 1000.0) / sampleRate;
+            double calculatedTime = (((double)dspClock / sampleRate) * 1000.0) - hardwareLatencyMs + userGlobalOffset;
             
-            return (((double)dspClock / sampleRate) * 1000.0) - hardwareLatencyMs + userGlobalOffset;
+            if (calculatedTime < 0.0) return 0.0;
+            return calculatedTime;
         }
 
         return 0.0;
@@ -1974,6 +1979,8 @@ if (m_State ==
             {
                 s_MusicPlayer.Stop();
 
+                s_BeatmapClock.SetChannel(nullptr);
+
                 s_MusicPlayer.Play(
                     s_AudioManager,
                     0
@@ -2055,6 +2062,9 @@ void PlayScene::UpdatePlaying()
             {
                 s_IsPaused = false;
                 if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                s_PlayableNotes.clear();
+                s_SongTimer = 0.0f;
+                s_BeatmapClock.SetChannel(nullptr);
                 m_State = PlaySceneState::SongSelect; 
             }
             return;
@@ -2086,6 +2096,9 @@ void PlayScene::UpdatePlaying()
             {
                 s_IsPaused = false;
                 if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                s_PlayableNotes.clear();
+                s_SongTimer = 0.0f;
+                s_BeatmapClock.SetChannel(nullptr);
                 m_State = PlaySceneState::SongSelect; 
             }
         }
@@ -2119,6 +2132,9 @@ void PlayScene::UpdatePlaying()
                     {
                         s_IsPaused = false;
                         if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                        s_PlayableNotes.clear();
+                        s_SongTimer = 0.0f;
+                        s_BeatmapClock.SetChannel(nullptr);
                         m_State = PlaySceneState::SongSelect; 
                     }
                 }
@@ -2138,6 +2154,9 @@ void PlayScene::UpdatePlaying()
             if (!isPlaying)
             {
                 s_MusicPlayer.Stop();
+                s_PlayableNotes.clear();
+                s_SongTimer = 0.0f;
+                s_BeatmapClock.SetChannel(nullptr);
                 m_State = PlaySceneState::SongSelect; 
                 return;
             }
