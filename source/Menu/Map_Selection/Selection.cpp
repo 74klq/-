@@ -144,6 +144,8 @@ void SongSelect::LoadSongs() {
     song1.length = 152.0f;
     song1.cleared = true;
     song1.difficulties = { {"NORMAL", 7, 140.0f, 430, 890, 6.0f} };
+    song1.osuFileName = "G.osu";
+    song1.musicPlayerActive = 1; 
     songs.push_back(song1);
 
     SongData song2;
@@ -154,6 +156,8 @@ void SongSelect::LoadSongs() {
     song2.length = 135.0f;
     song2.cleared = false;
     song2.difficulties = { {"HARD", 10, 128.0f, 650, 1300, 6.0f} };
+    song2.osuFileName = "Kaleidoscope.osu";  // 💡 추가
+    song2.musicPlayerActive = 1;
     songs.push_back(song2);
 
     SongData song3;
@@ -164,6 +168,8 @@ void SongSelect::LoadSongs() {
     song3.length = 168.0f;
     song3.cleared = true;
     song3.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
+    song3.osuFileName = "Timeline.osu";      // 💡 추가
+    song3.musicPlayerActive = 2; 
     songs.push_back(song3);
 
     SongData song4;
@@ -174,6 +180,8 @@ void SongSelect::LoadSongs() {
     song4.length = 142.0f;
     song4.cleared = false;
     song4.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";             // 💡 추가
+    song4.musicPlayerActive = 3; 
     songs.push_back(song4);
 }
 
@@ -528,3 +536,16 @@ int SongSelect::GetCurrentDifficultyIndex() const {
 void SongSelect::ResetPlayRequest() {
     playRequested = false;
 }
+
+/*void SongSelect::SetSelectedSongIndex(int index) { 
+    if (index >= 0 && index < (int)songs.size()) {
+        selectedSongIndex = index; 
+        
+        targetScrollOffset = (float)index;
+        animScrollOffset = (float)index;
+        
+        carouselAnimProgress = 1.0f;
+        bgTransitionAlpha = 1.0f;
+        previousSongIndex = index;
+    }
+} */

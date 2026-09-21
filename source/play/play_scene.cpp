@@ -1749,14 +1749,15 @@ static void DrawPauseUI()
     }
 }
 
-PlayScene::PlayScene()
+PlayScene::PlayScene(SongSelect& sharedSongSelect)
 : m_State(PlaySceneState::SongSelect),
-m_BackToMenu(false),
-judgmentLineY(595.0f)
+  m_SongSelect(sharedSongSelect), 
+  m_BackToMenu(false),
+  judgmentLineY(595.0f)
 {
-s_MusicPlayer.p1 = new MusicExecute::MusicPlayer1();
-s_MusicPlayer.p2 = new MusicExecute::MusicPlayer2();
-s_MusicPlayer.p3 = new MusicExecute::MusicPlayer3();
+    s_MusicPlayer.p1 = new MusicExecute::MusicPlayer1();
+    s_MusicPlayer.p2 = new MusicExecute::MusicPlayer2();
+    s_MusicPlayer.p3 = new MusicExecute::MusicPlayer3();
 }
 
 PlayScene::~PlayScene()
@@ -1778,7 +1779,7 @@ s_MusicPlayer.p3 = nullptr;
 }
 }
 
-void PlayScene::Init()
+void PlayScene::Init(int startSongIndex)
 {
     m_State = PlaySceneState::SongSelect;
     m_BackToMenu = false;
@@ -1794,7 +1795,12 @@ void PlayScene::Init()
         s_MusicPlayer.Init(s_AudioManager);
     }
 
-    m_SongSelect.Init();
+    // 💥 [버그 주범 처단] m_SongSelect.Init(); 구문을 완전히 지워버렸습니다!
+    
+    // 💡 이미 메모리에 로드되어 있는 곡 선택 창에 선택한 인덱스를 완벽하게 매핑합니다.
+    m_SongSelect.SetSelectedSongIndex(startSongIndex); 
+
+    m_SongSelect.ResetPlayRequest(); 
 
     s_Notes.clear();
     s_PlayableNotes.clear();
@@ -1808,8 +1814,9 @@ void PlayScene::Init()
     s_IsEditorMode = false;
     s_IsPaused = false;
     s_PauseSelection = 0;
+    
     s_IgnoreFirstEnter = true; 
-    s_SongSelectEnterDelay = 0.0f;
+    s_SongSelectEnterDelay = 0.1f;
 
     s_JudgmentLinePulse = 0.0f;
     s_JudgmentAnimTimer = 0.0f;
@@ -1817,10 +1824,8 @@ void PlayScene::Init()
     s_LastCombo = 0;
     s_NoteScrollSpeed = 200.0f;
 
-    s_ComboFont 
-    = LoadFont("fonts/Pretendard-Black.ttf");
-    s_SuitFont 
-    = LoadFont("fonts/Pretendard-Black.ttf");
+    s_ComboFont = LoadFont("fonts/Pretendard-Black.ttf");
+    s_SuitFont = LoadFont("fonts/Pretendard-Black.ttf");
 }
 
 
@@ -1868,7 +1873,9 @@ void PlayScene::Update()
             m_SongSelect.ResetPlayRequest(); 
             
             const SongData& curSong = m_SongSelect.GetCurrentSong();
-            std::string osuFileName = "G.osu";
+            std::string osuFileName = curSong.osuFileName; 
+            s_MusicPlayer.active = curSong.musicPlayerActive;
+            /*std::string osuFileName = "G.osu";
 
             if (curSong.title == "별이 보이지 않는 밤")
             {
@@ -1889,7 +1896,7 @@ void PlayScene::Update()
             {
                 osuFileName = "R.osu";
                 s_MusicPlayer.active = 3;
-            }
+            } */
 
             std::string outAudioFile, outTitle, outArtist, outCreator, outVersion;
             float outHP = 5.0f, outOD = 5.0f, outCS = 4.0f, outAR = 5.0f;
@@ -1985,7 +1992,7 @@ void PlayScene::UpdatePlaying()
         return;
     }
 
-    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
+    if (IsKeyPressed(KEY_ENTER))
     {
         if (!s_IsPaused)
         {

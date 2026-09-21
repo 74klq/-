@@ -15,7 +15,7 @@ int main() {
     GameState currentState = STATE_MENU;
     
     MainMenu mainMenu;
-    PlayScene playScene;
+    PlayScene playScene(mainMenu.GetSongSelect()); 
     playScene.Init();
 
     while (!WindowShouldClose()) {
@@ -27,8 +27,10 @@ int main() {
                 playScene.Init();
             }
             else if (mainMenu.IsGameStartSelected()) {
+                int chosenSong = mainMenu.GetSongSelect().GetCurrentDifficultyIndex(); 
+                
                 currentState = STATE_PLAYING;
-                playScene.Init();
+                playScene.Init(chosenSong);
                 
                 BeginDrawing();
                 ClearBackground((Color){10, 12, 18, 255});

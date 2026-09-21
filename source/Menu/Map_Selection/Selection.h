@@ -21,6 +21,8 @@ struct SongData {
     float length;
     bool cleared;
     std::vector<DifficultyData> difficulties;
+    std::string osuFileName;  
+    int musicPlayerActive;  
 };
 
 class SongSelect {
@@ -65,4 +67,10 @@ public:
 
     const SongData& GetCurrentSong() const;
     int GetCurrentDifficultyIndex() const;
+
+     void SetSelectedSongIndex(int index) { 
+        selectedSongIndex = index; 
+        targetScrollOffset = (float)index;
+        animScrollOffset = (float)index;
+    }
 };

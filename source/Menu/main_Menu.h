@@ -21,6 +21,7 @@ private:
     SongSelect songSelect;
 
 public:
+    SongSelect& GetSongSelect() { return songSelect; }
      MainMenu();
      void Update();
      void Draw(int screenWidth, int screenHeight);
