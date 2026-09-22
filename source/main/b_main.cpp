@@ -27,7 +27,7 @@ int main() {
                 playScene.Init();
             }
             else if (mainMenu.IsGameStartSelected()) {
-                int chosenSong = mainMenu.GetSongSelect().GetCurrentDifficultyIndex(); 
+                 int chosenSong = mainMenu.GetSongSelect().GetSelectedSongIndex(); 
                 
                 currentState = STATE_PLAYING;
                 playScene.Init(chosenSong);

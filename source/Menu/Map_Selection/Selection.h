@@ -67,6 +67,7 @@ public:
 
     const SongData& GetCurrentSong() const;
     int GetCurrentDifficultyIndex() const;
+     int GetSelectedSongIndex() const { return selectedSongIndex; }
 
      void SetSelectedSongIndex(int index) { 
         selectedSongIndex = index; 

@@ -101,6 +101,8 @@ public:
     }
 };
 
+// 국정원 지하실에 락덥 됬다 프리
+
 static const float PLAYFIELD_X = 400.0f;
 static const float PLAYFIELD_Y = 0.0f;
 static const float PLAYFIELD_WIDTH = 400.0f;
@@ -1795,9 +1797,6 @@ void PlayScene::Init(int startSongIndex)
         s_MusicPlayer.Init(s_AudioManager);
     }
 
-    // 💥 [버그 주범 처단] m_SongSelect.Init(); 구문을 완전히 지워버렸습니다!
-    
-    // 💡 이미 메모리에 로드되어 있는 곡 선택 창에 선택한 인덱스를 완벽하게 매핑합니다.
     m_SongSelect.SetSelectedSongIndex(startSongIndex); 
 
     m_SongSelect.ResetPlayRequest(); 
@@ -1872,31 +1871,12 @@ void PlayScene::Update()
         {
             m_SongSelect.ResetPlayRequest(); 
             
+            // 💡 [추가 1] 엔터를 누른 순간 유저가 고른 '진짜 곡 번호'를 임시 저장합니다.
+            int currentSelectedIdx = m_SongSelect.GetSelectedSongIndex(); 
+            
             const SongData& curSong = m_SongSelect.GetCurrentSong();
             std::string osuFileName = curSong.osuFileName; 
             s_MusicPlayer.active = curSong.musicPlayerActive;
-            /*std::string osuFileName = "G.osu";
-
-            if (curSong.title == "별이 보이지 않는 밤")
-            {
-                osuFileName = "G.osu";
-                s_MusicPlayer.active = 1;
-            }
-            else if (curSong.title == "Kaleidoscope")
-            {
-                osuFileName = "Kaleidoscope.osu";
-                s_MusicPlayer.active = 1; 
-            }
-            else if (curSong.title == "Timeline")
-            {
-                osuFileName = "Timeline.osu";
-                s_MusicPlayer.active = 2;
-            }
-            else if (curSong.title == "R")
-            {
-                osuFileName = "R.osu";
-                s_MusicPlayer.active = 3;
-            } */
 
             std::string outAudioFile, outTitle, outArtist, outCreator, outVersion;
             float outHP = 5.0f, outOD = 5.0f, outCS = 4.0f, outAR = 5.0f;
@@ -1948,8 +1928,11 @@ void PlayScene::Update()
             s_SongTimer = 0.0f;
             s_IsPaused = false;
             s_PauseSelection = 0;
-            
             s_IgnoreFirstEnter = true; 
+            
+            // 💡 [추가 2] 인게임 상태로 넘어가기 직전, 저장해둔 곡 번호가 0으로 강제 리셋되지 않게 매핑해 줍니다.
+            m_SongSelect.SetSelectedSongIndex(currentSelectedIdx); 
+
             m_State = PlaySceneState::Playing;
             return; 
         }
