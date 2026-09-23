@@ -51,10 +51,10 @@ void SongSelect::Init() {
     g_jacketTextures.clear();
 
     std::vector<std::string> jacketPaths = {
-        "album_assets/stars.png",
-        "album_assets/kaleidoscope.png",
-        "album_assets/Timeline.png",
-        "album_assets/R.png"
+        "music_assets/stars.png",
+        "music_assets/kaleidoscope.png",
+        "music_assets/Timeline.png",
+        "music_assets/R.png"
     };
 
     for (const auto& path : jacketPaths) {
@@ -156,7 +156,7 @@ void SongSelect::LoadSongs() {
     song2.length = 135.0f;
     song2.cleared = false;
     song2.difficulties = { {"HARD", 10, 128.0f, 650, 1300, 6.0f} };
-    song2.osuFileName = "Kaleidoscope.osu";  // 💡 추가
+    song2.osuFileName = "Kaleidoscope.osu";  
     song2.musicPlayerActive = 1;
     songs.push_back(song2);
 
@@ -168,7 +168,7 @@ void SongSelect::LoadSongs() {
     song3.length = 168.0f;
     song3.cleared = true;
     song3.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
-    song3.osuFileName = "Timeline.osu";      // 💡 추가
+    song3.osuFileName = "Timeline.osu";   
     song3.musicPlayerActive = 2; 
     songs.push_back(song3);
 
@@ -180,7 +180,7 @@ void SongSelect::LoadSongs() {
     song4.length = 142.0f;
     song4.cleared = false;
     song4.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";             // 💡 추가
+     song4.osuFileName = "R.osu";          
     song4.musicPlayerActive = 3; 
     songs.push_back(song4);
 }
@@ -266,22 +266,18 @@ void SongSelect::Draw(int screenWidth, int screenHeight) {
 }
 
 void SongSelect::DrawBackground(int screenWidth, int screenHeight) {
-    // 1. 기본 배경 레이어
     DrawRectangle(0, 0, screenWidth, screenHeight, (Color){ 12, 14, 20, 255 });
 
-    // 2. Pan, Zoom & Slow Rotation 변수 계산
     float time = (float)GetTime();
-    float scale = 1.10f + 0.02f * std::sin(time * 0.3f); // 기본 110% 확대 + 미세 줌
-    float rotation = 1.2f * std::sin(time * 0.15f);      // 미세 회전 (-1.2° ~ +1.2°)
+    float scale = 1.10f + 0.02f * std::sin(time * 0.3f);
+    float rotation = 1.2f * std::sin(time * 0.15f); 
     
-    // 대각선 이동 (Pan)
     float panX = 18.0f * std::cos(time * 0.25f);
     float panY = 14.0f * std::sin(time * 0.20f);
 
     float bgW = screenWidth * scale;
     float bgH = screenHeight * scale;
 
-    // 화면 중심 기준 원점 연산
     Vector2 origin = { bgW * 0.5f, bgH * 0.5f };
     Rectangle destRect = {
         (screenWidth * 0.5f) + panX,
@@ -290,10 +286,8 @@ void SongSelect::DrawBackground(int screenWidth, int screenHeight) {
         bgH
     };
 
-    // 불투명도 레벨 조정 (약간 더 진하게)
     float maxBgAlpha = 0.28f;
 
-    // 이전 곡 배경 Fade Out
     if (bgTransitionAlpha < 1.0f && previousSongIndex >= 0 && previousSongIndex < (int)g_jacketTextures.size()) {
         if (g_jacketTextures[previousSongIndex].id != 0) {
             unsigned char pAlpha = (unsigned char)(255.0f * maxBgAlpha * (1.0f - bgTransitionAlpha));
@@ -306,7 +300,6 @@ void SongSelect::DrawBackground(int screenWidth, int screenHeight) {
         }
     }
 
-    // 현재 곡 배경 Fade In
     if (selectedSongIndex >= 0 && selectedSongIndex < (int)g_jacketTextures.size()) {
         if (g_jacketTextures[selectedSongIndex].id != 0) {
             unsigned char cAlpha = (unsigned char)(255.0f * maxBgAlpha * bgTransitionAlpha);
@@ -319,10 +312,8 @@ void SongSelect::DrawBackground(int screenWidth, int screenHeight) {
         }
     }
 
-    // 3. 어두운 오버레이 그라데이션
     DrawRectangleGradientV(0, 0, screenWidth, screenHeight, (Color){ 20, 24, 34, 130 }, (Color){ 8, 9, 14, 180 });
     
-    // 4. 격자 사선 효과
     for (int i = -screenWidth; i < screenWidth + screenHeight; i += 80) {
         DrawLine(i, 0, i + screenHeight, screenHeight, (Color){ 255, 255, 255, 6 });
     }

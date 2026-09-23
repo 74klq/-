@@ -1,5 +1,6 @@
 CXX = g++
 CC = gcc
+RC = windres
 CXXFLAGS = -std=c++17 -Wall -D_DEBUG
 CFLAGS = -Wall -D_DEBUG
 
@@ -10,7 +11,6 @@ LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lopengl32 -lgdi32 -
 TARGET = rhythm_Air
 BIN_DIR = bin
 
-# 1. OBJS 목록 끝에 auto_chart_generator.o를 추가했습니다.
 OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/main_Menu.o \
        $(BIN_DIR)/background_rotation.o \
@@ -24,7 +24,8 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/hit_effect.o \
        $(BIN_DIR)/note_down_animation.o \
        $(BIN_DIR)/audio_manager.o \
-       $(BIN_DIR)/Selection.o
+       $(BIN_DIR)/Selection.o \
+       $(BIN_DIR)/resource.o
 
 all: $(BIN_DIR) $(TARGET)
 
@@ -37,6 +38,9 @@ $(BIN_DIR):
 
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $(TARGET).exe $(LDFLAGS)
+
+$(BIN_DIR)/resource.o: resource.rc
+	$(RC) $< -o $@
 
 $(BIN_DIR)/b_main.o: source/main/b_main.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
@@ -59,7 +63,6 @@ $(BIN_DIR)/editor_scene.o: source/editing/editor_scene.cpp
 $(BIN_DIR)/chart_editor.o: source/editing/chart_editor.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-# 2. auto_chart_generator.cpp를 빌드하기 위한 개별 컴파일 규칙을 추가했습니다.
 $(BIN_DIR)/auto_chart_generator.o: source/editing/auto_chart_generator.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
