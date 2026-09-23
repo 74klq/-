@@ -70,13 +70,35 @@ void SongSelect::Init() {
         for (int i = 32; i <= 126; ++i) cpSet.insert(i);
         
         std::vector<std::string> texts = {
-            "A Night Without Visible Stars", "Four Beat Sounds", "Mapper_A",
-            "별이 보이지 않는 밤", "Plum", "boyangsic", "Kaleidoscope", "Timeline", "R",
-            "Cybernetic Dream", "Neo Synth", "Mapper_C",
-            "Neon Highway", "Retro Pulse", "Mapper_B",
-            "작곡가:", "에디터:", "BPM:", "길이:",
-            "곡 선택", "플레이", "뒤로가기",
-            "엔터 누르면 시작 가능"
+            "A Night Without Visible Stars",
+            "Four Beat Sounds", "Mapper_A",
+            "별이 보이지 않는 밤",
+            "Plum",
+            "boyangsic",
+            "Kaleidoscope",
+            "Timeline", "R",
+            "Cybernetic Dream", 
+            "Neo Synth", 
+            "Mapper_C",
+            "Neon Highway", 
+            "Retro Pulse", 
+            "Mapper_B",
+            "작곡가:", 
+            "에디터:", 
+            "BPM:", 
+            "길이:",
+            "곡 선택", 
+            "플레이", 
+            "뒤로가기",
+            "엔터 누르면 시작 가능,", 
+            "N", 
+            "SkysCape", 
+            "Terrasphere",
+            "Tempest", 
+            "비밀인형극 II",
+            "PLUM MEGAMIX",
+            "The Lost Aria",
+            "Maelstrom"
         };
 
         for (const auto& text : texts) {
@@ -183,6 +205,79 @@ void SongSelect::LoadSongs() {
      song4.osuFileName = "R.osu";          
     song4.musicPlayerActive = 3; 
     songs.push_back(song4);
+
+    SongData song5;
+    song4.title = "비밀인형극 II";
+    song4.artist = "Plum";
+    song4.mapper = "boyangsic";
+    song4.bpm = 170.0f;
+    song4.length = 142.0f;
+    song4.cleared = false;
+    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";          
+    song4.musicPlayerActive = 3; 
+    songs.push_back(song5);
+
+    SongData song6;
+    song4.title = "PLUM MEGAMIX";
+    song4.artist = "Plum";
+    song4.mapper = "boyangsic";
+    song4.bpm = 170.0f;
+    song4.length = 142.0f;
+    song4.cleared = false;
+    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";          
+    song4.musicPlayerActive = 3; 
+    songs.push_back(song6);
+
+    SongData song7;
+    song4.title = "SkysCape";
+    song4.artist = "Plum";
+    song4.mapper = "boyangsic";
+    song4.bpm = 170.0f;
+    song4.length = 142.0f;
+    song4.cleared = false;
+    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";          
+    song4.musicPlayerActive = 3; 
+    songs.push_back(song7);
+
+    SongData song8;
+    song4.title = "N";
+    song4.artist = "Plum";
+    song4.mapper = "boyangsic";
+    song4.bpm = 170.0f;
+    song4.length = 142.0f;
+    song4.cleared = false;
+    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";          
+    song4.musicPlayerActive = 3; 
+    songs.push_back(song8);
+
+    SongData song9;
+    song4.title = "Terrasphere";
+    song4.artist = "Plum";
+    song4.mapper = "boyangsic";
+    song4.bpm = 170.0f;
+    song4.length = 142.0f;
+    song4.cleared = false;
+    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";          
+    song4.musicPlayerActive = 3; 
+    songs.push_back(song9);
+
+    SongData song10;
+    song4.title = "The Lost Aria";
+    song4.artist = "Plum";
+    song4.mapper = "boyangsic";
+    song4.bpm = 170.0f;
+    song4.length = 142.0f;
+    song4.cleared = false;
+    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
+     song4.osuFileName = "R.osu";          
+    song4.musicPlayerActive = 3; 
+    songs.push_back(song10);
+
 }
 
 void SongSelect::Update() {

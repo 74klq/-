@@ -1871,7 +1871,6 @@ void PlayScene::Update()
         {
             m_SongSelect.ResetPlayRequest(); 
             
-            // 💡 [추가 1] 엔터를 누른 순간 유저가 고른 '진짜 곡 번호'를 임시 저장합니다.
             int currentSelectedIdx = m_SongSelect.GetSelectedSongIndex(); 
             
             const SongData& curSong = m_SongSelect.GetCurrentSong();
@@ -1930,7 +1929,6 @@ void PlayScene::Update()
             s_PauseSelection = 0;
             s_IgnoreFirstEnter = true; 
             
-            // 💡 [추가 2] 인게임 상태로 넘어가기 직전, 저장해둔 곡 번호가 0으로 강제 리셋되지 않게 매핑해 줍니다.
             m_SongSelect.SetSelectedSongIndex(currentSelectedIdx); 
 
             m_State = PlaySceneState::Playing;
