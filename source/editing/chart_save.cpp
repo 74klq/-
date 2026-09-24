@@ -99,8 +99,8 @@ bool ChartSave::SaveToOsu(const char* filename,
         int hitSound = 0;
 
         if ((type & 128) != 0) {
-            file << x << "," << y << "," << time << "," << type << "," << hitSound << ",0:0:0:0:\n";
-        } else {
+          file << x << "," << y << "," << time << "," << type << "," << hitSound << "," << note.endTime << ":0:0:0:\n";
+  }       else {
             file << x << "," << y << "," << time << "," << type << "," << hitSound << ",0:0:0:0:\n";
         }
     }
@@ -142,7 +142,6 @@ bool ChartSave::LoadFromOsu(const char* filename,
                        dummyBpm, dummyOffset, outNotes);
 }
 
-// 15개 인자 기본 LoadFromOsu 구현
 bool ChartSave::LoadFromOsu(const char* filename,
                             std::string& outAudioFile,
                             std::string& outTitle,
@@ -268,6 +267,14 @@ bool ChartSave::LoadFromOsu(const char* filename,
                 noteData.type = type;
                 noteData.endTime = 0;
 
+                if ((type & 128) != 0 && tokens.size() >= 6) {
+    std::stringstream colonSs(tokens[5]);
+    std::string endTimeToken;
+    if (std::getline(colonSs, endTimeToken, ':')) {
+        try { noteData.endTime = std::stoi(endTimeToken); } catch (...) { noteData.endTime = time; }
+    }
+}
+
                 outNotes.push_back(noteData);
             }
         }
@@ -303,6 +310,7 @@ void ChartSave::HandleChartInput(const std::string& audioFile,
                                  float& outSliderTickRate,
                                  float& outBpm,
                                  float& outOffset,
+                                 float& scrollSpeed,
                                  std::vector<SaveNoteData>& outNotes,
                                  bool& fileLoaded) {
     if (!s_FontLoaded) {
@@ -451,7 +459,7 @@ void ChartSave::HandleChartInput(const std::string& audioFile,
                 if (filename.find(".osu") == std::string::npos) {
                     filename += ".osu";
                 }
-                SaveToOsu(filename.c_str(), audioFile, title, artist, creator, version, hp, od, cs, ar, sliderMultiplier, sliderTickRate, 120.0f, notes);
+                SaveToOsu(filename.c_str(), audioFile, title, artist, creator, version, hp, od, cs, scrollSpeed, sliderMultiplier, sliderTickRate, 120.0f, notes);
                 s_LastLoadedFilename = filename;
 
                 s_IsSaveOpen = false;
@@ -492,6 +500,7 @@ void ChartSave::HandleChartInput(const std::string& audioFile,
             if (CheckCollisionPointRec(mousePos, itemBox)) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     if (LoadFromOsu(charts[i].c_str(), outAudioFile, outTitle, outArtist, outCreator, outVersion, outHP, outOD, outCS, outAR, outSliderMultiplier, outSliderTickRate, outBpm, outOffset, outNotes)) {
+                          scrollSpeed = outAR; 
                         fileLoaded = true;
                         s_IsLoadOpen = false;
                         s_KeyCooldown = 10;

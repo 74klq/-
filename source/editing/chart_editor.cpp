@@ -647,14 +647,13 @@ void ChartEditor::HandleInput() {
     float dummyHP = 5.0f, dummyOD = 5.0f, dummyCS = 4.0f, dummyAR = 5.0f;
     float dummySliderMultiplier = 1.4f, dummySliderTickRate = 1.0f;
 
-    // ChartSave 헤더 정의에 명시된 27개 인자에 맞춰 호출
     ChartSave::HandleChartInput(
         s_CurrentMusicPath, dummyTitle, dummyArtist, dummyCreator, dummyVersion,
-        dummyHP, dummyOD, dummyCS, dummyAR, dummySliderMultiplier, dummySliderTickRate, 
+        dummyHP, dummyOD, dummyCS, s_ScrollSpeed, dummySliderMultiplier, dummySliderTickRate, // ★ dummyAR 대신 s_ScrollSpeed 대입
         currentSaveData,
         loadedMusicPath, loadedTitle, loadedArtist, loadedCreator, loadedVersion,
         loadedHP, loadedOD, loadedCS, loadedAR, loadedSliderMultiplier, loadedSliderTickRate, 
-        loadedBpm, loadedOffset, loadedNotes,
+        loadedBpm, loadedOffset, s_ScrollSpeed, loadedNotes,
         fileLoaded
     );
 

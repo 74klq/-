@@ -2035,6 +2035,10 @@ void PlayScene::Update()
                     pNote.lastTickTime = 0.0f;
                     s_PlayableNotes.push_back(pNote);
                 }
+
+                std::sort(s_PlayableNotes.begin(), s_PlayableNotes.end(), [](const PlayableNote& a, const PlayableNote& b) {
+                return a.timeSec < b.timeSec;
+      });
             }
             else
             {
@@ -2362,9 +2366,22 @@ void PlayScene::UpdatePlaying()
                         s_JudgmentLinePulse = 1.0f;
                         s_JudgmentAnimTimer = 0.3f;
 
-                        if (absDiff <= 0.05f) { s_CurrentJudgment = "PERFECT"; s_Combo++; }
-                        else if (absDiff <= 0.10f) { s_CurrentJudgment = "GREAT"; s_Combo = 0; s_LastCombo = 0; }
-                        else { s_CurrentJudgment = "GOOD"; s_Combo = 0; s_LastCombo = 0; }
+                        if (absDiff <= 0.07f) 
+{ 
+    s_CurrentJudgment = "PERFECT"; 
+    s_Combo++; 
+}
+else if (absDiff <= 0.12f) 
+{ 
+    s_CurrentJudgment = "GREAT"; 
+    s_Combo++; 
+}
+else 
+{ 
+    s_CurrentJudgment = "GOOD"; 
+    s_Combo++; 
+}
+
 
                         if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
                         {
@@ -2416,7 +2433,7 @@ void PlayScene::UpdatePlaying()
                     }
                 }
             }
-            else
+             else
             {
                 if (lanePressed[lane])
                 {
@@ -2434,9 +2451,21 @@ void PlayScene::UpdatePlaying()
                         s_JudgmentLinePulse = 1.0f;
                         s_JudgmentAnimTimer = 0.3f;
 
-                        if (absDiff <= 0.05f) { s_CurrentJudgment = "PERFECT"; s_Combo++; }
-                        else if (absDiff <= 0.10f) { s_CurrentJudgment = "GREAT"; s_Combo = 0; s_LastCombo = 0; }
-                        else { s_CurrentJudgment = "GOOD"; s_Combo = 0; s_LastCombo = 0; }
+                        if (absDiff <= 0.07f) 
+                        { 
+                            s_CurrentJudgment = "PERFECT"; 
+                            s_Combo++; 
+                        }
+                        else if (absDiff <= 0.12f) 
+                        { 
+                            s_CurrentJudgment = "GREAT"; 
+                            s_Combo++; 
+                        }
+                        else 
+                        { 
+                            s_CurrentJudgment = "GOOD"; 
+                            s_Combo++; 
+                        }
 
                         if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
                         {

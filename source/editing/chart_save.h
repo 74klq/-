@@ -87,6 +87,7 @@ static bool SaveToOsu(const char* filename,
                                  float& outSliderTickRate,
                                  float& outBpm,
                                  float& outOffset,
+                                 float& scrollSpeed,
                                  std::vector<SaveNoteData>& outNotes,
                                  bool& fileLoaded);
 
