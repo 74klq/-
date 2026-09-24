@@ -53,8 +53,14 @@ void SongSelect::Init() {
     std::vector<std::string> jacketPaths = {
         "music_assets/stars.png",
         "music_assets/kaleidoscope.png",
+        "music_assets/SkysCape.png",
+        "music_assets/TheLostAria.png",
         "music_assets/Timeline.png",
-        "music_assets/R.png"
+        "music_assets/Terrasphere.png",
+        "music_assets/N.png",
+        "music_assets/SecretDoll2.png",
+        "music_assets/R.png",
+        "music_assets/PlumMegamix.png",
     };
 
     for (const auto& path : jacketPaths) {
@@ -179,105 +185,104 @@ void SongSelect::LoadSongs() {
     song2.cleared = false;
     song2.difficulties = { {"HARD", 10, 128.0f, 650, 1300, 6.0f} };
     song2.osuFileName = "Kaleidoscope.osu";  
-    song2.musicPlayerActive = 1;
+    song2.musicPlayerActive = 2;
     songs.push_back(song2);
 
     SongData song3;
-    song3.title = "Timeline";
+    song3.title = "SkysCape";
     song3.artist = "Plum";
     song3.mapper = "boyangsic";
-    song3.bpm = 155.0f;
-    song3.length = 168.0f;
-    song3.cleared = true;
-    song3.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
-    song3.osuFileName = "Timeline.osu";   
-    song3.musicPlayerActive = 2; 
+    song3.bpm = 138.0f;
+    song3.length = 142.0f;
+    song3.cleared = false;
+    song3.difficulties = { {"HARD", 12, 138.0f, 850, 1700, 6.0f} };
+    song3.osuFileName = "SkysCape.osu";          
+    song3.musicPlayerActive = 3; 
     songs.push_back(song3);
 
     SongData song4;
-    song4.title = "R";
-    song4.artist = "Plum";
-    song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
-    song4.cleared = false;
-    song4.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song4);
-
-    SongData song5;
-    song4.title = "비밀인형극 II";
-    song4.artist = "Plum";
-    song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
-    song4.cleared = false;
-    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song5);
-
-    SongData song6;
-    song4.title = "PLUM MEGAMIX";
-    song4.artist = "Plum";
-    song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
-    song4.cleared = false;
-    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song6);
-
-    SongData song7;
-    song4.title = "SkysCape";
-    song4.artist = "Plum";
-    song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
-    song4.cleared = false;
-    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song7);
-
-    SongData song8;
-    song4.title = "N";
-    song4.artist = "Plum";
-    song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
-    song4.cleared = false;
-    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song8);
-
-    SongData song9;
-    song4.title = "Terrasphere";
-    song4.artist = "Plum";
-    song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
-    song4.cleared = false;
-    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song9);
-
-    SongData song10;
     song4.title = "The Lost Aria";
     song4.artist = "Plum";
     song4.mapper = "boyangsic";
-    song4.bpm = 170.0f;
-    song4.length = 142.0f;
+    song4.bpm = 140.0f; 
+    song4.length = 235.0f;
     song4.cleared = false;
-    song4.difficulties = { {"HARD", 20, 170.0f, 1750, 3500, 6.5f} };
-     song4.osuFileName = "R.osu";          
-    song4.musicPlayerActive = 3; 
-    songs.push_back(song10);
+    song4.difficulties = { {"HARD", 14, 140.0f, 1000, 2000, 6.0f} };
+    song4.osuFileName = "TheLostAria.osu";          
+    song4.musicPlayerActive = 4; 
+    songs.push_back(song4);
 
+    SongData song5;
+    song5.title = "Timeline";
+    song5.artist = "Plum";
+    song5.mapper = "boyangsic";
+    song5.bpm = 155.0f;
+    song5.length = 168.0f;
+    song5.cleared = true;
+    song5.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
+    song5.osuFileName = "Timeline.osu";   
+    song5.musicPlayerActive = 5; 
+    songs.push_back(song5);
+    
+    SongData song6;
+    song6.title = "Terrasphere";
+    song6.artist = "Plum";
+    song6.mapper = "boyangsic";
+    song6.bpm = 160.0f;
+    song6.length = 142.0f;
+    song6.cleared = false;
+    song6.difficulties = { {"EXPERT", 18, 160.0f, 1450, 2900, 6.5f} }; // song4 -> song6 수정
+    song6.osuFileName = "Terrasphere.osu";          
+    song6.musicPlayerActive = 6; 
+    songs.push_back(song6);
+
+    SongData song7;
+    song7.title = "N";
+    song7.artist = "Plum";
+    song7.mapper = "boyangsic";
+    song7.bpm = 165.0f;
+    song7.length = 142.0f;
+    song7.cleared = false;
+    song7.difficulties = { {"EXPERT", 19, 165.0f, 1600, 3200, 6.5f} };
+    song7.osuFileName = "N.osu";          
+    song7.musicPlayerActive = 7; 
+    songs.push_back(song7);
+
+    SongData song8;
+    song8.title = "비밀인형극 II";
+    song8.artist = "Plum";
+    song8.mapper = "boyangsic";
+    song8.bpm = 170.0f;
+    song8.length = 142.0f;
+    song8.cleared = false;
+    song8.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
+    song8.osuFileName = "SecretDoll2.osu";          
+    song8.musicPlayerActive = 8; 
+    songs.push_back(song8);
+
+    SongData song9;
+    song9.title = "R";
+    song9.artist = "Plum";
+    song9.mapper = "boyangsic";
+    song9.bpm = 180.0f;
+    song9.length = 142.0f;
+    song9.cleared = false;
+    song9.difficulties = { {"MASTER", 21, 180.0f, 1900, 3800, 6.5f} };
+    song9.osuFileName = "R.osu";          
+    song9.musicPlayerActive = 9; 
+    songs.push_back(song9);
+
+    SongData song10;
+    song10.title = "PLUM MEGAMIX";
+    song10.artist = "Plum";
+    song10.mapper = "boyangsic";
+    song10.bpm = 175.0f;
+    song10.length = 300.0f;
+    song10.cleared = false;
+    song10.difficulties = { {"HELL", 23, 175.0f, 2500, 5000, 7.0f} };
+    song10.osuFileName = "PlumMegamix.osu";          
+    song10.musicPlayerActive = 10; 
+    songs.push_back(song10);
 }
 
 void SongSelect::Update() {

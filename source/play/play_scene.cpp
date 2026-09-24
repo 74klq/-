@@ -8,6 +8,13 @@
 #include "../music_execute/music1_on.cpp"
 #include "../music_execute/music2_on.cpp"
 #include "../music_execute/music3_on.cpp"
+#include "../music_execute/music4_on.cpp"
+#include "../music_execute/music5_on.cpp"
+#include "../music_execute/music6_on.cpp"
+#include "../music_execute/music7_on.cpp"
+#include "../music_execute/music8_on.cpp"
+#include "../music_execute/music9_on.cpp"
+#include "../music_execute/music10_on.cpp"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -125,48 +132,112 @@ struct MusicPlayerWrapper {
     MusicExecute::MusicPlayer1* p1 = nullptr;
     MusicExecute::MusicPlayer2* p2 = nullptr;
     MusicExecute::MusicPlayer3* p3 = nullptr;
+    MusicExecute::MusicPlayer4* p4 = nullptr;
+    MusicExecute::MusicPlayer5* p5 = nullptr;
+    MusicExecute::MusicPlayer6* p6 = nullptr;
+    MusicExecute::MusicPlayer7* p7 = nullptr;
+    MusicExecute::MusicPlayer8* p8 = nullptr;
+    MusicExecute::MusicPlayer9* p9 = nullptr;
+    MusicExecute::MusicPlayer10* p10 = nullptr;
     int active = 1;
 
     void Init(AudioManager& am) {
-        if (p1) p1->Initialize(am);
-        if (p2) p2->Initialize(am);
-        if (p3) p3->Initialize(am);
+        if (p1) p1->Initialize(am); if (p2) p2->Initialize(am); if (p3) p3->Initialize(am);
+        if (p4) p4->Initialize(am); if (p5) p5->Initialize(am); if (p6) p6->Initialize(am);
+        if (p7) p7->Initialize(am); if (p8) p8->Initialize(am); if (p9) p9->Initialize(am);
+        if (p10) p10->Initialize(am);
     }
+
     void Update(float dt) {
-        if (active == 1 && p1) p1->Update(dt);
-        else if (active == 2 && p2) p2->Update(dt);
-        else if (active == 3 && p3) p3->Update(dt);
+        switch (active) {
+            case 1: if (p1) p1->Update(dt); break;
+            case 2: if (p2) p2->Update(dt); break;
+            case 3: if (p3) p3->Update(dt); break;
+            case 4: if (p4) p4->Update(dt); break;
+            case 5: if (p5) p5->Update(dt); break;
+            case 6: if (p6) p6->Update(dt); break;
+            case 7: if (p7) p7->Update(dt); break;
+            case 8: if (p8) p8->Update(dt); break;
+            case 9: if (p9) p9->Update(dt); break;
+            case 10: if (p10) p10->Update(dt); break;
+        }
     }
+
     void Stop() {
-        if (p1) p1->Stop();
-        if (p2) p2->Stop();
-        if (p3) p3->Stop();
+        if (p1) p1->Stop(); if (p2) p2->Stop(); if (p3) p3->Stop();
+        if (p4) p4->Stop(); if (p5) p5->Stop(); if (p6) p6->Stop();
+        if (p7) p7->Stop(); if (p8) p8->Stop(); if (p9) p9->Stop();
+        if (p10) p10->Stop();
     }
+
     void Play(AudioManager& am, int i) {
-        if (active == 1 && p1) p1->Play(am, i);
-        else if (active == 2 && p2) p2->Play(am, i);
-        else if (active == 3 && p3) p3->Play(am, i);
+        switch (active) {
+            case 1: if (p1) p1->Play(am, i); break;
+            case 2: if (p2) p2->Play(am, i); break;
+            case 3: if (p3) p3->Play(am, i); break;
+            case 4: if (p4) p4->Play(am, i); break;
+            case 5: if (p5) p5->Play(am, i); break;
+            case 6: if (p6) p6->Play(am, i); break;
+            case 7: if (p7) p7->Play(am, i); break;
+            case 8: if (p8) p8->Play(am, i); break;
+            case 9: if (p9) p9->Play(am, i); break;
+            case 10: if (p10) p10->Play(am, i); break;
+        }
     }
+
     void PlayImmediate() {
-        if (active == 1 && p1) p1->PlayImmediate();
-        else if (active == 2 && p2) p2->PlayImmediate();
-        else if (active == 3 && p3) p3->PlayImmediate();
+        switch (active) {
+            case 1: if (p1) p1->PlayImmediate(); break;
+            case 2: if (p2) p2->PlayImmediate(); break;
+            case 3: if (p3) p3->PlayImmediate(); break;
+            case 4: if (p4) p4->PlayImmediate(); break;
+            case 5: if (p5) p5->PlayImmediate(); break;
+            case 6: if (p6) p6->PlayImmediate(); break;
+            case 7: if (p7) p7->PlayImmediate(); break;
+            case 8: if (p8) p8->PlayImmediate(); break;
+            case 9: if (p9) p9->PlayImmediate(); break;
+            case 10: if (p10) p10->PlayImmediate(); break;
+        }
     }
+
     void SetPitch(float p) {
-        if (active == 1 && p1) p1->SetPitch(p);
-        else if (active == 2 && p2) p2->SetPitch(p);
-        else if (active == 3 && p3) p3->SetPitch(p);
+        switch (active) {
+            case 1: if (p1) p1->SetPitch(p); break;
+            case 2: if (p2) p2->SetPitch(p); break;
+            case 3: if (p3) p3->SetPitch(p); break;
+            case 4: if (p4) p4->SetPitch(p); break;
+            case 5: if (p5) p5->SetPitch(p); break;
+            case 6: if (p6) p6->SetPitch(p); break;
+            case 7: if (p7) p7->SetPitch(p); break;
+            case 8: if (p8) p8->SetPitch(p); break;
+            case 9: if (p9) p9->SetPitch(p); break;
+            case 10: if (p10) p10->SetPitch(p); break;
+        }
     }
+
     FMOD_CHANNEL* GetChannelRaw() const {
-        if (active == 1 && p1) return p1->GetChannelRaw();
-        if (active == 2 && p2) return p2->GetChannelRaw();
-        if (active == 3 && p3) return p3->GetChannelRaw();
+        switch (active) {
+            case 1: return p1 ? p1->GetChannelRaw() : nullptr;
+            case 2: return p2 ? p2->GetChannelRaw() : nullptr;
+            case 3: return p3 ? p3->GetChannelRaw() : nullptr;
+            case 4: return p4 ? p4->GetChannelRaw() : nullptr;
+            case 5: return p5 ? p5->GetChannelRaw() : nullptr;
+            case 6: return p6 ? p6->GetChannelRaw() : nullptr;
+            case 7: return p7 ? p7->GetChannelRaw() : nullptr;
+            case 8: return p8 ? p8->GetChannelRaw() : nullptr;
+            case 9: return p9 ? p9->GetChannelRaw() : nullptr;
+            case 10: return p10 ? p10->GetChannelRaw() : nullptr;
+        }
         return nullptr;
     }
+
     bool IsValid() const {
-        if (active == 1) return p1 != nullptr;
-        if (active == 2) return p2 != nullptr;
-        if (active == 3) return p3 != nullptr;
+        switch (active) {
+            case 1: return p1 != nullptr; case 2: return p2 != nullptr; case 3: return p3 != nullptr;
+            case 4: return p4 != nullptr; case 5: return p5 != nullptr; case 6: return p6 != nullptr;
+            case 7: return p7 != nullptr; case 8: return p8 != nullptr; case 9: return p9 != nullptr;
+            case 10: return p10 != nullptr;
+        }
         return false;
     }
 };
@@ -179,8 +250,12 @@ static std::vector<Note> s_Notes;
 
 struct PlayableNote {
 float timeSec;
+float endTimeSec;
 int lane;
+int type;
 bool active;
+bool isHolding;
+float lastTickTime;
 };
 
 static std::vector<PlayableNote> s_PlayableNotes;
@@ -546,47 +621,84 @@ static void DrawNotes(float judgmentLineY)
 
         const float diffSec = (pNote.timeSec * 1000.0f - nowMs) / 1000.0f;
         const float y = judgmentLineY - diffSec * s_NoteScrollSpeed;
-        if (y < -100.0f || y > 760.0f)
-            continue;
 
-        const float cx = LANE_X_COORDS[pNote.lane];
-        const float w = LANE_WIDTH - 6.0f;
-        const float h = 24.0f;
-        const bool nearHit = fabsf(diffSec) < 0.22f;
-        const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + pNote.lane);
-
-        if (nearHit)
+        if (pNote.type == 128)
         {
+            const float endDiffSec = (pNote.endTimeSec * 1000.0f - nowMs) / 1000.0f;
+            const float endY = judgmentLineY - endDiffSec * s_NoteScrollSpeed;
+
+            if (y < -100.0f && endY > 760.0f)
+                continue;
+
+            const float cx = LANE_X_COORDS[pNote.lane];
+            const float w = LANE_WIDTH - 6.0f;
+            const float h = 24.0f;
+            const float noteLength = endY - y;
+
             DrawRectangleRounded(
-                { cx - w * 0.5f - 10.0f, y - h * 0.5f - 10.0f, w + 20.0f, h + 20.0f },
-                0.18f, 8, Color{ 255, 255, 255, (unsigned char)(8 + pulse * 12) });
+                { cx - w * 0.5f + 4.0f, endY - h * 0.5f + 7.0f, w, noteLength + h },
+                0.18f, 8, Color{ 0, 0, 0, 245 });
+
+            DrawRectangleRounded(
+                { cx - w * 0.5f, endY - h * 0.5f, w, noteLength + h },
+                0.18f, 8, Color{ 160, 160, 165, 255 });
+
+            DrawRectangleRounded(
+                { cx - w * 0.5f + 2.0f, endY - h * 0.5f + 2.0f, w - 4.0f, (noteLength + h) * 0.95f },
+                0.16f, 8, Color{ 210, 210, 215, 255 });
+
+            DrawRectangleRounded(
+                { cx - w * 0.5f, y - h * 0.5f, w, h },
+                0.18f, 8, Color{ 255, 255, 255, 255 });
+
+            DrawRectangleRounded(
+                { cx - w * 0.5f, endY - h * 0.5f, w, h },
+                0.18f, 8, Color{ 100, 100, 105, 255 });
         }
+        else
+        {
+            if (y < -100.0f || y > 760.0f)
+                continue;
 
-        DrawRectangleRounded(
-            { cx - w * 0.5f + 4.0f, y - h * 0.5f + 7.0f, w, h },
-            0.18f, 8, Color{ 0, 0, 0, 245 });
+            const float cx = LANE_X_COORDS[pNote.lane];
+            const float w = LANE_WIDTH - 6.0f;
+            const float h = 24.0f;
+            const bool nearHit = fabsf(diffSec) < 0.22f;
+            const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + pNote.lane);
 
-        DrawRectangleRounded(
-            { cx - w * 0.5f, y - h * 0.5f, w, h },
-            0.18f, 8, Color{ 218, 218, 221, 255 });
+            if (nearHit)
+            {
+                DrawRectangleRounded(
+                    { cx - w * 0.5f - 10.0f, y - h * 0.5f - 10.0f, w + 20.0f, h + 20.0f },
+                    0.18f, 8, Color{ 255, 255, 255, (unsigned char)(8 + pulse * 12) });
+            }
 
-        DrawRectangleRounded(
-            { cx - w * 0.5f + 2.0f, y - h * 0.5f + 2.0f, w - 4.0f, h * 0.42f },
-            0.16f, 8, Color{ 255, 255, 255, 255 });
+            DrawRectangleRounded(
+                { cx - w * 0.5f + 4.0f, y - h * 0.5f + 7.0f, w, h },
+                0.18f, 8, Color{ 0, 0, 0, 245 });
 
-        DrawRectangleRounded(
-            { cx - w * 0.5f + 5.0f, y - 2.0f, w - 10.0f, 4.0f },
-            0.35f, 8, Color{ 22, 22, 24, 255 });
+            DrawRectangleRounded(
+                { cx - w * 0.5f, y - h * 0.5f, w, h },
+                0.18f, 8, Color{ 218, 218, 221, 255 });
 
-        DrawRectangleRoundedLines(
-            { cx - w * 0.5f, y - h * 0.5f, w, h },
-            0.18f, 8, Color{ 255, 255, 255, 240 });
+            DrawRectangleRounded(
+                { cx - w * 0.5f + 2.0f, y - h * 0.5f + 2.0f, w - 4.0f, h * 0.42f },
+                0.16f, 8, Color{ 255, 255, 255, 255 });
 
-        DrawRectangle((int)(cx - w * 0.5f + 10.0f), (int)(y - h * 0.5f + 2.0f),
-            (int)(w - 20.0f), 1, Color{ 255, 255, 255, 150 });
+            DrawRectangleRounded(
+                { cx - w * 0.5f + 5.0f, y - 2.0f, w - 10.0f, 4.0f },
+                0.35f, 8, Color{ 22, 22, 24, 255 });
 
-        DrawRectangle((int)(cx - 18), (int)(y + h * 0.5f + 5), 36, 2,
-            Color{ 0, 0, 0, 100 });
+            DrawRectangleRoundedLines(
+                { cx - w * 0.5f, y - h * 0.5f, w, h },
+                0.18f, 8, Color{ 255, 255, 255, 240 });
+
+            DrawRectangle((int)(cx - w * 0.5f + 10.0f), (int)(y - h * 0.5f + 2.0f),
+                (int)(w - 20.0f), 1, Color{ 255, 255, 255, 150 });
+
+            DrawRectangle((int)(cx - 18), (int)(y + h * 0.5f + 5), 36, 2,
+                Color{ 0, 0, 0, 100 });
+        }
     }
 }
 
@@ -1760,11 +1872,30 @@ PlayScene::PlayScene(SongSelect& sharedSongSelect)
     s_MusicPlayer.p1 = new MusicExecute::MusicPlayer1();
     s_MusicPlayer.p2 = new MusicExecute::MusicPlayer2();
     s_MusicPlayer.p3 = new MusicExecute::MusicPlayer3();
+    s_MusicPlayer.p4 = new MusicExecute::MusicPlayer4();
+    s_MusicPlayer.p5 = new MusicExecute::MusicPlayer5();
+    s_MusicPlayer.p6 = new MusicExecute::MusicPlayer6();
+    s_MusicPlayer.p7 = new MusicExecute::MusicPlayer7();
+    s_MusicPlayer.p8 = new MusicExecute::MusicPlayer8();
+    s_MusicPlayer.p9 = new MusicExecute::MusicPlayer9();
+    s_MusicPlayer.p10 = new MusicExecute::MusicPlayer10();
 }
 
 PlayScene::~PlayScene()
 {
-if (s_MusicPlayer.p1)
+
+delete s_MusicPlayer.p1; 
+delete s_MusicPlayer.p2;  
+delete s_MusicPlayer.p3;
+delete s_MusicPlayer.p4;  
+delete s_MusicPlayer.p5;  
+delete s_MusicPlayer.p6;
+delete s_MusicPlayer.p7;  
+delete s_MusicPlayer.p8;  
+delete s_MusicPlayer.p9;
+delete s_MusicPlayer.p10;
+
+/*if (s_MusicPlayer.p1)
 {
 delete s_MusicPlayer.p1;
 s_MusicPlayer.p1 = nullptr;
@@ -1777,8 +1908,7 @@ s_MusicPlayer.p2 = nullptr;
 if (s_MusicPlayer.p3)
 {
 delete s_MusicPlayer.p3;
-s_MusicPlayer.p3 = nullptr;
-}
+s_MusicPlayer.p3 = nullptr; */
 }
 
 void PlayScene::Init(int startSongIndex)
@@ -1897,8 +2027,12 @@ void PlayScene::Update()
                     const auto& saveNote = loadedNotes[i];
                     PlayableNote pNote;
                     pNote.timeSec = (float)saveNote.time / 1000.0f;
+                    pNote.endTimeSec = (float)saveNote.endTime / 1000.0f;
                     pNote.lane = saveNote.lane;
+                    pNote.type = saveNote.type;
                     pNote.active = true;
+                    pNote.isHolding = false;
+                    pNote.lastTickTime = 0.0f;
                     s_PlayableNotes.push_back(pNote);
                 }
             }
@@ -2148,87 +2282,171 @@ void PlayScene::UpdatePlaying()
     {
         if (pNote.active)
         {
-            float timeDiff = s_SongTimer - pNote.timeSec;
-            if (timeDiff > 0.3f)
+            if (pNote.type == 128)
             {
-                pNote.active = false;
-                s_Combo = 0;
-                s_LastCombo = 0;
-                s_ShowJudgment = true;
-                s_JudgmentTimer = 0.3f;
-                s_CurrentJudgment = "MISS";
-                s_JudgmentAnimTimer = 0.3f;
+                if (!pNote.isHolding)
+                {
+                    float timeDiff = s_SongTimer - pNote.timeSec;
+                    if (timeDiff > 0.3f)
+                    {
+                        pNote.active = false;
+                        s_Combo = 0;
+                        s_LastCombo = 0;
+                        s_ShowJudgment = true;
+                        s_JudgmentTimer = 0.3f;
+                        s_CurrentJudgment = "MISS";
+                        s_JudgmentAnimTimer = 0.3f;
+                    }
+                }
+                else
+                {
+                    float timeDiff = s_SongTimer - pNote.endTimeSec;
+                    if (timeDiff > 0.3f)
+                    {
+                        pNote.active = false;
+                        pNote.isHolding = false;
+                        s_Combo = 0;
+                        s_LastCombo = 0;
+                        s_ShowJudgment = true;
+                        s_JudgmentTimer = 0.3f;
+                        s_CurrentJudgment = "MISS";
+                        s_JudgmentAnimTimer = 0.3f;
+                    }
+                }
+            }
+            else
+            {
+                float timeDiff = s_SongTimer - pNote.timeSec;
+                if (timeDiff > 0.3f)
+                {
+                    pNote.active = false;
+                    s_Combo = 0;
+                    s_LastCombo = 0;
+                    s_ShowJudgment = true;
+                    s_JudgmentTimer = 0.3f;
+                    s_CurrentJudgment = "MISS";
+                    s_JudgmentAnimTimer = 0.3f;
+                }
             }
         }
     }
 
     HitEffect::Update();
 
-    bool lanePressed[4] = {
-        IsKeyPressed(KEY_D),
-        IsKeyPressed(KEY_F),
-        IsKeyPressed(KEY_J),
-        IsKeyPressed(KEY_K)
-    };
+    bool lanePressed[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
+    bool laneDown[4] = { IsKeyDown(KEY_D), IsKeyDown(KEY_F), IsKeyDown(KEY_J), IsKeyDown(KEY_K) };
+    bool laneReleased[4] = { IsKeyReleased(KEY_D), IsKeyReleased(KEY_F), IsKeyReleased(KEY_J), IsKeyReleased(KEY_K) };
 
     for (int lane = 0; lane < 4; ++lane)
     {
-        if (!lanePressed[lane]) continue;
-
-        bool hitRecorded = false;
-
         for (auto& pNote : s_PlayableNotes)
         {
-            if (pNote.active && pNote.lane == lane)
+            if (!pNote.active || pNote.lane != lane) continue;
+
+            if (pNote.type == 128)
             {
-                float timeDiff = s_SongTimer - pNote.timeSec;
-                float absDiff = fabsf(timeDiff);
-
-                if (absDiff <= 0.15f)
+                if (!pNote.isHolding && lanePressed[lane])
                 {
-                    pNote.active = false;
-                    float nX = LANE_X_COORDS[pNote.lane];
-                    HitEffect::Spawn({ nX, judgmentLineY });
+                    float timeDiff = s_SongTimer - pNote.timeSec;
+                    float absDiff = fabsf(timeDiff);
 
-                    s_ShowJudgment = true;
-                    s_JudgmentTimer = 0.4f;
-                    s_JudgmentLinePulse = 1.0f;
-                    s_JudgmentAnimTimer = 0.3f;
-
-                    if (absDiff <= 0.05f)
+                    if (absDiff <= 0.15f)
                     {
+                        pNote.isHolding = true;
+                        pNote.lastTickTime = s_SongTimer;
+                        float nX = LANE_X_COORDS[pNote.lane];
+                        HitEffect::Spawn({ nX, judgmentLineY });
+
+                        s_ShowJudgment = true;
+                        s_JudgmentTimer = 0.4f;
+                        s_JudgmentLinePulse = 1.0f;
+                        s_JudgmentAnimTimer = 0.3f;
+
+                        if (absDiff <= 0.05f) { s_CurrentJudgment = "PERFECT"; s_Combo++; }
+                        else if (absDiff <= 0.10f) { s_CurrentJudgment = "GREAT"; s_Combo = 0; s_LastCombo = 0; }
+                        else { s_CurrentJudgment = "GOOD"; s_Combo = 0; s_LastCombo = 0; }
+
+                        if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
+                        {
+                            s_ComboAnimTimer = 0.2f;
+                            s_LastCombo = s_Combo;
+                        }
+                        break;
+                    }
+                }
+                else if (pNote.isHolding)
+                {
+                    if (laneReleased[lane] || !laneDown[lane])
+                    {
+                        pNote.active = false;
+                        pNote.isHolding = false;
+                        s_Combo = 0;
+                        s_LastCombo = 0;
+                        s_ShowJudgment = true;
+                        s_JudgmentTimer = 0.3f;
+                        s_CurrentJudgment = "MISS";
+                        s_JudgmentAnimTimer = 0.3f;
+                        break;
+                    }
+
+                    if (s_SongTimer >= pNote.endTimeSec)
+                    {
+                        pNote.active = false;
+                        pNote.isHolding = false;
+                        float nX = LANE_X_COORDS[pNote.lane];
+                        HitEffect::Spawn({ nX, judgmentLineY });
+
+                        s_ShowJudgment = true;
+                        s_JudgmentTimer = 0.4f;
+                        s_JudgmentLinePulse = 1.0f;
+                        s_JudgmentAnimTimer = 0.3f;
                         s_CurrentJudgment = "PERFECT";
                         s_Combo++;
-                    }
-                    else if (absDiff <= 0.10f)
-                    {
-                        s_CurrentJudgment = "GREAT";
-                        s_Combo = 0;
-                        s_LastCombo = 0;
-                    }
-                    else
-                    {
-                        s_CurrentJudgment = "GOOD";
-                        s_Combo = 0;
-                        s_LastCombo = 0;
-                    }
-
-                    if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
-                    {
                         s_ComboAnimTimer = 0.2f;
                         s_LastCombo = s_Combo;
+                        break;
                     }
 
-                    hitRecorded = true;
-                    break;
+                    if (s_SongTimer - pNote.lastTickTime >= 0.100f)
+                    {
+                        s_Combo++;
+                        s_LastCombo = s_Combo;
+                        s_ComboAnimTimer = 0.1f;
+                        pNote.lastTickTime += 0.100f;
+                    }
                 }
             }
-        }
+            else
+            {
+                if (lanePressed[lane])
+                {
+                    float timeDiff = s_SongTimer - pNote.timeSec;
+                    float absDiff = fabsf(timeDiff);
 
-        if (!hitRecorded)
-        {
-            s_Combo = 0;
-            s_LastCombo = 0;
+                    if (absDiff <= 0.15f)
+                    {
+                        pNote.active = false;
+                        float nX = LANE_X_COORDS[pNote.lane];
+                        HitEffect::Spawn({ nX, judgmentLineY });
+
+                        s_ShowJudgment = true;
+                        s_JudgmentTimer = 0.4f;
+                        s_JudgmentLinePulse = 1.0f;
+                        s_JudgmentAnimTimer = 0.3f;
+
+                        if (absDiff <= 0.05f) { s_CurrentJudgment = "PERFECT"; s_Combo++; }
+                        else if (absDiff <= 0.10f) { s_CurrentJudgment = "GREAT"; s_Combo = 0; s_LastCombo = 0; }
+                        else { s_CurrentJudgment = "GOOD"; s_Combo = 0; s_LastCombo = 0; }
+
+                        if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
+                        {
+                            s_ComboAnimTimer = 0.2f;
+                            s_LastCombo = s_Combo;
+                        }
+                        break;
+                    }
+                }
+            }
         }
     }
 

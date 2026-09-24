@@ -1,0 +1,102 @@
+Date : 2026-09-24 16:27:52
+Directory : c:\Users\me\Documents\game
+Total : 59 files,  14984 codes, 613 comments, 2353 blanks, all 17950 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |         50 |      9,972 |        452 |      1,889 |     12,313 |
+| C#       |          3 |      4,754 |        161 |        377 |      5,292 |
+| Python   |          4 |        187 |          0 |         60 |        247 |
+| Makefile |          1 |         66 |          0 |         24 |         90 |
+| Ini      |          1 |          5 |          0 |          3 |          8 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                   |         59 |     14,984 |        613 |      2,353 |     17,950 |
+| . (Files)                                                           |          1 |         66 |          0 |         24 |         90 |
+| inc                                                                 |         11 |      7,531 |        572 |        840 |      8,943 |
+| source                                                              |         42 |      7,195 |         41 |      1,426 |      8,662 |
+| source\Animation                                                    |          2 |        486 |          0 |         88 |        574 |
+| source\AudioManager                                                 |          2 |        120 |          0 |         26 |        146 |
+| source\Menu                                                         |          6 |        901 |         17 |        181 |      1,099 |
+| source\Menu (Files)                                                 |          4 |        300 |          4 |         75 |        379 |
+| source\Menu\Map_Selection                                           |          2 |        601 |         13 |        106 |        720 |
+| source\data                                                         |          2 |         32 |          2 |          5 |         39 |
+| source\editing                                                      |         10 |      2,023 |          7 |        444 |      2,474 |
+| source\main                                                         |          1 |         57 |          0 |         15 |         72 |
+| source\music_execute                                                |         11 |      1,074 |          0 |        226 |      1,300 |
+| source\play                                                         |          4 |      2,263 |         15 |        405 |      2,683 |
+| source\vfx                                                          |          4 |        239 |          0 |         36 |        275 |
+| tool                                                                |          5 |        192 |          0 |         63 |        255 |
++---------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                            | language | code       | comment    | blank      | total      |
++---------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\me\Documents\game\Makefile                                 | Makefile |         66 |          0 |         24 |         90 |
+| c:\Users\me\Documents\game\inc\fmod.cs                              | C#       |      3,707 |        119 |        265 |      4,091 |
+| c:\Users\me\Documents\game\inc\fmod.h                               | C++      |        396 |        163 |        112 |        671 |
+| c:\Users\me\Documents\game\inc\fmod.hpp                             | C++      |        412 |        103 |         95 |        610 |
+| c:\Users\me\Documents\game\inc\fmod_codec.h                         | C++      |         92 |         30 |         15 |        137 |
+| c:\Users\me\Documents\game\inc\fmod_common.h                        | C++      |        789 |         34 |         79 |        902 |
+| c:\Users\me\Documents\game\inc\fmod_dsp.cs                          | C#       |        952 |         32 |        110 |      1,094 |
+| c:\Users\me\Documents\game\inc\fmod_dsp.h                           | C++      |        383 |         26 |         55 |        464 |
+| c:\Users\me\Documents\game\inc\fmod_dsp_effects.h                   | C++      |        524 |         18 |         91 |        633 |
+| c:\Users\me\Documents\game\inc\fmod_errors.cs                       | C#       |         95 |         10 |          2 |        107 |
+| c:\Users\me\Documents\game\inc\fmod_errors.h                        | C++      |         96 |         10 |          5 |        111 |
+| c:\Users\me\Documents\game\inc\fmod_output.h                        | C++      |         85 |         27 |         11 |        123 |
+| c:\Users\me\Documents\game\source\Animation\note_down_animation.cpp | C++      |        478 |          0 |         85 |        563 |
+| c:\Users\me\Documents\game\source\Animation\note_down_animation.h   | C++      |          8 |          0 |          3 |         11 |
+| c:\Users\me\Documents\game\source\AudioManager\audio_manager.cpp    | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\AudioManager\audio_manager.h      | C++      |         21 |          0 |          5 |         26 |
+| c:\Users\me\Documents\game\source\Menu\Map_Selection\Selection.cpp  | C++      |        538 |         13 |         91 |        642 |
+| c:\Users\me\Documents\game\source\Menu\Map_Selection\Selection.h    | C++      |         63 |          0 |         15 |         78 |
+| c:\Users\me\Documents\game\source\Menu\background_rotation.cpp      | C++      |         83 |          0 |         16 |         99 |
+| c:\Users\me\Documents\game\source\Menu\background_rotation.h        | C++      |         26 |          0 |          6 |         32 |
+| c:\Users\me\Documents\game\source\Menu\main_Menu.cpp                | C++      |        164 |          4 |         47 |        215 |
+| c:\Users\me\Documents\game\source\Menu\main_Menu.h                  | C++      |         27 |          0 |          6 |         33 |
+| c:\Users\me\Documents\game\source\data\main_data.cpp                | C++      |          1 |          0 |          0 |          1 |
+| c:\Users\me\Documents\game\source\data\main_data.h                  | C++      |         31 |          2 |          5 |         38 |
+| c:\Users\me\Documents\game\source\editing\auto_chart_generator.cpp  | C++      |         65 |          5 |         18 |         88 |
+| c:\Users\me\Documents\game\source\editing\auto_chart_generator.h    | C++      |         17 |          0 |          3 |         20 |
+| c:\Users\me\Documents\game\source\editing\chart_editor.cpp          | C++      |      1,016 |          1 |        260 |      1,277 |
+| c:\Users\me\Documents\game\source\editing\chart_editor.h            | C++      |         27 |          0 |          9 |         36 |
+| c:\Users\me\Documents\game\source\editing\chart_save.cpp            | C++      |        490 |          1 |         77 |        568 |
+| c:\Users\me\Documents\game\source\editing\chart_save.h              | C++      |         87 |          0 |          9 |         96 |
+| c:\Users\me\Documents\game\source\editing\editor_play.cpp           | C++      |        266 |          0 |         53 |        319 |
+| c:\Users\me\Documents\game\source\editing\editor_play.h             | C++      |         19 |          0 |          4 |         23 |
+| c:\Users\me\Documents\game\source\editing\editor_scene.cpp          | C++      |         20 |          0 |          7 |         27 |
+| c:\Users\me\Documents\game\source\editing\editor_scene.h            | C++      |         16 |          0 |          4 |         20 |
+| c:\Users\me\Documents\game\source\main\b_main.cpp                   | C++      |         57 |          0 |         15 |         72 |
+| c:\Users\me\Documents\game\source\music_execute\Common_Functions.h  | C++      |         84 |          0 |         16 |        100 |
+| c:\Users\me\Documents\game\source\music_execute\music10_on.cpp      | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music1_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music2_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music3_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music4_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music5_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music6_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music7_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music8_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\music_execute\music9_on.cpp       | C++      |         99 |          0 |         21 |        120 |
+| c:\Users\me\Documents\game\source\play\note.cpp                     | C++      |         34 |          0 |         10 |         44 |
+| c:\Users\me\Documents\game\source\play\note.h                       | C++      |         18 |          0 |          5 |         23 |
+| c:\Users\me\Documents\game\source\play\play_scene.cpp               | C++      |      2,183 |         15 |        381 |      2,579 |
+| c:\Users\me\Documents\game\source\play\play_scene.h                 | C++      |         28 |          0 |          9 |         37 |
+| c:\Users\me\Documents\game\source\vfx\hit_effect.cpp                | C++      |        219 |          0 |         31 |        250 |
+| c:\Users\me\Documents\game\source\vfx\hit_effect.h                  | C++      |         20 |          0 |          3 |         23 |
+| c:\Users\me\Documents\game\source\vfx\shack.cpp                     | C++      |          0 |          0 |          1 |          1 |
+| c:\Users\me\Documents\game\source\vfx\shack.h                       | C++      |          0 |          0 |          1 |          1 |
+| c:\Users\me\Documents\game\tool\NewAge_chart_tool.py                | Python   |         82 |          0 |         25 |        107 |
+| c:\Users\me\Documents\game\tool\cofing.ini                          | Ini      |          5 |          0 |          3 |          8 |
+| c:\Users\me\Documents\game\tool\converter.py                        | Python   |         34 |          0 |         11 |         45 |
+| c:\Users\me\Documents\game\tool\fast_chart_tool.py                  | Python   |         54 |          0 |         17 |         71 |
+| c:\Users\me\Documents\game\tool\run_tool.py                         | Python   |         17 |          0 |          7 |         24 |
+| Total                                                               |          |     14,984 |        613 |      2,353 |     17,950 |
++---------------------------------------------------------------------+----------+------------+------------+------------+------------+

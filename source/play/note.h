@@ -11,7 +11,11 @@ public:
     bool active;
     int lane;
 
-    Note(float startX, float startY, float moveSpeed, int noteLane);
+    int type;
+    int time;
+    int endTime;
+
+     Note(float startX, float startY, float moveSpeed, int noteLane, int noteType, int startTime, int endNoteTime);
     void Update();
     void Draw();
 };
