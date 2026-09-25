@@ -174,6 +174,7 @@ void SongSelect::LoadSongs() {
     song1.difficulties = { {"NORMAL", 7, 140.0f, 430, 890, 6.0f} };
     song1.osuFileName = "G.osu";
     song1.musicPlayerActive = 1; 
+    song1.videoFileName = "";
     songs.push_back(song1);
 
     SongData song2;
@@ -186,6 +187,7 @@ void SongSelect::LoadSongs() {
     song2.difficulties = { {"HARD", 10, 128.0f, 650, 1300, 6.0f} };
     song2.osuFileName = "Kaleidoscope.osu";  
     song2.musicPlayerActive = 2;
+    song2.videoFileName = "";
     songs.push_back(song2);
 
     SongData song3;
@@ -198,6 +200,7 @@ void SongSelect::LoadSongs() {
     song3.difficulties = { {"HARD", 12, 138.0f, 850, 1700, 6.0f} };
     song3.osuFileName = "SkysCape.osu";          
     song3.musicPlayerActive = 3; 
+    song3.videoFileName = "";
     songs.push_back(song3);
 
     SongData song4;
@@ -210,6 +213,7 @@ void SongSelect::LoadSongs() {
     song4.difficulties = { {"HARD", 14, 140.0f, 1000, 2000, 6.0f} };
     song4.osuFileName = "TheLostAria.osu";          
     song4.musicPlayerActive = 4; 
+    song4.videoFileName = "";
     songs.push_back(song4);
 
     SongData song5;
@@ -222,6 +226,7 @@ void SongSelect::LoadSongs() {
     song5.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
     song5.osuFileName = "Timeline.osu";   
     song5.musicPlayerActive = 5; 
+    song5.videoFileName = "";
     songs.push_back(song5);
     
     SongData song6;
@@ -234,6 +239,7 @@ void SongSelect::LoadSongs() {
     song6.difficulties = { {"EXPERT", 18, 160.0f, 1450, 2900, 6.5f} }; // song4 -> song6 수정
     song6.osuFileName = "Terrasphere.osu";          
     song6.musicPlayerActive = 6; 
+    song6.videoFileName = "";
     songs.push_back(song6);
 
     SongData song7;
@@ -246,6 +252,7 @@ void SongSelect::LoadSongs() {
     song7.difficulties = { {"EXPERT", 19, 165.0f, 1600, 3200, 6.5f} };
     song7.osuFileName = "N.osu";          
     song7.musicPlayerActive = 7; 
+    song7.videoFileName = "";
     songs.push_back(song7);
 
     SongData song8;
@@ -256,8 +263,9 @@ void SongSelect::LoadSongs() {
     song8.length = 142.0f;
     song8.cleared = false;
     song8.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
-    song8.osuFileName = "SecretDoll2.osu";          
+    song8.osuFileName = "doll.osu";          
     song8.musicPlayerActive = 8; 
+    song8.videoFileName = "bg_video/doll_video.mp4";
     songs.push_back(song8);
 
     SongData song9;
@@ -270,6 +278,7 @@ void SongSelect::LoadSongs() {
     song9.difficulties = { {"MASTER", 21, 180.0f, 1900, 3800, 6.5f} };
     song9.osuFileName = "R.osu";          
     song9.musicPlayerActive = 9; 
+    song9.videoFileName = "";
     songs.push_back(song9);
 
     SongData song10;
@@ -282,6 +291,7 @@ void SongSelect::LoadSongs() {
     song10.difficulties = { {"HELL", 23, 175.0f, 2500, 5000, 7.0f} };
     song10.osuFileName = "PlumMegamix.osu";          
     song10.musicPlayerActive = 10; 
+    song10.videoFileName = "";
     songs.push_back(song10);
 }
 

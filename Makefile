@@ -6,7 +6,8 @@ CFLAGS = -Wall -D_DEBUG
 
 RAYLIB_DIR = C:/Users/me/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64
 INCLUDES = -I./inc -I./resource -I"$(RAYLIB_DIR)/include"
-LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lopengl32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++ -mwindows
+
+LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lavformat -lavcodec -lswscale -lavutil -lopengl32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++ -mwindows
 
 TARGET = rhythm_Air
 BIN_DIR = bin

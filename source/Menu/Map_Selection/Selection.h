@@ -23,6 +23,7 @@ struct SongData {
     std::vector<DifficultyData> difficulties;
     std::string osuFileName;  
     int musicPlayerActive;  
+    std::string videoFileName;
 };
 
 class SongSelect {

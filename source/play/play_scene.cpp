@@ -23,6 +23,13 @@
 #include <iomanip>
 #include <fmod.h>
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
+}
+
 class FramedBeatmapClock
 {
 private:
@@ -116,7 +123,7 @@ static const float PLAYFIELD_WIDTH = 400.0f;
 static const float PLAYFIELD_HEIGHT = 720.0f;
 
 static const int LANE_COUNT = 4;
-static const float LANE_WIDTH = 70.0f;
+static const float LANE_WIDTH = 68.0f;
 static const float LANE_AREA_WIDTH = LANE_COUNT * LANE_WIDTH;
 static const float LANE_START_X =
 PLAYFIELD_X + (PLAYFIELD_WIDTH - LANE_AREA_WIDTH) / 2.0f;
@@ -242,9 +249,198 @@ struct MusicPlayerWrapper {
     }
 };
 
+struct BgaVideoPlayer
+{
+    AVFormatContext* formatCtx = nullptr;
+    AVCodecContext* codecCtx = nullptr;
+    SwsContext* swsCtx = nullptr;
+    AVFrame* frame = nullptr;
+    AVFrame* frameRGB = nullptr;
+    AVPacket* packet = nullptr;
+    int videoStreamIndex = -1;
+    uint8_t* buffer = nullptr;
+    Texture2D texture = { 0 };
+    Image image = { 0 };
+    bool loaded = false;
+    double timeBase = 0.0;
+
+    void Open(const std::string& filepath)
+    {
+        Close();
+        if (filepath.empty()) return;
+
+        if (avformat_open_input(&formatCtx, filepath.c_str(), nullptr, nullptr) != 0) return;
+        if (avformat_find_stream_info(formatCtx, nullptr) < 0)
+        {
+            Close();
+            return;
+        }
+
+        videoStreamIndex = -1;
+        const AVCodec* codec = nullptr;
+        for (unsigned int i = 0; i < formatCtx->nb_streams; i++)
+        {
+            if (formatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+            {
+                videoStreamIndex = (int)i;
+                codec = avcodec_find_decoder(formatCtx->streams[i]->codecpar->codec_id);
+                break;
+            }
+        }
+
+        if (videoStreamIndex == -1 || !codec)
+        {
+            Close();
+            return;
+        }
+
+        codecCtx = avcodec_alloc_context3(codec);
+        if (!codecCtx)
+        {
+            Close();
+            return;
+        }
+
+        if (avcodec_parameters_to_context(codecCtx, formatCtx->streams[videoStreamIndex]->codecpar) < 0)
+        {
+            Close();
+            return;
+        }
+
+        if (avcodec_open2(codecCtx, codec, nullptr) < 0)
+        {
+            Close();
+            return;
+        }
+
+        AVStream* stream = formatCtx->streams[videoStreamIndex];
+        timeBase = av_q2d(stream->time_base);
+
+        frame = av_frame_alloc();
+        frameRGB = av_frame_alloc();
+        packet = av_packet_alloc();
+
+        int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, codecCtx->width, codecCtx->height, 1);
+        buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
+
+        av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_RGBA, codecCtx->width, codecCtx->height, 1);
+
+        swsCtx = sws_getContext(
+            codecCtx->width, codecCtx->height, codecCtx->pix_fmt,
+            codecCtx->width, codecCtx->height, AV_PIX_FMT_RGBA,
+            SWS_BILINEAR, nullptr, nullptr, nullptr
+        );
+
+        image = GenImageColor(codecCtx->width, codecCtx->height, BLANK);
+        texture = LoadTextureFromImage(image);
+        SetTextureFilter(texture, TEXTURE_FILTER_BILINEAR);
+        loaded = true;
+    }
+
+    void Update(double targetTimeSec)
+    {
+        if (!loaded || !formatCtx || !codecCtx) return;
+
+        double currentPts = 0.0;
+        while (av_read_frame(formatCtx, packet) >= 0)
+        {
+            if (packet->stream_index == videoStreamIndex)
+            {
+                if (avcodec_send_packet(codecCtx, packet) == 0)
+                {
+                    if (avcodec_receive_frame(codecCtx, frame) == 0)
+                    {
+                        if (frame->pts != AV_NOPTS_VALUE)
+                        {
+                            currentPts = frame->pts * timeBase;
+                        }
+
+                        if (currentPts >= targetTimeSec || targetTimeSec - currentPts < 0.05)
+                        {
+                            sws_scale(
+                                swsCtx,
+                                (const uint8_t* const*)frame->data,
+                                frame->linesize,
+                                0,
+                                codecCtx->height,
+                                frameRGB->data,
+                                frameRGB->linesize
+                            );
+
+                            UpdateTexture(texture, frameRGB->data[0]);
+                            av_packet_unref(packet);
+                            break;
+                        }
+                    }
+                }
+            }
+            av_packet_unref(packet);
+        }
+    }
+
+    void Draw(int screenWidth, int screenHeight)
+    {
+        if (!loaded || texture.id == 0) return;
+        Rectangle srcRec = { 0.0f, 0.0f, (float)texture.width, (float)texture.height };
+        Rectangle destRec = { 0.0f, 0.0f, (float)screenWidth, (float)screenHeight };
+        DrawTexturePro(texture, srcRec, destRec, { 0.0f, 0.0f }, 0.0f, WHITE);
+    }
+
+    void Close()
+    {
+        if (texture.id != 0)
+        {
+            UnloadTexture(texture);
+            texture = { 0 };
+        }
+        if (image.data != nullptr)
+        {
+            UnloadImage(image);
+            image = { 0 };
+        }
+        if (buffer)
+        {
+            av_free(buffer);
+            buffer = nullptr;
+        }
+        if (frameRGB)
+        {
+            av_frame_free(&frameRGB);
+            frameRGB = nullptr;
+        }
+        if (frame)
+        {
+            av_frame_free(&frame);
+            frame = nullptr;
+        }
+        if (packet)
+        {
+            av_packet_free(&packet);
+            packet = nullptr;
+        }
+        if (swsCtx)
+        {
+            sws_freeContext(swsCtx);
+            swsCtx = nullptr;
+        }
+        if (codecCtx)
+        {
+            avcodec_free_context(&codecCtx);
+            codecCtx = nullptr;
+        }
+        if (formatCtx)
+        {
+            avformat_close_input(&formatCtx);
+            formatCtx = nullptr;
+        }
+        loaded = false;
+    }
+};
+
 static AudioManager s_AudioManager;
 static MusicPlayerWrapper s_MusicPlayer;
 static FramedBeatmapClock s_BeatmapClock(true);
+static BgaVideoPlayer s_BgaPlayer;
 
 static std::vector<Note> s_Notes;
 
@@ -322,11 +518,19 @@ static void DrawBackground()
     const int screenW = GetScreenWidth();
     const int screenH = GetScreenHeight();
 
-    DrawRectangleGradientV(
-        0, 0, screenW, screenH,
-        Color{ 17, 17, 19, 255 },
-        Color{ 1, 1, 2, 255 }
-    );
+    if (s_BgaPlayer.loaded)
+    {
+        s_BgaPlayer.Draw(screenW, screenH);
+        DrawRectangle(0, 0, screenW, screenH, Color{ 0, 0, 0, 40 });
+    }
+    else
+    {
+        DrawRectangleGradientV(
+            0, 0, screenW, screenH,
+            Color{ 17, 17, 19, 255 },
+            Color{ 1, 1, 2, 255 }
+        );
+    }
 
     DrawRectangleGradientH(
         0, 0, screenW, screenH,
@@ -487,19 +691,19 @@ static void DrawPlayfield()
     const int px = (int)PLAYFIELD_X;
     const int pw = (int)PLAYFIELD_WIDTH;
 
-    DrawRectangle(px - 24, 0, pw + 48, 720, Color{ 0, 0, 0, 180 });
-    DrawRectangle(px, 0, pw, 720, Color{ 3, 3, 4, 255 });
+    DrawRectangle(px - 24, 0, pw + 48, 720, Color{ 0, 0, 0, 50 });
+    DrawRectangle(px, 0, pw, 720, Color{ 3, 3, 4, 60 });
 
     DrawRectangleGradientV(px, 0, pw, 720,
-        Color{ 24, 24, 26, 235 },
-        Color{ 1, 1, 2, 255 });
+        Color{ 24, 24, 26, 50 },
+        Color{ 1, 1, 2, 70 });
 
     DrawRectangleGradientH(px, 0, 70, 720,
-        Color{ 0, 0, 0, 220 },
+        Color{ 0, 0, 0, 80 },
         Color{ 0, 0, 0, 0 });
     DrawRectangleGradientH(px + pw - 70, 0, 70, 720,
         Color{ 0, 0, 0, 0 },
-        Color{ 0, 0, 0, 220 });
+        Color{ 0, 0, 0, 80 });
 
     for (int y = 8; y < 720; y += 8)
     {
@@ -632,7 +836,7 @@ static void DrawNotes(float judgmentLineY)
 
             const float cx = LANE_X_COORDS[pNote.lane];
             const float w = LANE_WIDTH - 6.0f;
-            const float h = 24.0f;
+            const float h = 28.0f;
             const float noteLength = endY - y;
 
             DrawRectangleRounded(
@@ -662,7 +866,7 @@ static void DrawNotes(float judgmentLineY)
 
             const float cx = LANE_X_COORDS[pNote.lane];
             const float w = LANE_WIDTH - 6.0f;
-            const float h = 24.0f;
+            const float h = 28.0f;
             const bool nearHit = fabsf(diffSec) < 0.22f;
             const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + pNote.lane);
 
@@ -1894,6 +2098,7 @@ delete s_MusicPlayer.p7;
 delete s_MusicPlayer.p8;  
 delete s_MusicPlayer.p9;
 delete s_MusicPlayer.p10;
+s_BgaPlayer.Close();
 
 /*if (s_MusicPlayer.p1)
 {
@@ -1917,6 +2122,7 @@ void PlayScene::Init(int startSongIndex)
     m_BackToMenu = false;
     judgmentLineY = 595.0f;
 
+    s_BgaPlayer.Close();
     s_BeatmapClock = FramedBeatmapClock(true);
     s_BeatmapClock.LoadComplete();
 
@@ -2007,6 +2213,8 @@ void PlayScene::Update()
             std::string osuFileName = curSong.osuFileName; 
             s_MusicPlayer.active = curSong.musicPlayerActive;
 
+            s_BgaPlayer.Open(curSong.videoFileName);
+
             std::string outAudioFile, outTitle, outArtist, outCreator, outVersion;
             float outHP = 5.0f, outOD = 5.0f, outCS = 4.0f, outAR = 5.0f;
             float outSliderMultiplier = 1.4f, outSliderTickRate = 1.0f;
@@ -2042,6 +2250,7 @@ void PlayScene::Update()
             }
             else
             {
+                s_BgaPlayer.Close();
                 m_State = PlaySceneState::SongSelect;
                 return;
             }
@@ -2087,6 +2296,7 @@ void PlayScene::UpdatePlaying()
         if (IsKeyPressed(KEY_P))
         {
             s_IsEditorMode = false;
+            s_BgaPlayer.Close();
             m_State = PlaySceneState::SongSelect;
             m_BackToMenu = true;
             if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
@@ -2096,6 +2306,7 @@ void PlayScene::UpdatePlaying()
         if (IsKeyPressed(KEY_ESCAPE))
         {
             s_IsEditorMode = false;
+            s_BgaPlayer.Close();
             s_SongSelectEnterDelay = 0.3f;
             m_State = PlaySceneState::SongSelect;
             return;
@@ -2136,6 +2347,7 @@ void PlayScene::UpdatePlaying()
             else if (s_PauseSelection == 1) 
             {
                 if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                s_BgaPlayer.Close();
                 s_PlayableNotes.clear();
                 s_PlayableNotes.shrink_to_fit();
                 s_Notes.clear();
@@ -2174,6 +2386,7 @@ void PlayScene::UpdatePlaying()
             else if (s_PauseSelection == 1) 
             {
                 if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                s_BgaPlayer.Close();
                 s_PlayableNotes.clear();
                 s_PlayableNotes.shrink_to_fit();
                 s_Notes.clear();
@@ -2214,6 +2427,7 @@ void PlayScene::UpdatePlaying()
                     else if (i == 1) 
                     {
                         if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                        s_BgaPlayer.Close();
                         s_PlayableNotes.clear();
                         s_PlayableNotes.shrink_to_fit();
                         s_Notes.clear();
@@ -2241,6 +2455,7 @@ void PlayScene::UpdatePlaying()
             if (!isPlaying)
             {
                 s_MusicPlayer.Stop();
+                s_BgaPlayer.Close();
                 s_PlayableNotes.clear();
                 s_SongTimer = 0.0f;
                 s_BeatmapClock.SetChannel(nullptr);
@@ -2263,6 +2478,7 @@ void PlayScene::UpdatePlaying()
     }
 
     s_SongTimer = static_cast<float>(s_BeatmapClock.GetCurrentTime() / 1000.0);
+    s_BgaPlayer.Update(s_SongTimer);
 
     if (s_JudgmentLinePulse > 0.0f)
     {
@@ -2583,6 +2799,8 @@ if (s_MusicPlayer.IsValid())
 {
 s_MusicPlayer.Stop();
 }
+
+s_BgaPlayer.Close();
 
 if (s_ComboFont.texture.id != 0)
 {

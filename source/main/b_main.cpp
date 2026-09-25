@@ -7,7 +7,7 @@ int main() {
     const int screenWidth = 1280;
     const int screenHeight = 720;
     
-    InitWindow(screenWidth, screenHeight, "rhythm Air");
+    InitWindow(screenWidth, screenHeight, "R.A");
     InitAudioDevice();
     SetConfigFlags(FLAG_VSYNC_HINT); 
     SetTargetFPS(0); 
