@@ -22,6 +22,10 @@
 #include <sstream>
 #include <iomanip>
 #include <fmod.h>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <chrono>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -249,6 +253,7 @@ struct MusicPlayerWrapper {
     }
 };
 
+// 기반 완벽히 교정된 BgaVideoPlayer 구조체 코드
 struct BgaVideoPlayer
 {
     AVFormatContext* formatCtx = nullptr;
@@ -263,6 +268,13 @@ struct BgaVideoPlayer
     Image image = { 0 };
     bool loaded = false;
     double timeBase = 0.0;
+
+    std::thread decodeThread;
+    std::mutex bufferMutex;
+    std::atomic<bool> isRunning{ false };
+    std::atomic<bool> isFrameNew{ false };
+    std::atomic<double> sharedTargetTime{ 0.0 };
+    int numBytes = 0;
 
     void Open(const std::string& filepath)
     {
@@ -307,6 +319,8 @@ struct BgaVideoPlayer
             return;
         }
 
+        codecCtx->thread_count = 0; 
+
         if (avcodec_open2(codecCtx, codec, nullptr) < 0)
         {
             Close();
@@ -320,7 +334,7 @@ struct BgaVideoPlayer
         frameRGB = av_frame_alloc();
         packet = av_packet_alloc();
 
-        int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, codecCtx->width, codecCtx->height, 1);
+        numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, codecCtx->width, codecCtx->height, 1);
         buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
 
         av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_RGBA, codecCtx->width, codecCtx->height, 1);
@@ -335,46 +349,110 @@ struct BgaVideoPlayer
         texture = LoadTextureFromImage(image);
         SetTextureFilter(texture, TEXTURE_FILTER_BILINEAR);
         loaded = true;
+
+        isRunning = true;
+        isFrameNew = false;
+        sharedTargetTime = 0.0;
+        decodeThread = std::thread(&BgaVideoPlayer::DecodeLoop, this);
+    }
+
+    void DecodeLoop()
+    {
+        while (isRunning)
+        {
+            double targetTimeSec = sharedTargetTime.load();
+            int64_t targetMs = (int64_t)(targetTimeSec * 1000.0);
+            
+            int64_t currentFrameMs = 0;
+            if (frame && frame->pts != AV_NOPTS_VALUE) {
+                currentFrameMs = (int64_t)((frame->pts * timeBase) * 1000.0);
+            }
+
+            if (targetMs < currentFrameMs - 1000 || targetMs < 50)
+            {
+                std::lock_guard<std::mutex> lock(bufferMutex);
+                av_seek_frame(formatCtx, videoStreamIndex, 0, AVSEEK_FLAG_BACKWARD);
+                avcodec_flush_buffers(codecCtx);
+            }
+
+            int packetCount = 0;
+            bool frameDecoded = false;
+
+            while (av_read_frame(formatCtx, packet) >= 0)
+            {
+                if (!isRunning) {
+                    av_packet_unref(packet);
+                    break;
+                }
+
+                if (packet->stream_index == videoStreamIndex)
+                {
+                    if (avcodec_send_packet(codecCtx, packet) == 0)
+                    {
+                        while (avcodec_receive_frame(codecCtx, frame) == 0)
+                        {
+                            if (frame->pts != AV_NOPTS_VALUE) {
+                                currentFrameMs = (int64_t)((frame->pts * timeBase) * 1000.0);
+                            }
+
+                            if (currentFrameMs < targetMs - 30)
+                            {
+                                continue;
+                            }
+
+                            if (currentFrameMs >= targetMs - 30)
+                            {
+                                sws_scale(
+                                    swsCtx, (const uint8_t* const*)frame->data, frame->linesize,
+                                    0, codecCtx->height, frameRGB->data, frameRGB->linesize
+                                );
+
+                                if (buffer && frameRGB->data)
+                                {
+                                    std::lock_guard<std::mutex> lock(bufferMutex);
+                                    memcpy(buffer, frameRGB->data, numBytes);
+                                    isFrameNew = true;
+                                }
+
+                                frameDecoded = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                av_packet_unref(packet);
+
+                if (frameDecoded || ++packetCount > 10)
+                {
+                    break;
+                }
+            }
+
+            if (!frameDecoded && isRunning)
+            {
+                std::lock_guard<std::mutex> lock(bufferMutex);
+                av_seek_frame(formatCtx, videoStreamIndex, 0, AVSEEK_FLAG_BACKWARD);
+                avcodec_flush_buffers(codecCtx);
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
 
     void Update(double targetTimeSec)
     {
-        if (!loaded || !formatCtx || !codecCtx) return;
+        if (!loaded) return;
 
-        double currentPts = 0.0;
-        while (av_read_frame(formatCtx, packet) >= 0)
+        sharedTargetTime.store(targetTimeSec);
+
+        std::unique_lock<std::mutex> lock(bufferMutex, std::try_to_lock);
+        if (lock.owns_lock() && isFrameNew.load())
         {
-            if (packet->stream_index == videoStreamIndex)
+            if (buffer && texture.id != 0)
             {
-                if (avcodec_send_packet(codecCtx, packet) == 0)
-                {
-                    if (avcodec_receive_frame(codecCtx, frame) == 0)
-                    {
-                        if (frame->pts != AV_NOPTS_VALUE)
-                        {
-                            currentPts = frame->pts * timeBase;
-                        }
-
-                        if (currentPts >= targetTimeSec || targetTimeSec - currentPts < 0.05)
-                        {
-                            sws_scale(
-                                swsCtx,
-                                (const uint8_t* const*)frame->data,
-                                frame->linesize,
-                                0,
-                                codecCtx->height,
-                                frameRGB->data,
-                                frameRGB->linesize
-                            );
-
-                            UpdateTexture(texture, frameRGB->data[0]);
-                            av_packet_unref(packet);
-                            break;
-                        }
-                    }
-                }
+                UpdateTexture(texture, buffer);
             }
-            av_packet_unref(packet);
+            isFrameNew = false;
         }
     }
 
@@ -388,6 +466,12 @@ struct BgaVideoPlayer
 
     void Close()
     {
+        isRunning = false;
+        if (decodeThread.joinable())
+        {
+            decodeThread.join();
+        }
+
         if (texture.id != 0)
         {
             UnloadTexture(texture);
@@ -435,7 +519,9 @@ struct BgaVideoPlayer
         }
         loaded = false;
     }
-};
+}; // 💡 반드시 중괄호와 세미콜론으로 명확히 닫아주어야 합니다.
+
+
 
 static AudioManager s_AudioManager;
 static MusicPlayerWrapper s_MusicPlayer;
