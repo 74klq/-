@@ -265,7 +265,7 @@ void SongSelect::LoadSongs() {
     song8.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
     song8.osuFileName = "doll.osu";          
     song8.musicPlayerActive = 8; 
-    song8.videoFileName = "bg_video/doll_video.mp4";
+    song8.videoFileName = "bg_video/doll_video.mpg";
     songs.push_back(song8);
 
     SongData song9;
