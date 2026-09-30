@@ -9,7 +9,7 @@ INCLUDES = -I./inc -I./resource -I"$(RAYLIB_DIR)/include"
 
 LDFLAGS = -L./lib/x64 -L"$(RAYLIB_DIR)/lib" -lraylib -lfmod -lavformat -lavcodec -lswscale -lavutil -lopengl32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++ -mwindows
 
-TARGET = rhythm_Air
+TARGET = RA
 BIN_DIR = bin
 
 OBJS = $(BIN_DIR)/b_main.o \
@@ -26,6 +26,7 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/note_down_animation.o \
        $(BIN_DIR)/audio_manager.o \
        $(BIN_DIR)/Selection.o \
+       $(BIN_DIR)/Load.o \
        $(BIN_DIR)/resource.o
 
 all: $(BIN_DIR) $(TARGET)
@@ -83,6 +84,9 @@ $(BIN_DIR)/audio_manager.o: source/AudioManager/audio_manager.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/Selection.o: source/Menu/Map_Selection/Selection.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/Load.o: source/UI/Loading/Load.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
