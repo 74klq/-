@@ -40,7 +40,7 @@ namespace MusicExecuteUtils {
             outMsgTimer = 2.0f;
         }
 
-        if (IsKeyPressed(KEY_H)) {
+        /* if (IsKeyPressed(KEY_H)) {
             unsigned int newPosMs = currentPosMs + 5000;
             FMOD_Channel_SetPosition(channel, newPosMs, FMOD_TIMEUNIT_MS);
 
@@ -51,7 +51,7 @@ namespace MusicExecuteUtils {
             snprintf(timeBuf, sizeof(timeBuf), "+5s (%02d:%02d)", min, sec);
             outMsgText = timeBuf;
             outMsgTimer = 2.0f;
-        }
+        } */
 
         float currentFrequency = 0.0f;
         FMOD_SOUND* currentSound = nullptr;
@@ -72,13 +72,13 @@ namespace MusicExecuteUtils {
         float step = 0.05f;
         bool speedChanged = false;
 
-        if (IsKeyPressed(KEY_L)) {
+        /*if (IsKeyPressed(KEY_L)) {
             float newRatio = currentSpeedRatio - step;
             if (newRatio < 0.25f) newRatio = 0.25f;
             FMOD_Channel_SetFrequency(channel, originalFrequency * newRatio);
             currentSpeedRatio = newRatio;
             speedChanged = true;
-        }
+        } */
 
         if (IsKeyPressed(KEY_X)) {
             float newRatio = currentSpeedRatio + step;
@@ -90,11 +90,11 @@ namespace MusicExecuteUtils {
             speedChanged = true;
         }
 
-        outSpeedRatio = currentSpeedRatio;
+        /* outSpeedRatio = currentSpeedRatio;
         if (speedChanged) {
             int percent = (int)(currentSpeedRatio * 100.0f + 0.5f);
             outMsgText = "Speed: " + std::to_string(percent) + "%";
             outMsgTimer = 2.0f;
-        }
+        } */
     }
 }

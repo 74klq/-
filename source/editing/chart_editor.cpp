@@ -276,7 +276,7 @@ void ChartEditor::HandleInput() {
         }
     }
 
-    if (s_IsRecording) {
+    /*if (s_IsRecording) {
         if (!m_MusicPlayer) return;
 
         if (IsKeyPressed(KEY_U)) {
@@ -381,9 +381,9 @@ void ChartEditor::HandleInput() {
         }
 
         return;
-    }
+    } */
 
-    if (s_IsAutoGenerating) {
+    /* if (s_IsAutoGenerating) {
         if (!m_MusicPlayer) return;
 
         if (IsKeyPressed(KEY_U)) {
@@ -437,7 +437,7 @@ void ChartEditor::HandleInput() {
 
         s_EditorPlay.Update(s_IsTestPlaying);
         return;
-    }
+    } */
 
     if (IsKeyPressed(KEY_Q)) {
         s_MusicFileList.clear();
@@ -456,7 +456,7 @@ void ChartEditor::HandleInput() {
 
         s_SelectedMusicIndex = 0;
         s_IsMusicSelectOpen = true;
-    }
+    } 
 
     if (IsKeyPressed(KEY_T)) {
         s_IsSpeedInputActive = !s_IsSpeedInputActive;
@@ -661,7 +661,7 @@ void ChartEditor::HandleInput() {
         return;
     }
 
-    if (IsKeyPressed(KEY_THREE)) {
+    /* if (IsKeyPressed(KEY_THREE)) {
         s_CurrentPitch -= 0.05f;
 
         if (s_CurrentPitch < 0.25f) {
@@ -683,7 +683,7 @@ void ChartEditor::HandleInput() {
         if (m_MusicPlayer) {
             m_MusicPlayer->SetPitch(s_CurrentPitch);
         }
-    }
+    } */
 
     if (IsKeyPressed(KEY_A)) {
         if (s_CurrentMusicPath.empty()) return;

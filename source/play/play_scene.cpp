@@ -1058,13 +1058,13 @@ void PlayScene::Update()
         if (s_SongSelectEnterDelay < 0.0f) s_SongSelectEnterDelay = 0.0f;
     }
 
-    if (IsKeyPressed(KEY_P))
+    /*if (IsKeyPressed(KEY_P))
     {
         s_IsEditorMode = true;
         m_State = PlaySceneState::Playing;
         s_ChartEditor.Init();
         return;
-    }
+    } */
 
     s_AudioManager.Update();
 
@@ -1235,29 +1235,12 @@ void PlayScene::Update()
 
 void PlayScene::UpdatePlaying()
 {
-    if (s_IsEditorMode)
-    {
-        if (IsKeyPressed(KEY_P))
-        {
-            s_IsEditorMode = false;
-            s_BgaPlayer.Close();
-            m_State = PlaySceneState::SongSelect;
-            m_BackToMenu = true;
-            if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
-            return;
+    if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) {
+        if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) {
+            FMOD_Channel_SetPitch(s_MusicPlayer.GetChannelRaw(), 1.0f);     // 피치 고정
+            FMOD_Channel_SetFrequency(s_MusicPlayer.GetChannelRaw(), 44100.0f); // 주파수 강제 정상화 (필요시 원래 주파수로 설정)
+            while (GetCharPressed() > 0); // Raylib 문자 입력 버퍼 강제 소거
         }
-
-        if (IsKeyPressed(KEY_ESCAPE))
-        {
-            s_IsEditorMode = false;
-            s_BgaPlayer.Close();
-            s_SongSelectEnterDelay = 0.3f;
-            m_State = PlaySceneState::SongSelect;
-            return;
-        }
-
-        s_ChartEditor.HandleInput();
-        return;
     }
 
     if (s_IgnoreFirstEnter)
@@ -1412,14 +1395,14 @@ void PlayScene::UpdatePlaying()
 
     float dt = GetFrameTime();
 
-    if (IsKeyPressed(KEY_LEFT_BRACKET))
+    /* if (IsKeyPressed(KEY_LEFT_BRACKET))
     {
         s_BeatmapClock.SetUserGlobalOffset(s_BeatmapClock.GetUserGlobalOffset() - 5.0);
     }
     if (IsKeyPressed(KEY_RIGHT_BRACKET))
     {
         s_BeatmapClock.SetUserGlobalOffset(s_BeatmapClock.GetUserGlobalOffset() + 5.0);
-    }
+    } */
 
     s_SongTimer = static_cast<float>(s_BeatmapClock.GetCurrentTime() / 1000.0);
     s_BgaPlayer.Update(s_BeatmapClock.GetCurrentTime());
@@ -1542,11 +1525,11 @@ void PlayScene::Draw()
 
 void PlayScene::DrawPlaying()
 {
-    if (s_IsEditorMode)
+    /*if (s_IsEditorMode)
     {
         s_ChartEditor.Render();
         return;
-    }
+    } */
 
     bool pressedStates[4] = {
         IsKeyDown(KEY_D),

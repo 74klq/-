@@ -21,7 +21,9 @@ class LoadingScreen {
 public:
     LoadingScreen();
     ~LoadingScreen();
-
+    static float EaseOutCubic(float x);
+    static float EaseInOutQuad(float x);
+    
     void Init();
     void Start(const LoadingSongData& songData);
     void Update(float dt);
@@ -50,6 +52,6 @@ private:
     void DrawJacket();
     void DrawProgressBar(); //(Font customFont);
     
-    float EaseOutCubic(float x);
-    float EaseInOutQuad(float x);
+   // float EaseOutCubic(float x);
+   // float EaseInOutQuad(float x);
 };

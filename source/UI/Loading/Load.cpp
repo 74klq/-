@@ -138,6 +138,17 @@ void LoadingScreen::Draw() {
 
     if (currentState == LoadingState::LOADING) {
         DrawRectangle(0, 0, screenWidth, screenHeight, BLACK);
+        if (currentSong.jacketTexture.id != 0) {
+            float bgOffsetX = std::sin(stateTimer * 0.3f) * 15.0f;
+            float bgOffsetY = std::cos(stateTimer * 0.25f) * 15.0f;
+            DrawTexturePro(
+                currentSong.jacketTexture,
+                (Rectangle){ 0, 0, (float)currentSong.jacketTexture.width, (float)currentSong.jacketTexture.height },
+                (Rectangle){ -20.0f + bgOffsetX, -20.0f + bgOffsetY, (float)screenWidth + 40.0f, (float)screenHeight + 40.0f },
+                (Vector2){ 0, 0 }, 0.0f, (Color){ 255, 255, 255, 35 }
+            );
+        }
+        
         DrawJacket();
         DrawProgressBar(); // ⭐️ 인자 없이 호출
     }
@@ -159,9 +170,28 @@ void LoadingScreen::DrawCurtain() {
 void LoadingScreen::DrawJacket() {
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
-    float jacketSize = 280.0f;
+    
+    float pulseScale = 1.0f - (std::sin(stateTimer * 1.8f) * 0.5f + 0.5f) * 0.08f;
+    float baseJacketSize = 280.0f;
+    float jacketSize = baseJacketSize * pulseScale;
     float jacketX = (screenWidth - jacketSize) * 0.5f;
     float jacketY = (screenHeight - jacketSize) * 0.4f;
+
+    if (currentSong.jacketTexture.id != 0) {
+        for (int i = 2; i >= 1; --i) {
+            float delayScale = 1.0f - (std::sin((stateTimer - i * 0.12f) * 1.8f) * 0.5f + 0.5f) * 0.08f;
+            float aiSize = baseJacketSize * delayScale;
+            float aiX = (screenWidth - aiSize) * 0.5f;
+            float aiY = (screenHeight - aiSize) * 0.4f;
+            
+            DrawTexturePro(
+                currentSong.jacketTexture,
+                (Rectangle){ 0, 0, (float)currentSong.jacketTexture.width, (float)currentSong.jacketTexture.height },
+                (Rectangle){ aiX, aiY, aiSize, aiSize },
+                (Vector2){ 0, 0 }, 0.0f, (Color){ 255, 255, 255, (unsigned char)(50 / i) }
+            );
+        }
+    }
 
     DrawRectangleRounded((Rectangle){ jacketX + 6.0f, jacketY + 6.0f, jacketSize, jacketSize }, 0.06f, 4, (Color){ 0, 0, 0, 180 });
 
