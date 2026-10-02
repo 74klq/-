@@ -8,6 +8,7 @@ extern "C" {
 
 #include "play_scene.h"
 #include "note.h"
+#include "../Note_Exception_Hadling/NEH_Ghost_Note/Gh_click.h"
 #include "../editing/chart_editor.h"
 #include "../editing/chart_save.h"
 #include "../vfx/hit_effect.h"
@@ -1058,13 +1059,13 @@ void PlayScene::Update()
         if (s_SongSelectEnterDelay < 0.0f) s_SongSelectEnterDelay = 0.0f;
     }
 
-    /*if (IsKeyPressed(KEY_P))
+    if (IsKeyPressed(KEY_P))
     {
         s_IsEditorMode = true;
         m_State = PlaySceneState::Playing;
         s_ChartEditor.Init();
         return;
-    } */
+    }
 
     s_AudioManager.Update();
 
@@ -1445,54 +1446,60 @@ void PlayScene::UpdatePlaying()
 
     HitEffect::Update();
 
-    bool lanePressed[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
+   bool lanePressed[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
 
     for (int lane = 0; lane < 4; ++lane)
     {
+        if (!lanePressed[lane]) continue;
+
+        bool hitHandled = false;
         for (auto& pNote : s_PlayableNotes)
         {
             if (!pNote.active || pNote.lane != lane) continue;
 
-            if (lanePressed[lane])
+            float timeDiff = s_SongTimer - pNote.timeSec;
+            float absDiff = fabsf(timeDiff);
+
+            if (absDiff <= 0.15f)
             {
-                float timeDiff = s_SongTimer - pNote.timeSec;
-                float absDiff = fabsf(timeDiff);
+                pNote.active = false;
+                float nX = LANE_X_COORDS[pNote.lane];
+                HitEffect::Spawn({ nX, judgmentLineY });
 
-                if (absDiff <= 0.15f)
-                {
-                    pNote.active = false;
-                    float nX = LANE_X_COORDS[pNote.lane];
-                    HitEffect::Spawn({ nX, judgmentLineY });
+                s_ShowJudgment = true;
+                s_JudgmentTimer = 0.4f;
+                s_JudgmentLinePulse = 1.0f;
+                s_JudgmentAnimTimer = 0.3f;
 
-                    s_ShowJudgment = true;
-                    s_JudgmentTimer = 0.4f;
-                    s_JudgmentLinePulse = 1.0f;
-                    s_JudgmentAnimTimer = 0.3f;
-
-                    if (absDiff <= 0.07f) 
-                    { 
-                        s_CurrentJudgment = "PERFECT"; 
-                        s_Combo++; 
-                    }
-                    else if (absDiff <= 0.12f) 
-                    { 
-                        s_CurrentJudgment = "GREAT"; 
-                        s_Combo++; 
-                    }
-                    else 
-                    { 
-                        s_CurrentJudgment = "GOOD"; 
-                        s_Combo++; 
-                    }
-
-                    if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
-                    {
-                        s_ComboAnimTimer = 0.2f;
-                        s_LastCombo = s_Combo;
-                    }
-                    break;
+                if (absDiff <= 0.07f) 
+                { 
+                    s_CurrentJudgment = "PERFECT"; 
+                    s_Combo++; 
                 }
+                else if (absDiff <= 0.12f) 
+                { 
+                    s_CurrentJudgment = "GREAT"; 
+                    s_Combo++; 
+                }
+                else 
+                { 
+                    s_CurrentJudgment = "GOOD"; 
+                    s_Combo++; 
+                }
+
+                if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
+                {
+                    s_ComboAnimTimer = 0.2f;
+                    s_LastCombo = s_Combo;
+                }
+                hitHandled = true;
+                break;
             }
+        }
+
+        if (!hitHandled)
+        {
+            GhClick::TriggerBreak(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
         }
     }
 
