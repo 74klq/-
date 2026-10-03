@@ -27,6 +27,7 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/audio_manager.o \
        $(BIN_DIR)/Selection.o \
        $(BIN_DIR)/Load.o \
+       $(BIN_DIR)/play_main.o \
        $(BIN_DIR)/Gh_click.o \
        $(BIN_DIR)/Fn_click.o \
        $(BIN_DIR)/Sn_click.o \
@@ -90,6 +91,9 @@ $(BIN_DIR)/Selection.o: source/Menu/Map_Selection/Selection.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/Load.o: source/UI/Loading/Load.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/play_main.o: source/UI/G_I/play_main.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/Gh_click.o: source/Note_Exception_Hadling/NEH_Ghost_Note/Gh_click.cpp

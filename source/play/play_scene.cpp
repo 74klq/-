@@ -6,15 +6,29 @@ extern "C" {
     #include "pl_mpeg.h"
 }
 
+// TODO: 나중에 인클루드를 .cpp로 한거 고칠것
+// TODO: 상속 구조나 백터로 나중에 고쳐야함
+
+// ---------------------------------------
+
+// 혹시라도 나중에 곡 추가하거나 이럴때 눈으로 쳐 보고 switch 복붙하셈 
+// -- n달후 나에게 --
+
+// --------------------------------------------------
+// 헤더
+// --------------------------------------------------
 #include "play_scene.h"
 #include "note.h"
 #include "../Note_Exception_Hadling/NEH_Ghost_Note/Gh_click.h"
+#include "../Note_Exception_Hadling/NEH_Fast_Note/Fn_click.h"
+#include "../Note_Exception_Hadling/NEH_Slow_Note/Sn_click.h"
 #include "../editing/chart_editor.h"
 #include "../editing/chart_save.h"
 #include "../vfx/hit_effect.h"
 #include "../Animation/note_down_animation.h"
 #include "../AudioManager/audio_manager.h"
 #include "../UI/Loading/Load.h"
+#include "../UI/G_I/play_main.h"
 #include "../music_execute/music1_on.cpp"
 #include "../music_execute/music2_on.cpp"
 #include "../music_execute/music3_on.cpp"
@@ -36,7 +50,11 @@ extern "C" {
 #include <mutex>
 #include <atomic>
 #include <chrono>
+// ----------------------------------------------------------------
 
+// 싱크
+
+// -----------------------------------------------------------------
 class FramedBeatmapClock
 {
 private:
@@ -81,6 +99,14 @@ public:
     double GetRate() const { return 1.0; }
     void SetRate(double newRate) {}
     std::string GetSnapshot() const { return "DSP Sync Active"; }
+
+        /**
+     * @brief 싱크 맞추는 부분 (제일 중요함)
+     * @details DSP 클록으로 프레임 드랍 쳐 와도 딜레이 없음
+     *          장치 상관 X
+     *          탐라 버그 방지
+     * @return ms라서 정확함
+     */
 
     double GetCurrentTime() const
     {
@@ -139,8 +165,14 @@ static const float LANE_X_COORDS[4] = {
     LANE_START_X + LANE_WIDTH * 3.5f
 };
 
+// TODO: 하드코딩 나중에 고칠 예정
+
+// 나도 왜 이렇게 짰는지 기억이 안남
+
+// 참고로 여기 부분 무슨일이 있더라도 절대 건들지마셈
+
 struct MusicPlayerWrapper {
-    MusicExecute::MusicPlayer1* p1 = nullptr;
+    MusicExecute::MusicPlayer1* p1 = nullptr; // 여기서 = nullptr 지우거나
     MusicExecute::MusicPlayer2* p2 = nullptr;
     MusicExecute::MusicPlayer3* p3 = nullptr;
     MusicExecute::MusicPlayer4* p4 = nullptr;
@@ -153,7 +185,7 @@ struct MusicPlayerWrapper {
     int active = 1;
 
     void Init(AudioManager& am) {
-        if (p1) p1->Initialize(am); if (p2) p2->Initialize(am); if (p3) p3->Initialize(am);
+        if (p1) p1->Initialize(am); if (p2) p2->Initialize(am); if (p3) p3->Initialize(am); // 여기서 nullptr 체크없이 부르면 = 터짐 = 좆됨
         if (p4) p4->Initialize(am); if (p5) p5->Initialize(am); if (p6) p6->Initialize(am);
         if (p7) p7->Initialize(am); if (p8) p8->Initialize(am); if (p9) p9->Initialize(am);
         if (p10) p10->Initialize(am);
@@ -364,6 +396,18 @@ static FramedBeatmapClock s_BeatmapClock(true);
 static BgaVideoPlayer s_BgaPlayer;
 
 static std::vector<Note> s_Notes;
+
+static PlayMainUI s_PlayMainUI;
+static SongInformation s_SongInfo;
+
+static int s_PerfectCount = 0;
+static int s_GreatCount = 0;
+static int s_GoodCount = 0;
+static int s_MissCount = 0;
+static int s_MaxCombo = 0;
+static int s_Score = 0;
+static float s_Accuracy = 100.0f;
+static float s_HpRatio = 1.0f;
 
 struct PlayableNote {
     float timeSec;
@@ -1023,6 +1067,15 @@ void PlayScene::Init(int startSongIndex)
     s_SpawnTimer = 0.0f;
     s_Combo = 0;
 
+    s_PerfectCount = 0;
+    s_GreatCount = 0;
+    s_GoodCount = 0;
+    s_MissCount = 0;
+    s_MaxCombo = 0;
+    s_Score = 0;
+    s_Accuracy = 100.0f;
+    s_HpRatio = 1.0f;
+
     s_ShowJudgment = false;
     s_JudgmentTimer = 0.0f;
     s_IsEditorMode = false;
@@ -1047,6 +1100,8 @@ void PlayScene::Init(int startSongIndex)
         s_LoadedJacketTex = { 0 };
     }
 
+    s_PlayMainUI.Init();
+
     s_ComboFont = LoadFont("fonts/Pretendard-Black.ttf");
     s_SuitFont = LoadFont("fonts/Pretendard-Black.ttf");
 }
@@ -1060,12 +1115,15 @@ void PlayScene::Update()
     }
 
     if (IsKeyPressed(KEY_P))
-    {
-        s_IsEditorMode = true;
-        m_State = PlaySceneState::Playing;
-        s_ChartEditor.Init();
-        return;
-    }
+{
+    s_IsEditorMode = true;
+    m_State = PlaySceneState::Playing;
+    
+    //const SongData& curSong = m_SongSelect.GetCurrentSong();
+    //s_ChartEditor.InitWithMap(curSong.osuFileName); 
+    
+    return;
+}
 
     s_AudioManager.Update();
 
@@ -1128,6 +1186,29 @@ void PlayScene::Update()
                 m_State = PlaySceneState::SongSelect;
                 return;
             }
+
+            static const std::vector<std::string> jacketPaths = {
+                "music_assets/stars.png",
+                "music_assets/kaleidoscope.png",
+                "music_assets/SkysCape.png",
+                "music_assets/TheLostAria.png",
+                "music_assets/Timeline.png",
+                "music_assets/Terrasphere.png",
+                "music_assets/N.png",
+                "music_assets/SecretDoll2.png",
+                "music_assets/R.png",
+                "music_assets/PlumMegamix.png",
+            };
+
+            s_SongInfo.title = curSong.title;
+            s_SongInfo.artist = curSong.artist;
+            s_SongInfo.jacketPath = (currentSelectedIdx >= 0 && currentSelectedIdx < static_cast<int>(jacketPaths.size())) ? jacketPaths[currentSelectedIdx] : "";
+            s_SongInfo.bpm = curSong.bpm;
+            s_SongInfo.difficultyName = "HARD";
+            s_SongInfo.difficultyLevel = 10;
+
+            s_SongTimer = 0.0f;
+            s_IsPaused = false;
 
             s_SongTimer = 0.0f;
             s_IsPaused = false;
@@ -1236,6 +1317,11 @@ void PlayScene::Update()
 
 void PlayScene::UpdatePlaying()
 {
+     if (s_IsEditorMode)
+    {
+        s_ChartEditor.HandleInput();
+        return;
+    }
     if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) {
         if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) {
             FMOD_Channel_SetPitch(s_MusicPlayer.GetChannelRaw(), 1.0f);     // 피치 고정
@@ -1440,13 +1526,17 @@ void PlayScene::UpdatePlaying()
                 s_JudgmentTimer = 0.3f;
                 s_CurrentJudgment = "MISS";
                 s_JudgmentAnimTimer = 0.3f;
+
+                s_MissCount++;
+                s_HpRatio -= 0.05f;
+                if (s_HpRatio < 0.0f) s_HpRatio = 0.0f;
             }
         }
     }
 
     HitEffect::Update();
 
-   bool lanePressed[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
+  bool lanePressed[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
 
     for (int lane = 0; lane < 4; ++lane)
     {
@@ -1474,18 +1564,29 @@ void PlayScene::UpdatePlaying()
                 if (absDiff <= 0.07f) 
                 { 
                     s_CurrentJudgment = "PERFECT"; 
-                    s_Combo++; 
+                    s_Combo++;
+                    s_PerfectCount++;
+                    s_Score += 1000 + s_Combo * 10;
+                    s_HpRatio += 0.01f;
                 }
                 else if (absDiff <= 0.12f) 
                 { 
                     s_CurrentJudgment = "GREAT"; 
                     s_Combo++; 
+                    s_GreatCount++;
+                    s_Score += 700 + s_Combo * 5;
+                    s_HpRatio += 0.005f;
                 }
                 else 
                 { 
                     s_CurrentJudgment = "GOOD"; 
                     s_Combo++; 
+                    s_GoodCount++;
+                    s_Score += 300;
                 }
+
+                if (s_Combo > s_MaxCombo) s_MaxCombo = s_Combo;
+                if (s_HpRatio > 1.0f) s_HpRatio = 1.0f;
 
                 if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
                 {
@@ -1499,9 +1600,40 @@ void PlayScene::UpdatePlaying()
 
         if (!hitHandled)
         {
-            GhClick::TriggerBreak(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
+            if (FnClick::IsFastHit(lane, s_SongTimer, s_PlayableNotes))
+            {
+                FnClick::TriggerFast(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
+            }
+            else if (SnClick::IsSlowHit(lane, s_SongTimer, s_PlayableNotes))
+            {
+                SnClick::TriggerSlow(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
+            }
+            else
+            {
+                GhClick::TriggerBreak(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
+            }
         }
     }
+
+    int totalHits = s_PerfectCount + s_GreatCount + s_GoodCount + s_MissCount;
+    if (totalHits > 0)
+    {
+        float pts = s_PerfectCount * 100.0f + s_GreatCount * 70.0f + s_GoodCount * 30.0f;
+        s_Accuracy = (pts / (totalHits * 100.0f)) * 100.0f;
+    }
+
+    s_SongInfo.playTimeSec = s_SongTimer;
+    s_SongInfo.score = s_Score;
+    s_SongInfo.accuracy = s_Accuracy;
+    s_SongInfo.maxCombo = s_MaxCombo;
+    s_SongInfo.currentCombo = s_Combo;
+    s_SongInfo.perfectCount = s_PerfectCount;
+    s_SongInfo.greatCount = s_GreatCount;
+    s_SongInfo.goodCount = s_GoodCount;
+    s_SongInfo.missCount = s_MissCount;
+    s_SongInfo.hpRatio = s_HpRatio;
+
+    s_PlayMainUI.Update(s_SongInfo);
 
     if (s_ShowJudgment)
     {
@@ -1532,11 +1664,11 @@ void PlayScene::Draw()
 
 void PlayScene::DrawPlaying()
 {
-    /*if (s_IsEditorMode)
+    if (s_IsEditorMode)
     {
         s_ChartEditor.Render();
         return;
-    } */
+    }
 
     bool pressedStates[4] = {
         IsKeyDown(KEY_D),
@@ -1556,6 +1688,8 @@ void PlayScene::DrawPlaying()
     DrawComboHUD();
 
     HitEffect::Draw();
+
+    s_PlayMainUI.Draw(s_SongInfo, GetScreenWidth(), GetScreenHeight());
 
     if (s_IsPaused)
     {
