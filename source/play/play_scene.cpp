@@ -336,20 +336,14 @@ struct BgaVideoPlayer
     {
         if (!loaded || !plm) return;
 
-        double diffMs = targetTimeMs - lastTimeMs;
-        if (diffMs < 0.0 || diffMs > 1000.0)
-        {
-            plm_seek(plm, targetTimeMs / 1000.0, 0);
-            plm_decode(plm, 0.0);
-        }
-        else
-        {
-            plm_decode(plm, diffMs / 1000.0);
-        }
+        double targetTimeSec = targetTimeMs / 1000.0;
+        
+        plm_seek(plm, targetTimeSec, 0);
+        plm_decode(plm, 0.0); 
         
         lastTimeMs = targetTimeMs;
 
-        if (isFrameNew)
+        if (buffer)
         {
             UpdateTextureRec(texture, Rectangle{ 0.0f, 0.0f, static_cast<float>(texture.width), static_cast<float>(texture.height) }, buffer);
             isFrameNew = false;
@@ -1324,9 +1318,9 @@ void PlayScene::UpdatePlaying()
     }
     if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) {
         if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) {
-            FMOD_Channel_SetPitch(s_MusicPlayer.GetChannelRaw(), 1.0f);     // 피치 고정
-            FMOD_Channel_SetFrequency(s_MusicPlayer.GetChannelRaw(), 44100.0f); // 주파수 강제 정상화 (필요시 원래 주파수로 설정)
-            while (GetCharPressed() > 0); // Raylib 문자 입력 버퍼 강제 소거
+            FMOD_Channel_SetPitch(s_MusicPlayer.GetChannelRaw(), 1.0f);
+            FMOD_Channel_SetFrequency(s_MusicPlayer.GetChannelRaw(), 44100.0f);
+            while (GetCharPressed() > 0);
         }
     }
 
@@ -1370,6 +1364,21 @@ void PlayScene::UpdatePlaying()
                 s_SongTimer = 0.0f;
                 s_IsPaused = false;
                 s_SongSelectEnterDelay = 0.3f;
+
+                s_Combo = 0;
+                s_LastCombo = 0;
+                s_PerfectCount = 0;
+                s_GreatCount = 0;
+                s_GoodCount = 0;
+                s_MissCount = 0;
+                s_MaxCombo = 0;
+                s_Score = 0;
+                s_Accuracy = 100.0f;
+                s_HpRatio = 1.0f;
+    
+                s_SongInfo.score = 0;
+                s_SongInfo.maxCombo = 0;
+                s_SongInfo.currentCombo = 0;
                 m_State = PlaySceneState::SongSelect;
             }
             return;
@@ -1409,6 +1418,25 @@ void PlayScene::UpdatePlaying()
                 s_SongTimer = 0.0f;
                 s_IsPaused = false;
                 s_SongSelectEnterDelay = 0.3f;
+                s_Combo = 0; 
+                s_LastCombo = 0; 
+                s_PerfectCount = 0; 
+                s_GreatCount = 0;
+                s_GoodCount = 0;
+                s_MissCount = 0; 
+                s_MaxCombo = 0; 
+                s_Score = 0;
+                s_Accuracy = 100.0f; 
+                s_HpRatio = 1.0f;
+                s_SongInfo.score = 0; 
+                s_SongInfo.maxCombo = 0; 
+                s_SongInfo.currentCombo = 0;
+                s_SongInfo.accuracy = 100.0f; 
+                s_SongInfo.perfectCount = 0; 
+                s_SongInfo.greatCount = 0;
+                s_SongInfo.goodCount = 0; 
+                s_SongInfo.missCount = 0; 
+                s_SongInfo.hpRatio = 1.0f;
                 m_State = PlaySceneState::SongSelect;
             }
         }
@@ -1450,6 +1478,24 @@ void PlayScene::UpdatePlaying()
                         s_SongTimer = 0.0f;
                         s_IsPaused = false;
                         s_SongSelectEnterDelay = 0.3f;
+                        s_Combo = 0; s_LastCombo = 0;
+                        s_PerfectCount = 0;
+                        s_GreatCount = 0;
+                        s_GoodCount = 0;
+                        s_MissCount = 0; 
+                        s_MaxCombo = 0;
+                        s_Score = 0;
+                        s_Accuracy = 100.0f;
+                        s_HpRatio = 1.0f;
+                        s_SongInfo.score = 0;
+                        s_SongInfo.maxCombo = 0;
+                        s_SongInfo.currentCombo = 0;
+                        s_SongInfo.accuracy = 100.0f;
+                        s_SongInfo.perfectCount = 0;
+                        s_SongInfo.greatCount = 0;
+                        s_SongInfo.goodCount = 0;
+                        s_SongInfo.missCount = 0; 
+                        s_SongInfo.hpRatio = 1.0f;
                         m_State = PlaySceneState::SongSelect;
                     }
                 }

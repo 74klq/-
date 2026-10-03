@@ -36,9 +36,9 @@ public:
 
 private:
     Font m_MainFont;
+    bool m_FontLoaded;
     Texture2D m_JacketTexture;
     std::string m_LoadedJacketPath;
-
     float m_HealthPulseTimer;
 
     void DrawSidebarPanel(float x, float y, float width, float height);
