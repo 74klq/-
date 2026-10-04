@@ -1159,15 +1159,21 @@ void PlayScene::Update()
                 for (size_t i = 0; i < loadedNotes.size(); ++i)
                 {
                     const auto& saveNote = loadedNotes[i];
-                    if (saveNote.type == 128) continue;
+                    //if (saveNote.type == 128) continue;
 
                     PlayableNote pNote;
                     pNote.timeSec = static_cast<float>(saveNote.time) / 1000.0f;
                     pNote.lane = saveNote.lane;
-                    pNote.type = saveNote.type;
-                    pNote.active = true;
-                    s_PlayableNotes.push_back(pNote);
-                }
+
+                     if ((saveNote.type & 128) != 0 || saveNote.type == 128) {
+        pNote.type = 1;
+    } else {
+        pNote.type = saveNote.type;
+    }
+    
+    pNote.active = true;
+    s_PlayableNotes.push_back(pNote);
+}
 
                 std::sort(s_PlayableNotes.begin(), s_PlayableNotes.end(), [](const PlayableNote& a, const PlayableNote& b) {
                     return a.timeSec < b.timeSec;
@@ -1317,12 +1323,24 @@ void PlayScene::UpdatePlaying()
         return;
     }
     if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) {
-        if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) {
-            FMOD_Channel_SetPitch(s_MusicPlayer.GetChannelRaw(), 1.0f);
-            FMOD_Channel_SetFrequency(s_MusicPlayer.GetChannelRaw(), 44100.0f);
-            while (GetCharPressed() > 0);
+    if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) {
+        FMOD_CHANNEL* channel = s_MusicPlayer.GetChannelRaw();
+        
+        float originalFrequency = 44100.0f; 
+        FMOD_SOUND* currentSound = nullptr;
+
+        FMOD_Channel_GetCurrentSound(channel, &currentSound);
+        
+        if (currentSound) {
+            FMOD_Sound_GetDefaults(currentSound, &originalFrequency, nullptr);
         }
+
+        FMOD_Channel_SetPitch(channel, 1.0f);
+        FMOD_Channel_SetFrequency(channel, originalFrequency);
+
+        while (GetCharPressed() > 0);
     }
+}
 
     if (s_IgnoreFirstEnter)
     {
