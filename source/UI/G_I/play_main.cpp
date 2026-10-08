@@ -4,8 +4,9 @@
 #include <set>
 #include <vector>
 
-static const float PLAYFIELD_X = 400.0f;
-static const float PLAYFIELD_WIDTH = 400.0f;
+#define BASE_PLAYFIELD_WIDTH 400.0f
+#define PLAYFIELD_X ((float)GetScreenWidth() - BASE_PLAYFIELD_WIDTH) * 0.5f
+#define PLAYFIELD_WIDTH BASE_PLAYFIELD_WIDTH
 
 PlayMainUI::PlayMainUI()
     : m_MainFont{ 0 },

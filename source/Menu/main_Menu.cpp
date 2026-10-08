@@ -316,27 +316,28 @@ static void DrawBottomBars(int width, int height, float beat) {
 }
 
 static void DrawCornerUI(Font font, int width, int height, float alpha, float time) {
-    float margin = std::max(24.0f, width * 0.025f);
-    float length = 34.0f;
+    float uiScale = (float)height / 720.0f;
+    float margin = std::max(24.0f * uiScale, width * 0.025f);
+    float length = 34.0f * uiScale;
     Color line = WithAlpha(WHITE_SOFT, alpha * 0.34f);
 
-    DrawLineEx({ margin, margin + length }, { margin, margin }, 1.5f, line);
-    DrawLineEx({ margin, margin }, { margin + length, margin }, 1.5f, line);
-    DrawLineEx({ width - margin - length, margin }, { width - margin, margin }, 1.5f, line);
-    DrawLineEx({ width - margin, margin }, { width - margin, margin + length }, 1.5f, line);
-    DrawLineEx({ margin, height - margin - length }, { margin, height - margin }, 1.5f, line);
-    DrawLineEx({ margin, height - margin }, { margin + length, height - margin }, 1.5f, line);
-    DrawLineEx({ width - margin - length, height - margin }, { width - margin, height - margin }, 1.5f, line);
-    DrawLineEx({ width - margin, height - margin - length }, { width - margin, height - margin }, 1.5f, line);
+    DrawLineEx({ margin, margin + length }, { margin, margin }, 1.5f * uiScale, line);
+    DrawLineEx({ margin, margin }, { margin + length, margin }, 1.5f * uiScale, line);
+    DrawLineEx({ width - margin - length, margin }, { width - margin, margin }, 1.5f * uiScale, line);
+    DrawLineEx({ width - margin, margin }, { width - margin, margin + length }, 1.5f * uiScale, line);
+    DrawLineEx({ margin, height - margin - length }, { margin, height - margin }, 1.5f * uiScale, line);
+    DrawLineEx({ margin, height - margin }, { margin + length, height - margin }, 1.5f * uiScale, line);
+    DrawLineEx({ width - margin - length, height - margin }, { width - margin, height - margin }, 1.5f * uiScale, line);
+    DrawLineEx({ width - margin, height - margin - length }, { width - margin, height - margin }, 1.5f * uiScale, line);
 
-    DrawTextEx(font, "SETA", { margin + 3.0f, margin + 42.0f }, 12.0f, 2.5f, WithAlpha(WHITE_SOFT, alpha * 0.45f));
+    DrawTextEx(font, "SETA", { margin + 3.0f * uiScale, margin + 42.0f * uiScale }, 12.0f * uiScale, 2.5f * uiScale, WithAlpha(WHITE_SOFT, alpha * 0.45f));
 
     const char* status = "MAIN MENU";
-    Vector2 statusSize = MeasureTextEx(font, status, 11.0f, 2.0f);
-    DrawTextEx(font, status, { width - margin - statusSize.x, margin + 42.0f }, 11.0f, 2.0f, WithAlpha(WHITE_SOFT, alpha * 0.4f));
+    Vector2 statusSize = MeasureTextEx(font, status, 11.0f * uiScale, 2.0f * uiScale);
+    DrawTextEx(font, status, { width - margin - statusSize.x, margin + 42.0f * uiScale }, 11.0f * uiScale, 2.0f * uiScale, WithAlpha(WHITE_SOFT, alpha * 0.4f));
 
     float pulse = 0.45f + std::sin(time * 3.0f) * 0.25f;
-    DrawCircleV({ width - margin - 6.0f, height - margin - 5.0f }, 2.5f, WithAlpha(WHITE_SOFT, pulse * alpha));
+    DrawCircleV({ width - margin - 6.0f * uiScale, height - margin - 5.0f * uiScale }, 2.5f * uiScale, WithAlpha(WHITE_SOFT, pulse * alpha));
 }
 
 static void DrawLogoDecorations(Vector2 center, float radius, float time, float beat, float alpha) {
@@ -368,10 +369,12 @@ static void DrawLogoDecorations(Vector2 center, float radius, float time, float 
 }
 
 static void DrawExpandedMenuItem(Font font, const char* label, const char* indexText, Vector2 center, float open, float selected, float hover, float time, int index) {
+    float uiScale = (float)GetScreenHeight() / 720.0f;
+
     float directionX = index == 0 ? -1.0f : (index == 1 ? 0.0f : 1.0f);
     float directionY = index == 1 ? 1.0f : -0.18f;
 
-    float distance = index == 1 ? 235.0f : 250.0f;
+    float distance = (index == 1 ? 235.0f : 250.0f) * uiScale;
     float targetX = center.x + directionX * distance;
     float targetY = center.y + directionY * distance;
 
@@ -380,14 +383,14 @@ static void DrawExpandedMenuItem(Font font, const char* label, const char* index
     float y = center.y + (targetY - center.y) * itemOpen;
 
     float appear = Clamp01(open * 1.18f - index * 0.08f);
-    float selectedLift = selected * -8.0f;
-    float hoverLift = hover * -5.0f;
+    float selectedLift = selected * -8.0f * uiScale;
+    float hoverLift = hover * -5.0f * uiScale;
 
-    x += std::sin(time * 2.0f + index) * (1.0f + selected * 2.0f);
+    x += std::sin(time * 2.0f + index) * (1.0f + selected * 2.0f) * uiScale;
     y += selectedLift + hoverLift;
 
-    float width = 178.0f + selected * 24.0f + hover * 10.0f;
-    float height = 58.0f + selected * 7.0f + hover * 4.0f;
+    float width = (178.0f + selected * 24.0f + hover * 10.0f) * uiScale;
+    float height = (58.0f + selected * 7.0f + hover * 4.0f) * uiScale;
 
     Rectangle box = {
         x - width * 0.5f,
@@ -406,33 +409,33 @@ static void DrawExpandedMenuItem(Font font, const char* label, const char* index
 
     if (appear > 0.01f) {
         DrawRectangleRounded(
-            { box.x - 5.0f, box.y - 5.0f, box.width + 10.0f, box.height + 10.0f },
+            { box.x - 5.0f * uiScale, box.y - 5.0f * uiScale, box.width + 10.0f * uiScale, box.height + 10.0f * uiScale },
             0.18f,
             10,
             Color{ 255, 255, 255, (unsigned char)(8.0f * appear + selected * 12.0f) }
         );
 
         DrawRectangleRounded(box, 0.18f, 10, fill);
-        DrawRectangleRoundedLinesEx(box, 0.18f, 10, selected > 0.5f ? 2.0f : 1.0f, border);
+        DrawRectangleRoundedLinesEx(box, 0.18f, 10, (selected > 0.5f ? 2.0f : 1.0f) * uiScale, border);
 
-        DrawTextEx(font, indexText, { box.x + 14.0f, box.y + 9.0f }, 10.0f, 1.5f, selected > 0.5f ? Color{ 80, 80, 80, 255 } : Color{ 130, 130, 130, (unsigned char)(180.0f * appear) });
+        DrawTextEx(font, indexText, { box.x + 14.0f * uiScale, box.y + 9.0f * uiScale }, 10.0f * uiScale, 1.5f, selected > 0.5f ? Color{ 80, 80, 80, 255 } : Color{ 130, 130, 130, (unsigned char)(180.0f * appear) });
 
-        float textSizeValue = 21.0f + selected * 6.0f + hover * 2.0f;
+        float textSizeValue = (21.0f + selected * 6.0f + hover * 2.0f) * uiScale;
         Vector2 textSize = MeasureTextEx(font, label, textSizeValue, 1.0f);
         DrawTextEx(
             font,
             label,
-            { box.x + (box.width - textSize.x) * 0.5f, box.y + (box.height - textSize.y) * 0.5f + 2.0f },
+            { box.x + (box.width - textSize.x) * 0.5f, box.y + (box.height - textSize.y) * 0.5f + 2.0f * uiScale },
             textSizeValue,
             1.0f,
             selected > 0.5f ? Color{ 10, 10, 10, (unsigned char)(255.0f * appear) } : Color{ 225, 225, 225, (unsigned char)(220.0f * appear) }
         );
 
-        float lineLength = selected > 0.5f ? 55.0f : 28.0f + hover * 22.0f;
+        float lineLength = (selected > 0.5f ? 55.0f : 28.0f + hover * 22.0f) * uiScale;
         DrawLineEx(
-            { box.x + 14.0f, box.y + box.height - 6.0f },
-            { box.x + 14.0f + lineLength, box.y + box.height - 6.0f },
-            selected > 0.5f ? 2.0f : 1.0f,
+            { box.x + 14.0f * uiScale, box.y + box.height - 6.0f * uiScale },
+            { box.x + 14.0f * uiScale + lineLength, box.y + box.height - 6.0f * uiScale },
+            (selected > 0.5f ? 2.0f : 1.0f) * uiScale,
             selected > 0.5f ? Color{ 10, 10, 10, (unsigned char)(230.0f * appear) } : Color{ 180, 180, 180, (unsigned char)(100.0f * appear) }
         );
     }
@@ -593,18 +596,19 @@ void MainMenu::Update() {
     hoveredMenuIndex = -1;
 
     if (menuOpenAmount > 0.03f) {
+        float uiScale = (float)screenH / 720.0f;
         for (int i = 0; i < 3; ++i) {
             float directionX = i == 0 ? -1.0f : (i == 1 ? 0.0f : 1.0f);
             float directionY = i == 1 ? 1.0f : -0.18f;
-            float distance = i == 1 ? 235.0f : 250.0f;
+            float distance = (i == 1 ? 235.0f : 250.0f) * uiScale;
 
             Vector2 p = {
                 logoCenter.x + directionX * distance * EaseOutBack(menuOpenAmount),
                 logoCenter.y + directionY * distance * EaseOutBack(menuOpenAmount)
             };
 
-            float w = 190.0f;
-            float h = 70.0f;
+            float w = 190.0f * uiScale;
+            float h = 70.0f * uiScale;
 
             Rectangle hit = {
                 p.x - w * 0.5f,
@@ -756,6 +760,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 
     float beat = Clamp01(beatScale);
     float strongBeat = Clamp01(beatImpact);
+    float uiScale = (float)screenHeight / 720.0f;
 
     DrawRectangleGradientV(
         0,
@@ -770,7 +775,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     DrawBottomBars(screenWidth, screenHeight, strongBeat);
 
     float logoBaseRadius = std::min(screenWidth, screenHeight) * 0.205f;
-    logoBaseRadius = std::max(125.0f, std::min(235.0f, logoBaseRadius));
+    logoBaseRadius = std::max(125.0f * uiScale, std::min(235.0f * uiScale, logoBaseRadius));
 
     float actualBeatScale = strongBeat * 0.085f;
     float hoverScale = logoHover * 0.035f;
@@ -788,7 +793,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         for (int i = 0; i < 3; ++i) {
             float directionX = i == 0 ? -1.0f : (i == 1 ? 0.0f : 1.0f);
             float directionY = i == 1 ? 1.0f : -0.18f;
-            float distance = i == 1 ? 235.0f : 250.0f;
+            float distance = (i == 1 ? 235.0f : 250.0f) * uiScale;
             float t = EaseOutBack(menuOpenAmount);
 
             Vector2 destination = {
@@ -799,13 +804,13 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             DrawLineEx(
                 center,
                 destination,
-                1.0f,
+                1.0f * uiScale,
                 Color{ 255, 255, 255, (unsigned char)(10.0f * menuLineAlpha) }
             );
 
             DrawCircleV(
                 destination,
-                2.0f + menuItemSelected[i] * 2.0f,
+                (2.0f + menuItemSelected[i] * 2.0f) * uiScale,
                 Color{ 255, 255, 255, (unsigned char)(55.0f * menuLineAlpha) }
             );
         }
@@ -866,7 +871,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         DrawRing(
             center,
             ring,
-            ring + 2.0f,
+            ring + 2.0f * uiScale,
             ringRotation1,
             ringRotation1 + 270.0f,
             64,
@@ -900,8 +905,8 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         "THE LINE",
         screenWidth * 0.5f,
         screenHeight * 0.09f,
-        std::min(28.0f, screenWidth * 0.022f),
-        5.0f,
+        std::min(28.0f * uiScale, screenWidth * 0.022f),
+        5.0f * uiScale,
         WithAlpha(WHITE_SOFT, titleAlpha * 0.78f)
     );
 
@@ -910,14 +915,14 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         menuOpen ? "SELECT MODE" : "CLICK THE LOGO",
         screenWidth * 0.5f,
         screenHeight * 0.13f,
-        std::min(11.0f, screenWidth * 0.009f),
-        2.2f,
+        std::min(11.0f * uiScale, screenWidth * 0.009f),
+        2.2f * uiScale,
         WithAlpha(WHITE_DIM, titleAlpha * 0.58f)
     );
 
-    float bpmWidth = 80.0f;
+    float bpmWidth = 80.0f * uiScale;
     DrawRectangleRounded(
-        { screenWidth * 0.5f - bpmWidth * 0.5f, screenHeight * 0.17f, bpmWidth, 24.0f },
+        { screenWidth * 0.5f - bpmWidth * 0.5f, screenHeight * 0.17f, bpmWidth, 24.0f * uiScale },
         0.35f,
         8,
         Color{ 255, 255, 255, 7 }
@@ -930,9 +935,9 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         customFont,
         bpmText,
         screenWidth * 0.5f,
-        screenHeight * 0.17f + 12.0f,
-        10.0f,
-        1.5f,
+        screenHeight * 0.17f + 12.0f * uiScale,
+        10.0f * uiScale,
+        1.5f * uiScale,
         Color{ 185, 185, 185, (unsigned char)(titleAlpha * 115.0f) }
     );
 
@@ -943,7 +948,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             ? "ARROW / WASD  SELECT     ENTER / SPACE  CONFIRM     ESC  CLOSE"
             : "CLICK / ENTER  OPEN MENU";
 
-        Vector2 hintSize = MeasureTextEx(customFont, hint, 10.0f, 1.5f);
+        Vector2 hintSize = MeasureTextEx(customFont, hint, 10.0f * uiScale, 1.5f * uiScale);
 
         DrawTextEx(
             customFont,
@@ -952,8 +957,8 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
                 screenWidth * 0.5f - hintSize.x * 0.5f,
                 screenHeight * 0.935f
             },
-            10.0f,
-            1.5f,
+            10.0f * uiScale,
+            1.5f * uiScale,
             Color{ 145, 145, 145, 105 }
         );
     }
@@ -963,7 +968,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 
         DrawCircleV(
             trails[i].position,
-            trails[i].size,
+            trails[i].size * uiScale,
             Color{ 255, 255, 255, (unsigned char)(trails[i].alpha * 90.0f) }
         );
     }
@@ -973,7 +978,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 
         Color color = bursts[i].color;
         color.a = (unsigned char)(bursts[i].alpha * 210.0f);
-        DrawCircleV(bursts[i].position, bursts[i].size, color);
+        DrawCircleV(bursts[i].position, bursts[i].size * uiScale, color);
     }
 
     if (introFlashAlpha > 0.001f) {

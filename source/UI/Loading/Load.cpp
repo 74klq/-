@@ -170,9 +170,10 @@ void LoadingScreen::DrawCurtain() {
 void LoadingScreen::DrawJacket() {
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
+    float uiScale = (float)screenHeight / 720.0f;
     
     float pulseScale = 1.0f - (std::sin(stateTimer * 1.8f) * 0.5f + 0.5f) * 0.08f;
-    float baseJacketSize = 280.0f;
+    float baseJacketSize = 280.0f * uiScale;
     float jacketSize = baseJacketSize * pulseScale;
     float jacketX = (screenWidth - jacketSize) * 0.5f;
     float jacketY = (screenHeight - jacketSize) * 0.4f;
@@ -193,7 +194,7 @@ void LoadingScreen::DrawJacket() {
         }
     }
 
-    DrawRectangleRounded((Rectangle){ jacketX + 6.0f, jacketY + 6.0f, jacketSize, jacketSize }, 0.06f, 4, (Color){ 0, 0, 0, 180 });
+    DrawRectangleRounded((Rectangle){ jacketX + 6.0f * uiScale, jacketY + 6.0f * uiScale, jacketSize, jacketSize }, 0.06f, 4, (Color){ 0, 0, 0, 180 });
 
     if (currentSong.jacketTexture.id != 0) {
         DrawTexturePro(
@@ -208,32 +209,31 @@ void LoadingScreen::DrawJacket() {
     DrawRectangleRoundedLines((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.06f, 4, WHITE);
 }
 
-// ⭐️ 완전히 깨끗해진 프로그레스 바 드로잉 로직
 void LoadingScreen::DrawProgressBar() {
-    // 내부의 static 변수들을 지워버리고, 멤버 변수(suitFont)를 즉시 매핑합니다.
     Font fontToUse = (fontLoaded) ? suitFont : GetFontDefault();
 
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
+    float uiScale = (float)screenHeight / 720.0f;
 
-    float barWidth = 600.0f;
-    float barHeight = 38.0f;
+    float barWidth = 600.0f * uiScale;
+    float barHeight = 38.0f * uiScale;
     float barX = (screenWidth - barWidth) * 0.5f;
     float barY = (float)screenHeight * 0.82f;
 
     DrawRectangleRounded((Rectangle){ barX, barY, barWidth, barHeight }, 0.25f, 4, (Color){ 20, 24, 32, 220 });
     DrawRectangleRoundedLines((Rectangle){ barX, barY, barWidth, barHeight }, 0.25f, 4, (Color){ 255, 255, 255, 80 });
 
-    float fillWidth = (barWidth - 6.0f) * currentLoadProgress;
+    float fillWidth = (barWidth - 6.0f * uiScale) * currentLoadProgress;
     if (fillWidth > 0.0f) {
-        DrawRectangleRounded((Rectangle){ barX + 3.0f, barY + 3.0f, fillWidth, barHeight - 6.0f }, 0.25f, 4, WHITE);
+        DrawRectangleRounded((Rectangle){ barX + 3.0f * uiScale, barY + 3.0f * uiScale, fillWidth, barHeight - 6.0f * uiScale }, 0.25f, 4, WHITE);
     }
 
     int percentage = (int)(currentLoadProgress * 100.0f);
     char textBuf[128];
     snprintf(textBuf, sizeof(textBuf), "리소스 로딩중... (%d%%)", percentage);
 
-    float fontSize = 18.0f;
+    float fontSize = 18.0f * uiScale;
     Color textColor = (currentLoadProgress > 0.5f) ? (Color){ 20, 20, 20, 255 } : WHITE;
 
     if (fontToUse.texture.id != 0) {

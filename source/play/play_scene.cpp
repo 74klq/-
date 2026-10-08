@@ -148,22 +148,20 @@ public:
     }
 };
 
-static const float PLAYFIELD_X = 400.0f;
-static const float PLAYFIELD_Y = 0.0f;
-static const float PLAYFIELD_WIDTH = 400.0f;
-static const float PLAYFIELD_HEIGHT = 720.0f;
+#define BASE_PLAYFIELD_WIDTH 400.0f
+#define PLAYFIELD_X ((float)GetScreenWidth() - BASE_PLAYFIELD_WIDTH) * 0.5f
+#define PLAYFIELD_Y 0.0f
+#define PLAYFIELD_WIDTH BASE_PLAYFIELD_WIDTH
+#define PLAYFIELD_HEIGHT ((float)GetScreenHeight())
 
 static const int LANE_COUNT = 4;
 static const float LANE_WIDTH = 68.0f;
-static const float LANE_AREA_WIDTH = LANE_COUNT * LANE_WIDTH;
-static const float LANE_START_X = PLAYFIELD_X + (PLAYFIELD_WIDTH - LANE_AREA_WIDTH) / 2.0f;
+#define LANE_AREA_WIDTH ((float)LANE_COUNT * LANE_WIDTH)
+#define LANE_START_X (PLAYFIELD_X + (PLAYFIELD_WIDTH - LANE_AREA_WIDTH) / 2.0f)
 
-static const float LANE_X_COORDS[4] = {
-    LANE_START_X + LANE_WIDTH * 0.5f,
-    LANE_START_X + LANE_WIDTH * 1.5f,
-    LANE_START_X + LANE_WIDTH * 2.5f,
-    LANE_START_X + LANE_WIDTH * 3.5f
-};
+static inline float GetLaneXCoord(int lane) {
+    return LANE_START_X + LANE_WIDTH * ((float)lane + 0.5f);
+}
 
 // TODO: 하드코딩 나중에 고칠 예정
 
@@ -469,15 +467,22 @@ static void DrawBackground()
     const int screenW = GetScreenWidth();
     const int screenH = GetScreenHeight();
 
-    if (s_BgaPlayer.loaded)
+    BeginBlendMode(BLEND_ALPHA); 
+
+    if (s_LoadedJacketTex.id != 0)
     {
-        s_BgaPlayer.Draw(screenW, screenH);
-        DrawRectangle(0, 0, screenW, screenH, Color{ 0, 0, 0, 40 });
+        Rectangle srcRec = { 0.0f, 0.0f, static_cast<float>(s_LoadedJacketTex.width), static_cast<float>(s_LoadedJacketTex.height) };
+        Rectangle destRec = { 0.0f, 0.0f, static_cast<float>(screenW), static_cast<float>(screenH) };
+        
+        DrawTexturePro(s_LoadedJacketTex, srcRec, destRec, Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
+        DrawRectangle(0, 0, screenW, screenH, Color{ 0, 0, 0, 170 }); 
     }
     else
     {
         DrawRectangleGradientV(0, 0, screenW, screenH, Color{ 17, 17, 19, 255 }, Color{ 1, 1, 2, 255 });
     }
+
+    EndBlendMode();
 
     DrawRectangleGradientH(0, 0, screenW, screenH, Color{ 0, 0, 0, 115 }, Color{ 0, 0, 0, 115 });
 
@@ -524,17 +529,19 @@ static void DrawMechanicalFrame()
     const float time = GetTime();
     const float pulse = 0.5f + 0.5f * sinf(time * 2.2f);
 
-    DrawRectangle(left - 30, 0, 30, 720, Color{ 5, 5, 5, 250 });
-    DrawRectangle(right, 0, 30, 720, Color{ 5, 5, 5, 250 });
+    int screenH = GetScreenHeight();
+    DrawRectangle(left - 30, 0, 30, screenH, Color{ 5, 5, 5, 250 });
+    DrawRectangle(right, 0, 30, screenH, Color{ 5, 5, 5, 250 });
 
-    DrawRectangle(left - 8, 0, 4, 720, Color{ 73, 73, 73, 180 });
-    DrawRectangle(right + 4, 0, 4, 720, Color{ 73, 73, 73, 180 });
+    DrawRectangle(left - 8, 0, 4, screenH, Color{ 73, 73, 73, 180 });
+    DrawRectangle(right + 4, 0, 4, screenH, Color{ 73, 73, 73, 180 });
 
-    DrawRectangle(left - 3, 0, 3, 720, Color{ 235, 235, 235, 210 });
-    DrawRectangle(right, 0, 3, 720, Color{ 235, 235, 235, 210 });
+    DrawRectangle(left - 3, 0, 3, screenH, Color{ 235, 235, 235, 210 });
+    DrawRectangle(right, 0, 3, screenH, Color{ 235, 235, 235, 210 });
 
-    DrawRectangle(left - 24, 0, 2, 720, Color{ 43, 43, 43, 230 });
-    DrawRectangle(right + 22, 0, 2, 720, Color{ 43, 43, 43, 230 });
+    DrawRectangle(left - 24, 0, 2, screenH, Color{ 43, 43, 43, 230 });
+    DrawRectangle(right + 22, 0, 2, screenH, Color{ 43, 43, 43, 230 });
+
 
     for (int i = 0; i < 10; ++i)
     {
@@ -573,31 +580,33 @@ static void DrawPlayfield()
     const int px = static_cast<int>(PLAYFIELD_X);
     const int pw = static_cast<int>(PLAYFIELD_WIDTH);
 
-    DrawRectangle(px - 24, 0, pw + 48, 720, Color{ 0, 0, 0, 50 });
-    DrawRectangle(px, 0, pw, 720, Color{ 3, 3, 4, 60 });
+        int screenH = GetScreenHeight();
+    DrawRectangle(px - 24, 0, pw + 48, screenH, Color{ 0, 0, 0, 50 });
+    DrawRectangle(px, 0, pw, screenH, Color{ 3, 3, 4, 60 });
 
-    DrawRectangleGradientV(px, 0, pw, 720, Color{ 24, 24, 26, 50 }, Color{ 1, 1, 2, 70 });
-    DrawRectangleGradientH(px, 0, 70, 720, Color{ 0, 0, 0, 80 }, Color{ 0, 0, 0, 0 });
-    DrawRectangleGradientH(px + pw - 70, 0, 70, 720, Color{ 0, 0, 0, 0 }, Color{ 0, 0, 0, 80 });
+    DrawRectangleGradientV(px, 0, pw, screenH, Color{ 24, 24, 26, 50 }, Color{ 1, 1, 2, 70 });
+    DrawRectangleGradientH(px, 0, 70, screenH, Color{ 0, 0, 0, 80 }, Color{ 0, 0, 0, 0 });
+    DrawRectangleGradientH(px + pw - 70, 0, 70, screenH, Color{ 0, 0, 0, 0 }, Color{ 0, 0, 0, 80 });
 
-    for (int y = 8; y < 720; y += 8)
+    for (int y = 8; y < screenH; y += 8)
     {
         unsigned char a = static_cast<unsigned char>(3 + ((y / 8) % 3));
         DrawRectangle(px + 2, y, pw - 4, 1, Color{ 255, 255, 255, a });
     }
 
-    const float scan = fmodf(t * 135.0f, 720.0f);
+    const float scan = fmodf(t * 135.0f, (float)screenH);
     DrawRectangle(px + 2, static_cast<int>(scan), pw - 4, 2, Color{ 255, 255, 255, 15 });
     DrawRectangle(px + 2, static_cast<int>(scan) + 2, pw - 4, 1, Color{ 255, 255, 255, 6 });
 
-    DrawRectangle(px, 0, 3, 720, Color{ 255, 255, 255, 115 });
-    DrawRectangle(px + pw - 3, 0, 3, 720, Color{ 255, 255, 255, 115 });
-    DrawRectangle(px + 8, 0, 1, 720, Color{ 255, 255, 255, 30 });
-    DrawRectangle(px + pw - 9, 0, 1, 720, Color{ 255, 255, 255, 30 });
+    DrawRectangle(px, 0, 3, screenH, Color{ 255, 255, 255, 115 });
+    DrawRectangle(px + pw - 3, 0, 3, screenH, Color{ 255, 255, 255, 115 });
+    DrawRectangle(px + 8, 0, 1, screenH, Color{ 255, 255, 255, 30 });
+    DrawRectangle(px + pw - 9, 0, 1, screenH, Color{ 255, 255, 255, 30 });
 
-    for (int i = 0; i < 4; ++i)
+
+       for (int i = 0; i < 4; ++i)
     {
-        float cx = LANE_X_COORDS[i];
+        float cx = GetLaneXCoord(i);
         float pulse = 0.5f + 0.5f * sinf(t * 1.8f + i * 0.9f);
         DrawCircle(static_cast<int>(cx), 120, 48.0f + pulse * 7.0f, Color{ 255, 255, 255, 2 });
     }
@@ -682,30 +691,36 @@ static void DrawNotes(float judgmentLineY)
         if (!pNote.active || pNote.lane < 0 || pNote.lane >= LANE_COUNT)
             continue;
 
+               // 💡 앞에 붙어있던 float 키워드를 지워서 중복 선언 오류를 없앱니다.
+        float uiScale = (float)GetScreenHeight() / 720.0f; 
         const float diffSec = (pNote.timeSec * 1000.0f - nowMs) / 1000.0f;
-        const float y = judgmentLineY - diffSec * s_NoteScrollSpeed;
+        const float y = judgmentLineY - diffSec * (s_NoteScrollSpeed * uiScale);
 
-        if (y < -100.0f || y > 760.0f)
+
+        int screenH = GetScreenHeight();
+
+        if (y < -100.0f || y > (float)screenH + 100.0f)
             continue;
 
-        const float cx = LANE_X_COORDS[pNote.lane];
+       uiScale = (float)GetScreenHeight() / 720.0f;
+        const float cx = GetLaneXCoord(pNote.lane);
         const float w = LANE_WIDTH - 6.0f;
-        const float h = 28.0f;
+        
+        const float h = 36.0f * uiScale; 
         const bool nearHit = fabsf(diffSec) < 0.22f;
         const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + pNote.lane);
 
         if (nearHit)
         {
-            DrawRectangleRounded({ cx - w * 0.5f - 10.0f, y - h * 0.5f - 10.0f, w + 20.0f, h + 20.0f }, 0.18f, 8, Color{ 255, 255, 255, static_cast<unsigned char>(8 + pulse * 12) });
+            DrawRectangleRounded({ cx - w * 0.5f - 10.0f * uiScale, y - h * 0.5f - 10.0f * uiScale, w + 20.0f * uiScale, h + 20.0f * uiScale }, 0.18f, 8, Color{ 255, 255, 255, static_cast<unsigned char>(8 + pulse * 12) });
         }
 
-        DrawRectangleRounded({ cx - w * 0.5f + 4.0f, y - h * 0.5f + 7.0f, w, h }, 0.18f, 8, Color{ 0, 0, 0, 245 });
+        DrawRectangleRounded({ cx - w * 0.5f + 4.0f * uiScale, y - h * 0.5f + 7.0f * uiScale, w, h }, 0.18f, 8, Color{ 0, 0, 0, 245 });
         DrawRectangleRounded({ cx - w * 0.5f, y - h * 0.5f, w, h }, 0.18f, 8, Color{ 218, 218, 221, 255 });
-        DrawRectangleRounded({ cx - w * 0.5f + 2.0f, y - h * 0.5f + 2.0f, w - 4.0f, h * 0.42f }, 0.16f, 8, Color{ 255, 255, 255, 255 });
-        DrawRectangleRounded({ cx - w * 0.5f + 5.0f, y - 2.0f, w - 10.0f, 4.0f }, 0.35f, 8, Color{ 22, 22, 24, 255 });
+        DrawRectangleRounded({ cx - w * 0.5f + 2.0f * uiScale, y - h * 0.5f + 2.0f * uiScale, w - 4.0f * uiScale, h * 0.42f }, 0.16f, 8, Color{ 255, 255, 255, 255 });
+        DrawRectangleRounded({ cx - w * 0.5f + 5.0f * uiScale, y - 2.0f * uiScale, w - 10.0f * uiScale, 4.0f * uiScale }, 0.35f, 8, Color{ 22, 22, 24, 255 });
         DrawRectangleRoundedLines({ cx - w * 0.5f, y - h * 0.5f, w, h }, 0.18f, 8, Color{ 255, 255, 255, 240 });
-        DrawRectangle(static_cast<int>(cx - w * 0.5f + 10.0f), static_cast<int>(y - h * 0.5f + 2.0f), static_cast<int>(w - 20.0f), 1, Color{ 255, 255, 255, 150 });
-        DrawRectangle(static_cast<int>(cx - 18), static_cast<int>(y + h * 0.5f + 5), 36, 2, Color{ 0, 0, 0, 100 });
+
     }
 }
 
@@ -728,7 +743,7 @@ static void DrawJudgmentLine(float judgmentLineY)
 
     for (int i = 0; i < LANE_COUNT; ++i)
     {
-        const float x = LANE_X_COORDS[i];
+        const float x = GetLaneXCoord(i);
         const bool hitFlash = impact > 0.01f;
         const float r = 13.0f + impact * 12.0f;
 
@@ -879,65 +894,68 @@ static void DrawInputFeedbackFlash(const bool pressedStates[4], float judgmentLi
         float pulse = 0.5f + 0.5f * sinf(time * 13.0f + i * 0.7f);
         unsigned char alpha = static_cast<unsigned char>(45.0f + pulse * 65.0f);
 
+        float uiScale = (float)GetScreenHeight() / 720.0f;
         DrawRectangleGradientV(static_cast<int>(laneX) + 5, 30, static_cast<int>(LANE_WIDTH) - 10, static_cast<int>(judgmentLineY) - 42, Color{ 189, 189, 189, 0 }, Color{ 189, 189, 189, alpha });
-        DrawRectangle(static_cast<int>(laneX) + 7, static_cast<int>(judgmentLineY) - 19, static_cast<int>(LANE_WIDTH) - 14, 3, Color{ 234, 234, 234, alpha });
-        DrawRectangle(static_cast<int>(laneX) + 13, static_cast<int>(judgmentLineY) + 8, static_cast<int>(LANE_WIDTH) - 26, 2, Color{ 198, 198, 198, static_cast<unsigned char>(alpha * 0.7f) });
-        DrawCircleLines(static_cast<int>(laneX + LANE_WIDTH * 0.5f), static_cast<int>(judgmentLineY), 14.0f + pulse * 6.0f, Color{ 208, 208, 208, static_cast<unsigned char>(alpha * 0.65f) });
+        DrawRectangle(static_cast<int>(laneX) + 7, static_cast<int>(judgmentLineY) - 19 * uiScale, static_cast<int>(LANE_WIDTH) - 14, 3, Color{ 234, 234, 234, alpha });
+        DrawRectangle(static_cast<int>(laneX) + 13, static_cast<int>(judgmentLineY) + 8 * uiScale, static_cast<int>(LANE_WIDTH) - 26, 2, Color{ 198, 198, 198, static_cast<unsigned char>(alpha * 0.7f) });
+        DrawCircleLines(static_cast<int>(laneX + LANE_WIDTH * 0.5f), static_cast<int>(judgmentLineY), (14.0f + pulse * 6.0f) * uiScale, Color{ 208, 208, 208, static_cast<unsigned char>(alpha * 0.65f) });
+
     }
 }
 
 static void DrawInputPanel(const bool pressedStates[4], float judgmentLineY)
 {
-    const float panelY = 604.0f;
-    const float buttonY = 632.0f;
-    const float buttonH = 78.0f;
+    int screenH = GetScreenHeight();
+    float uiScale = (float)screenH / 720.0f;
+
+    const float panelH = 116.0f * uiScale;
+    const float panelY = (float)screenH - panelH;
+    const float buttonY = panelY + 28.0f * uiScale;
+    const float buttonH = 78.0f * uiScale;
     const float time = GetTime();
 
-    DrawRectangle(static_cast<int>(PLAYFIELD_X), static_cast<int>(panelY), static_cast<int>(PLAYFIELD_WIDTH), 116, Color{ 2, 2, 3, 255 });
-    DrawRectangleGradientV(static_cast<int>(PLAYFIELD_X), static_cast<int>(panelY), static_cast<int>(PLAYFIELD_WIDTH), 34, Color{ 26, 26, 29, 255 }, Color{ 5, 5, 7, 255 });
-    DrawRectangle(static_cast<int>(PLAYFIELD_X), static_cast<int>(panelY), static_cast<int>(PLAYFIELD_WIDTH), 2, Color{ 255, 255, 255, 235 });
-    DrawRectangle(static_cast<int>(PLAYFIELD_X) + 8, static_cast<int>(panelY) + 28, static_cast<int>(PLAYFIELD_WIDTH) - 16, 1, Color{ 255, 255, 255, 28 });
+    DrawRectangle(static_cast<int>(PLAYFIELD_X), static_cast<int>(judgmentLineY), static_cast<int>(PLAYFIELD_WIDTH), (int)(screenH - judgmentLineY), Color{ 2, 2, 3, 255 });
 
     for (int i = 0; i < LANE_COUNT; ++i)
     {
         const float x = LANE_START_X + i * LANE_WIDTH;
-        const float cx = LANE_X_COORDS[i];
+        const float cx = GetLaneXCoord(i);
         const bool pressed = pressedStates[i];
         const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + i * 0.8f);
 
         if (pressed)
         {
-            DrawRectangleGradientV(static_cast<int>(x), static_cast<int>(judgmentLineY), static_cast<int>(LANE_WIDTH), 116, Color{ 255, 255, 255, 0 }, Color{ 255, 255, 255, 28 });
+            DrawRectangleGradientV(static_cast<int>(x), static_cast<int>(judgmentLineY), static_cast<int>(LANE_WIDTH), (int)panelH, Color{ 255, 255, 255, 0 }, Color{ 255, 255, 255, 28 });
             DrawRectangle(static_cast<int>(x) + 4, static_cast<int>(judgmentLineY) + 1, static_cast<int>(LANE_WIDTH) - 8, 3, Color{ 255, 255, 255, static_cast<unsigned char>(110 + pulse * 100) });
         }
 
-        DrawRectangle(static_cast<int>(x) + 2, static_cast<int>(buttonY) + 8, static_cast<int>(LANE_WIDTH) - 4, static_cast<int>(buttonH), Color{ 0, 0, 0, 245 });
+        DrawRectangle(static_cast<int>(x) + 2, static_cast<int>(buttonY) + (int)(8.0f * uiScale), static_cast<int>(LANE_WIDTH) - 4, static_cast<int>(buttonH), Color{ 0, 0, 0, 245 });
         DrawRectangleRounded({ x + 1.0f, buttonY, LANE_WIDTH - 2.0f, buttonH }, 0.08f, 8, pressed ? Color{ 245, 245, 247, 255 } : Color{ 82, 82, 86, 255 });
-        DrawRectangleRounded({ x + 5.0f, buttonY + 4.0f, LANE_WIDTH - 10.0f, buttonH - 8.0f }, 0.06f, 8, pressed ? Color{ 128, 128, 132, 255 } : Color{ 13, 13, 15, 255 });
-        DrawRectangleGradientV(static_cast<int>(x) + 7, static_cast<int>(buttonY) + 6, static_cast<int>(LANE_WIDTH) - 14, static_cast<int>(buttonH) - 12, pressed ? Color{ 205, 205, 208, 255 } : Color{ 49, 49, 53, 255 }, pressed ? Color{ 62, 62, 65, 255 } : Color{ 5, 5, 7, 255 });
-        DrawRectangle(static_cast<int>(x) + 9, static_cast<int>(buttonY) + 9, static_cast<int>(LANE_WIDTH) - 18, 3, pressed ? Color{ 255, 255, 255, static_cast<unsigned char>(205 + pulse * 50) } : Color{ 185, 185, 190, 105 });
-        DrawRectangle(static_cast<int>(x) + 9, static_cast<int>(buttonY) + static_cast<int>(buttonH) - 12, static_cast<int>(LANE_WIDTH) - 18, 4, Color{ 0, 0, 0, 190 });
-        DrawRectangle(static_cast<int>(x) + 10, static_cast<int>(buttonY) + 14, 3, 27, Color{ 255, 255, 255, static_cast<unsigned char>(pressed ? 100 : 28) });
-        DrawRectangle(static_cast<int>(x) + static_cast<int>(LANE_WIDTH) - 13, static_cast<int>(buttonY) + 14, 3, 27, Color{ 0, 0, 0, 135 });
+        DrawRectangleRounded({ x + 5.0f, buttonY + 4.0f * uiScale, LANE_WIDTH - 10.0f, buttonH - 8.0f * uiScale }, 0.06f, 8, pressed ? Color{ 128, 128, 132, 255 } : Color{ 13, 13, 15, 255 });
+        DrawRectangleGradientV(static_cast<int>(x) + 7, static_cast<int>(buttonY) + (int)(6.0f * uiScale), static_cast<int>(LANE_WIDTH) - 14, static_cast<int>(buttonH) - (int)(12.0f * uiScale), pressed ? Color{ 205, 205, 208, 255 } : Color{ 49, 49, 53, 255 }, pressed ? Color{ 62, 62, 65, 255 } : Color{ 5, 5, 7, 255 });
+        DrawRectangle(static_cast<int>(x) + 9, static_cast<int>(buttonY) + (int)(9.0f * uiScale), static_cast<int>(LANE_WIDTH) - 18, 3, pressed ? Color{ 255, 255, 255, static_cast<unsigned char>(205 + pulse * 50) } : Color{ 185, 185, 190, 105 });
+        DrawRectangle(static_cast<int>(x) + 9, static_cast<int>(buttonY) + static_cast<int>(buttonH) - (int)(12.0f * uiScale), static_cast<int>(LANE_WIDTH) - 18, 4, Color{ 0, 0, 0, 190 });
+        DrawRectangle(static_cast<int>(x) + 10, static_cast<int>(buttonY) + (int)(14.0f * uiScale), 3, (int)(27.0f * uiScale), Color{ 255, 255, 255, static_cast<unsigned char>(pressed ? 100 : 28) });
+        DrawRectangle(static_cast<int>(x) + static_cast<int>(LANE_WIDTH) - 13, static_cast<int>(buttonY) + (int)(14.0f * uiScale), 3, (int)(27.0f * uiScale), Color{ 0, 0, 0, 135 });
 
         if (pressed)
         {
             DrawRectangle(static_cast<int>(x) + 4, static_cast<int>(buttonY) + 3, static_cast<int>(LANE_WIDTH) - 8, 2, Color{ 255, 255, 255, 245 });
             DrawRectangle(static_cast<int>(x) + 4, static_cast<int>(buttonY) + static_cast<int>(buttonH) - 2, static_cast<int>(LANE_WIDTH) - 8, 2, Color{ 255, 255, 255, 125 });
-            DrawCircleLines(static_cast<int>(cx), static_cast<int>(buttonY + buttonH * 0.5f), 25.0f + pulse * 4.0f, Color{ 255, 255, 255, static_cast<unsigned char>(35 + pulse * 45) });
+            DrawCircleLines(static_cast<int>(cx), static_cast<int>(buttonY + buttonH * 0.5f), (25.0f + pulse * 4.0f) * uiScale, Color{ 255, 255, 255, static_cast<unsigned char>(35 + pulse * 45) });
         }
 
         if (s_SuitFont.texture.id != 0)
         {
             const char* key = (i == 0) ? "D" : (i == 1) ? "F" : (i == 2) ? "J" : "K";
-            const float fontSize = 31.0f;
+            const float fontSize = 31.0f * uiScale;
             Vector2 size = MeasureTextEx(s_SuitFont, key, fontSize, 1.0f);
 
             DrawTextEx(s_SuitFont, key, { cx - size.x * 0.5f, buttonY + buttonH * 0.5f - size.y * 0.5f }, fontSize, 1.0f, pressed ? Color{ 255, 255, 255, 255 } : Color{ 228, 228, 232, 255 });
         }
     }
 
-    DrawRectangle(static_cast<int>(LANE_START_X), 629, static_cast<int>(LANE_AREA_WIDTH), 1, Color{ 255, 255, 255, 55 });
+    DrawRectangle(static_cast<int>(LANE_START_X), (int)(screenH - 91.0f * uiScale), static_cast<int>(LANE_AREA_WIDTH), 1, Color{ 255, 255, 255, 55 });
 }
 
 static void DrawPauseUI()
@@ -1005,7 +1023,7 @@ PlayScene::PlayScene(SongSelect& sharedSongSelect)
     : m_State(PlaySceneState::SongSelect),
       m_SongSelect(sharedSongSelect), 
       m_BackToMenu(false),
-      judgmentLineY(595.0f)
+      judgmentLineY((float)GetScreenHeight() - 125.0f)
 {
     s_MusicPlayer.p1 = new MusicExecute::MusicPlayer1();
     s_MusicPlayer.p2 = new MusicExecute::MusicPlayer2();
@@ -1038,7 +1056,7 @@ void PlayScene::Init(int startSongIndex)
 {
     m_State = PlaySceneState::SongSelect;
     m_BackToMenu = false;
-    judgmentLineY = 595.0f;
+    judgmentLineY = (float)GetScreenHeight() - 125.0f;
 
     s_BgaPlayer.Close();
     s_BeatmapClock = FramedBeatmapClock(true);
@@ -1096,8 +1114,13 @@ void PlayScene::Init(int startSongIndex)
 
     s_PlayMainUI.Init();
 
-    s_ComboFont = LoadFont("fonts/Pretendard-Black.ttf");
-    s_SuitFont = LoadFont("fonts/Pretendard-Black.ttf");
+    int codepoints[256];
+    for (int i = 0; i < 256; i++) codepoints[i] = i;
+    s_ComboFont = LoadFontEx("fonts/Pretendard-Black.ttf", 96, codepoints, 256);
+    s_SuitFont = LoadFontEx("fonts/Pretendard-Black.ttf", 96, codepoints, 256);
+    
+    if (s_ComboFont.texture.id != 0) SetTextureFilter(s_ComboFont.texture, TEXTURE_FILTER_BILINEAR);
+    if (s_SuitFont.texture.id != 0) SetTextureFilter(s_SuitFont.texture, TEXTURE_FILTER_BILINEAR);
 }
 
 void PlayScene::Update()
@@ -1327,30 +1350,35 @@ void PlayScene::Update()
 
 void PlayScene::UpdatePlaying()
 {
-     if (s_IsEditorMode)
+    if (s_IsEditorMode)
     {
         s_ChartEditor.HandleInput();
         return;
     }
-    if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) {
-    if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) {
-        FMOD_CHANNEL* channel = s_MusicPlayer.GetChannelRaw();
-        
-        float originalFrequency = 44100.0f; 
-        FMOD_SOUND* currentSound = nullptr;
 
-        FMOD_Channel_GetCurrentSound(channel, &currentSound);
-        
-        if (currentSound) {
-            FMOD_Sound_GetDefaults(currentSound, &originalFrequency, nullptr);
+    if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) 
+    {
+        if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) 
+        {
+            FMOD_CHANNEL* channel = s_MusicPlayer.GetChannelRaw();
+            float originalFrequency = 44100.0f; 
+            FMOD_SOUND* currentSound = nullptr;
+            
+            FMOD_Channel_GetCurrentSound(channel, &currentSound);
+            if (currentSound) 
+            {
+                FMOD_Sound_GetDefaults(currentSound, &originalFrequency, nullptr);
+            }
+            
+            FMOD_Channel_SetPitch(channel, 1.0f);
+            FMOD_Channel_SetFrequency(channel, originalFrequency);
+            
+            while (GetCharPressed() > 0)
+            {
+                // 입력 버퍼 비우기
+            }
         }
-
-        FMOD_Channel_SetPitch(channel, 1.0f);
-        FMOD_Channel_SetFrequency(channel, originalFrequency);
-
-        while (GetCharPressed() > 0);
     }
-}
 
     if (s_IgnoreFirstEnter)
     {
@@ -1382,61 +1410,11 @@ void PlayScene::UpdatePlaying()
             }
             else if (s_PauseSelection == 1) 
             {
-                if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
-                s_BgaPlayer.Close();
-                s_PlayableNotes.clear();
-                s_PlayableNotes.shrink_to_fit();
-                s_Notes.clear();
-                s_Notes.shrink_to_fit();
-                s_BeatmapClock.SetChannel(nullptr);
-                s_SongTimer = 0.0f;
-                s_IsPaused = false;
-                s_SongSelectEnterDelay = 0.3f;
-
-                s_Combo = 0;
-                s_LastCombo = 0;
-                s_PerfectCount = 0;
-                s_GreatCount = 0;
-                s_GoodCount = 0;
-                s_MissCount = 0;
-                s_MaxCombo = 0;
-                s_Score = 0;
-                s_Accuracy = 100.0f;
-                s_HpRatio = 1.0f;
-    
-                s_SongInfo.score = 0;
-                s_SongInfo.maxCombo = 0;
-                s_SongInfo.currentCombo = 0;
-                m_State = PlaySceneState::SongSelect;
-            }
-            return;
-        }
-    }
-
-    if (s_IsPaused)
-    {
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
-        {
-            s_PauseSelection = (s_PauseSelection - 1 + 2) % 2;
-        }
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
-        {
-            s_PauseSelection = (s_PauseSelection + 1) % 2;
-        }
-
-        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z))
-        {
-            if (s_PauseSelection == 0) 
-            {
-                s_IsPaused = false;
-                if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw())
+                if (s_MusicPlayer.IsValid()) 
                 {
-                    FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), false);
+                    s_MusicPlayer.Stop();
                 }
-            }
-            else if (s_PauseSelection == 1) 
-            {
-                if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
+                
                 s_BgaPlayer.Close();
                 s_PlayableNotes.clear();
                 s_PlayableNotes.shrink_to_fit();
@@ -1447,89 +1425,61 @@ void PlayScene::UpdatePlaying()
                 s_IsPaused = false;
                 s_SongSelectEnterDelay = 0.3f;
                 s_Combo = 0; 
-                s_LastCombo = 0; 
+                s_LastCombo = 0;
                 s_PerfectCount = 0; 
-                s_GreatCount = 0;
-                s_GoodCount = 0;
-                s_MissCount = 0; 
+                s_GreatCount = 0; 
+                s_GoodCount = 0; 
+                s_MissCount = 0;
                 s_MaxCombo = 0; 
-                s_Score = 0;
+                s_Score = 0; 
                 s_Accuracy = 100.0f; 
                 s_HpRatio = 1.0f;
                 s_SongInfo.score = 0; 
                 s_SongInfo.maxCombo = 0; 
                 s_SongInfo.currentCombo = 0;
-                s_SongInfo.accuracy = 100.0f; 
-                s_SongInfo.perfectCount = 0; 
-                s_SongInfo.greatCount = 0;
-                s_SongInfo.goodCount = 0; 
-                s_SongInfo.missCount = 0; 
-                s_SongInfo.hpRatio = 1.0f;
+                m_State = PlaySceneState::SongSelect;
+            }
+            return;
+        }
+    }
+
+    if (s_IsPaused)
+    {
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) 
+        {
+            s_PauseSelection = (s_PauseSelection - 1 + 2) % 2;
+        }
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) 
+        {
+            s_PauseSelection = (s_PauseSelection + 1) % 2;
+        }
+
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z))
+        {
+            if (s_PauseSelection == 0) 
+            {
+                s_IsPaused = false;
+                if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) 
+                {
+                    FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), false);
+                }
+            }
+            else if (s_PauseSelection == 1) 
+            {
+                if (s_MusicPlayer.IsValid()) 
+                {
+                    s_MusicPlayer.Stop();
+                }
+                s_BgaPlayer.Close();
+                s_PlayableNotes.clear(); 
+                s_Notes.clear();
+                s_BeatmapClock.SetChannel(nullptr);
+                s_SongTimer = 0.0f; 
+                s_IsPaused = false; 
+                s_SongSelectEnterDelay = 0.3f;
                 m_State = PlaySceneState::SongSelect;
             }
         }
-
-        const float screenW = static_cast<float>(GetScreenWidth());
-        const float screenH = static_cast<float>(GetScreenHeight());
-        const float panelY = (screenH - 220.0f) * 0.5f;
-        const float btnW = 240.0f;
-        const float btnH = 46.0f;
-        Vector2 mousePos = GetMousePosition();
-
-        for (int i = 0; i < 2; ++i)
-        {
-            float btnX = (screenW - btnW) * 0.5f;
-            float btnY = panelY + 80.0f + i * 62.0f;
-
-            if (CheckCollisionPointRec(mousePos, Rectangle{ btnX, btnY, btnW, btnH }))
-            {
-                s_PauseSelection = i;
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    if (i == 0) 
-                    {
-                        s_IsPaused = false;
-                        if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw())
-                        {
-                            FMOD_Channel_SetPaused(s_MusicPlayer.GetChannelRaw(), false);
-                        }
-                    }
-                    else if (i == 1) 
-                    {
-                        if (s_MusicPlayer.IsValid()) s_MusicPlayer.Stop();
-                        s_BgaPlayer.Close();
-                        s_PlayableNotes.clear();
-                        s_PlayableNotes.shrink_to_fit();
-                        s_Notes.clear();
-                        s_Notes.shrink_to_fit();
-                        s_BeatmapClock.SetChannel(nullptr);
-                        s_SongTimer = 0.0f;
-                        s_IsPaused = false;
-                        s_SongSelectEnterDelay = 0.3f;
-                        s_Combo = 0; s_LastCombo = 0;
-                        s_PerfectCount = 0;
-                        s_GreatCount = 0;
-                        s_GoodCount = 0;
-                        s_MissCount = 0; 
-                        s_MaxCombo = 0;
-                        s_Score = 0;
-                        s_Accuracy = 100.0f;
-                        s_HpRatio = 1.0f;
-                        s_SongInfo.score = 0;
-                        s_SongInfo.maxCombo = 0;
-                        s_SongInfo.currentCombo = 0;
-                        s_SongInfo.accuracy = 100.0f;
-                        s_SongInfo.perfectCount = 0;
-                        s_SongInfo.greatCount = 0;
-                        s_SongInfo.goodCount = 0;
-                        s_SongInfo.missCount = 0; 
-                        s_SongInfo.hpRatio = 1.0f;
-                        m_State = PlaySceneState::SongSelect;
-                    }
-                }
-            }
-        }
-
         return; 
     }
 
@@ -1556,34 +1506,33 @@ void PlayScene::UpdatePlaying()
 
     float dt = GetFrameTime();
 
-    /* if (IsKeyPressed(KEY_LEFT_BRACKET))
-    {
-        s_BeatmapClock.SetUserGlobalOffset(s_BeatmapClock.GetUserGlobalOffset() - 5.0);
-    }
-    if (IsKeyPressed(KEY_RIGHT_BRACKET))
-    {
-        s_BeatmapClock.SetUserGlobalOffset(s_BeatmapClock.GetUserGlobalOffset() + 5.0);
-    } */
-
     s_SongTimer = static_cast<float>(s_BeatmapClock.GetCurrentTime() / 1000.0);
-    s_BgaPlayer.Update(s_BeatmapClock.GetCurrentTime());
 
-    if (s_JudgmentLinePulse > 0.0f)
-    {
-        s_JudgmentLinePulse -= dt * 4.0f;
-        if (s_JudgmentLinePulse < 0.0f) s_JudgmentLinePulse = 0.0f;
+    if (s_JudgmentLinePulse > 0.0f) 
+    { 
+        s_JudgmentLinePulse -= dt * 4.0f; 
+        if (s_JudgmentLinePulse < 0.0f) 
+        {
+            s_JudgmentLinePulse = 0.0f; 
+        }
     }
-
-    if (s_JudgmentAnimTimer > 0.0f)
-    {
-        s_JudgmentAnimTimer -= dt;
-        if (s_JudgmentAnimTimer < 0.0f) s_JudgmentAnimTimer = 0.0f;
+    
+    if (s_JudgmentAnimTimer > 0.0f) 
+    { 
+        s_JudgmentAnimTimer -= dt; 
+        if (s_JudgmentAnimTimer < 0.0f) 
+        {
+            s_JudgmentAnimTimer = 0.0f; 
+        }
     }
-
-    if (s_ComboAnimTimer > 0.0f)
-    {
-        s_ComboAnimTimer -= dt;
-        if (s_ComboAnimTimer < 0.0f) s_ComboAnimTimer = 0.0f;
+    
+    if (s_ComboAnimTimer > 0.0f) 
+    { 
+        s_ComboAnimTimer -= dt; 
+        if (s_ComboAnimTimer < 0.0f) 
+        {
+            s_ComboAnimTimer = 0.0f; 
+        }
     }
 
     for (auto& pNote : s_PlayableNotes)
@@ -1594,32 +1543,45 @@ void PlayScene::UpdatePlaying()
             if (timeDiff > 0.3f)
             {
                 pNote.active = false;
-                s_Combo = 0;
+                s_Combo = 0; 
                 s_LastCombo = 0;
-                s_ShowJudgment = true;
+                s_ShowJudgment = true; 
                 s_JudgmentTimer = 0.3f;
-                s_CurrentJudgment = "MISS";
+                s_CurrentJudgment = "MISS"; 
                 s_JudgmentAnimTimer = 0.3f;
-
-                s_MissCount++;
-                s_HpRatio -= 0.05f;
-                if (s_HpRatio < 0.0f) s_HpRatio = 0.0f;
+                s_MissCount++; 
+                s_HpRatio -= 0.05f; 
+                if (s_HpRatio < 0.0f) 
+                {
+                    s_HpRatio = 0.0f; 
+                }
             }
         }
     }
 
     HitEffect::Update();
 
-  bool lanePressed[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
+    bool lanePressed[4] = { 
+        IsKeyPressed(KEY_D), 
+        IsKeyPressed(KEY_F), 
+        IsKeyPressed(KEY_J), 
+        IsKeyPressed(KEY_K) 
+    };
 
     for (int lane = 0; lane < 4; ++lane)
     {
-        if (!lanePressed[lane]) continue;
+        if (!lanePressed[lane]) 
+        {
+            continue;
+        }
 
         bool hitHandled = false;
         for (auto& pNote : s_PlayableNotes)
         {
-            if (!pNote.active || pNote.lane != lane) continue;
+            if (!pNote.active || pNote.lane != lane) 
+            {
+                continue;
+            }
 
             float timeDiff = s_SongTimer - pNote.timeSec;
             float absDiff = fabsf(timeDiff);
@@ -1627,40 +1589,47 @@ void PlayScene::UpdatePlaying()
             if (absDiff <= 0.15f)
             {
                 pNote.active = false;
-                float nX = LANE_X_COORDS[pNote.lane];
+                float nX = GetLaneXCoord(pNote.lane);
                 HitEffect::Spawn({ nX, judgmentLineY });
 
-                s_ShowJudgment = true;
+
+                s_ShowJudgment = true; 
                 s_JudgmentTimer = 0.4f;
-                s_JudgmentLinePulse = 1.0f;
+                s_JudgmentLinePulse = 1.0f; 
                 s_JudgmentAnimTimer = 0.3f;
 
                 if (absDiff <= 0.07f) 
                 { 
                     s_CurrentJudgment = "PERFECT"; 
-                    s_Combo++;
-                    s_PerfectCount++;
-                    s_Score += 1000 + s_Combo * 10;
-                    s_HpRatio += 0.01f;
+                    s_Combo++; 
+                    s_PerfectCount++; 
+                    s_Score += 1000 + s_Combo * 10; 
+                    s_HpRatio += 0.01f; 
                 }
                 else if (absDiff <= 0.12f) 
                 { 
                     s_CurrentJudgment = "GREAT"; 
                     s_Combo++; 
-                    s_GreatCount++;
-                    s_Score += 700 + s_Combo * 5;
-                    s_HpRatio += 0.005f;
+                    s_GreatCount++; 
+                    s_Score += 700 + s_Combo * 5; 
+                    s_HpRatio += 0.005f; 
                 }
                 else 
                 { 
                     s_CurrentJudgment = "GOOD"; 
                     s_Combo++; 
-                    s_GoodCount++;
-                    s_Score += 300;
+                    s_GoodCount++; 
+                    s_Score += 300; 
                 }
 
-                if (s_Combo > s_MaxCombo) s_MaxCombo = s_Combo;
-                if (s_HpRatio > 1.0f) s_HpRatio = 1.0f;
+                if (s_Combo > s_MaxCombo) 
+                {
+                    s_MaxCombo = s_Combo;
+                }
+                if (s_HpRatio > 1.0f) 
+                {
+                    s_HpRatio = 1.0f;
+                }
 
                 if (std::string(s_CurrentJudgment) == "PERFECT" && s_Combo != s_LastCombo)
                 {
@@ -1674,15 +1643,15 @@ void PlayScene::UpdatePlaying()
 
         if (!hitHandled)
         {
-            if (FnClick::IsFastHit(lane, s_SongTimer, s_PlayableNotes))
+            if (FnClick::IsFastHit(lane, s_SongTimer, s_PlayableNotes)) 
             {
                 FnClick::TriggerFast(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
             }
-            else if (SnClick::IsSlowHit(lane, s_SongTimer, s_PlayableNotes))
+            else if (SnClick::IsSlowHit(lane, s_SongTimer, s_PlayableNotes)) 
             {
                 SnClick::TriggerSlow(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
             }
-            else
+            else 
             {
                 GhClick::TriggerBreak(s_Combo, s_LastCombo, s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
             }
@@ -1690,21 +1659,20 @@ void PlayScene::UpdatePlaying()
     }
 
     int totalHits = s_PerfectCount + s_GreatCount + s_GoodCount + s_MissCount;
-    if (totalHits > 0)
+    if (totalHits > 0) 
     {
-        float pts = s_PerfectCount * 100.0f + s_GreatCount * 70.0f + s_GoodCount * 30.0f;
-        s_Accuracy = (pts / (totalHits * 100.0f)) * 100.0f;
+        s_Accuracy = ((s_PerfectCount * 100.0f + s_GreatCount * 70.0f + s_GoodCount * 30.0f) / (totalHits * 100.0f)) * 100.0f;
     }
 
-    s_SongInfo.playTimeSec = s_SongTimer;
-    s_SongInfo.score = s_Score;
+    s_SongInfo.playTimeSec = s_SongTimer; 
+    s_SongInfo.score = s_Score; 
     s_SongInfo.accuracy = s_Accuracy;
-    s_SongInfo.maxCombo = s_MaxCombo;
+    s_SongInfo.maxCombo = s_MaxCombo; 
     s_SongInfo.currentCombo = s_Combo;
-    s_SongInfo.perfectCount = s_PerfectCount;
+    s_SongInfo.perfectCount = s_PerfectCount; 
     s_SongInfo.greatCount = s_GreatCount;
-    s_SongInfo.goodCount = s_GoodCount;
-    s_SongInfo.missCount = s_MissCount;
+    s_SongInfo.goodCount = s_GoodCount; 
+    s_SongInfo.missCount = s_MissCount; 
     s_SongInfo.hpRatio = s_HpRatio;
 
     s_PlayMainUI.Update(s_SongInfo);
@@ -1712,12 +1680,13 @@ void PlayScene::UpdatePlaying()
     if (s_ShowJudgment)
     {
         s_JudgmentTimer -= dt;
-        if (s_JudgmentTimer <= 0.0f)
+        if (s_JudgmentTimer <= 0.0f) 
         {
             s_ShowJudgment = false;
         }
     }
 }
+
 
 void PlayScene::Draw()
 {

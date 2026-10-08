@@ -4,13 +4,14 @@
 #include "../play/play_scene.h"
 
 int main() {
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
+    SetConfigFlags(FLAG_FULLSCREEN_MODE | FLAG_VSYNC_HINT);
     
-    InitWindow(screenWidth, screenHeight, "R.A");
+    InitWindow(1280, 720, "R.A");
     InitAudioDevice();
-    SetConfigFlags(FLAG_VSYNC_HINT); 
     SetTargetFPS(0); 
+
+    int currentWidth = GetScreenWidth();
+    int currentHeight = GetScreenHeight();
 
     GameState currentState = STATE_MENU;
     
@@ -19,6 +20,9 @@ int main() {
     playScene.Init();
 
     while (!WindowShouldClose()) {
+        currentWidth = GetScreenWidth();
+        currentHeight = GetScreenHeight();
+
         if (currentState == STATE_MENU) {
             mainMenu.Update();
 
@@ -34,7 +38,7 @@ int main() {
                 
                 BeginDrawing();
                 ClearBackground((Color){10, 12, 18, 255});
-                mainMenu.Draw(screenWidth, screenHeight);
+                mainMenu.Draw(currentWidth, currentHeight);
                 EndDrawing();
                 continue; 
             } else if (mainMenu.IsExitSelected()) {
@@ -55,7 +59,7 @@ int main() {
         ClearBackground((Color){10, 12, 18, 255});
 
         if (currentState == STATE_MENU) {
-            mainMenu.Draw(screenWidth, screenHeight);
+            mainMenu.Draw(currentWidth, currentHeight);
         } else if (currentState == STATE_PLAYING) {
             playScene.Draw();
         }
