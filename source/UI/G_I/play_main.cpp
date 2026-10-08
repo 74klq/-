@@ -136,6 +136,50 @@ void PlayMainUI::Draw(const SongInformation& songInfo, int screenWidth, int scre
     currentRightY += 210.0f;
 
     DrawJudgements(songInfo, contentRightX, currentRightY, contentRightW);
+
+    const bool isMapActive = !songInfo.jacketPath.empty() && !m_LoadedJacketPath.empty();
+    float curTimeSec = isMapActive ? songInfo.playTimeSec : 0.0f;
+    if (curTimeSec < 0.0f) curTimeSec = 0.0f;
+
+    float laneAreaWidth = 4.0f * 68.0f;
+    float laneStartX = PLAYFIELD_X + (PLAYFIELD_WIDTH - laneAreaWidth) * 0.5f;
+    float topY = 42.0f;
+    float barHeight = 12.0f;
+
+    float maxTimeSec = (songInfo.totalTimeSec > 0.0f) ? songInfo.totalTimeSec : 180.0f;
+    int curSecTotal = static_cast<int>(curTimeSec);
+    int curMin = curSecTotal / 60;
+    int curSec = curSecTotal % 60;
+
+    int totalSecTotal = static_cast<int>(maxTimeSec);
+    int totalMin = totalSecTotal / 60;
+    int totalSec = totalSecTotal % 60;
+
+    char playfieldTimerStr[32];
+    snprintf(playfieldTimerStr, sizeof(playfieldTimerStr), "%02d:%02d / %02d:%02d", curMin, curSec, totalMin, totalSec);
+
+    Font fontToUse = (m_MainFont.texture.id != 0) ? m_MainFont : GetFontDefault();
+    Vector2 pfTmSz = MeasureTextEx(fontToUse, playfieldTimerStr, 15.0f, 1.0f);
+    DrawTextEx(fontToUse, playfieldTimerStr, { laneStartX + (laneAreaWidth - pfTmSz.x) * 0.5f, topY - 22.0f }, 15.0f, 1.0f, WHITE);
+
+    DrawRectangleRounded({ laneStartX - 2.0f, topY - 2.0f, laneAreaWidth + 4.0f, barHeight + 4.0f }, 0.2f, 4, Color{ 20, 20, 25, 220 });
+    DrawRectangleRoundedLines({ laneStartX - 2.0f, topY - 2.0f, laneAreaWidth + 4.0f, barHeight + 4.0f }, 0.2f, 4, Color{ 255, 255, 255, 120 });
+    DrawRectangle(static_cast<int>(laneStartX), static_cast<int>(topY), static_cast<int>(laneAreaWidth), static_cast<int>(barHeight), Color{ 40, 40, 50, 255 });
+
+    float progressRatio = curTimeSec / maxTimeSec;
+    if (progressRatio > 1.0f) progressRatio = 1.0f;
+
+    if (progressRatio > 0.0f)
+    {
+        DrawRectangle(static_cast<int>(laneStartX), static_cast<int>(topY), static_cast<int>(laneAreaWidth * progressRatio), static_cast<int>(barHeight), Color{ 220, 220, 255, 220 });
+    }
+
+    float arrowX = laneStartX + progressRatio * laneAreaWidth;
+    Vector2 p1 = { arrowX, topY + barHeight + 10.0f };
+    Vector2 p2 = { arrowX - 7.0f, topY + barHeight + 2.0f };
+    Vector2 p3 = { arrowX + 7.0f, topY + barHeight + 2.0f };
+    DrawTriangle(p1, p2, p3, WHITE);
+    DrawTriangleLines(p1, p2, p3, Color{ 180, 180, 180, 255 });
 }
 
 void PlayMainUI::DrawSidebarPanel(float x, float y, float width, float height)
@@ -318,7 +362,7 @@ void PlayMainUI::DrawHealthGauge(const SongInformation& songInfo, float x, float
 
     int hpPercent = static_cast<int>(hpRatio * 100.0f);
 
-    DrawTextEx(fontToUse, "PROGRESS", { x, y }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    DrawTextEx(fontToUse, "HP", { x, y }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
 
     char percentBuf[16];
     snprintf(percentBuf, sizeof(percentBuf), "%d%%", hpPercent);
@@ -334,7 +378,16 @@ void PlayMainUI::DrawHealthGauge(const SongInformation& songInfo, float x, float
         DrawRectangle(static_cast<int>(x), static_cast<int>(barY), static_cast<int>(fillWidth), static_cast<int>(height), WHITE);
     }
 
-    const char* timerStr = "01:42 / 02:50";
-    Vector2 tmSz = MeasureTextEx(fontToUse, timerStr, 15.0f, 1.0f);
-    DrawTextEx(fontToUse, timerStr, { x + width - tmSz.x, barY + height + 8.0f }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    float curTimeSec = isMapActive ? songInfo.playTimeSec : 0.0f;
+    if (curTimeSec < 0.0f) curTimeSec = 0.0f;
+
+    int curSecTotal = static_cast<int>(curTimeSec);
+    int curMin = curSecTotal / 60;
+    int curSec = curSecTotal % 60;
+
+    char timerStr[32];
+    snprintf(timerStr, sizeof(timerStr), "%02d:%02d", curMin, curSec);
+
+    //Vector2 tmSz = MeasureTextEx(fontToUse, timerStr, 15.0f, 1.0f);
+    //DrawTextEx(fontToUse, timerStr, { x + width - tmSz.x, barY + height + 6.0f }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
 }

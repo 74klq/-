@@ -1109,15 +1109,11 @@ void PlayScene::Update()
     }
 
     if (IsKeyPressed(KEY_P))
-{
-    s_IsEditorMode = true;
-    m_State = PlaySceneState::Playing;
-    
-    //const SongData& curSong = m_SongSelect.GetCurrentSong();
-    //s_ChartEditor.InitWithMap(curSong.osuFileName); 
-    
-    return;
-}
+    {
+        s_IsEditorMode = true;
+        m_State = PlaySceneState::Playing;
+        return;
+    }
 
     s_AudioManager.Update();
 
@@ -1159,21 +1155,20 @@ void PlayScene::Update()
                 for (size_t i = 0; i < loadedNotes.size(); ++i)
                 {
                     const auto& saveNote = loadedNotes[i];
-                    //if (saveNote.type == 128) continue;
 
                     PlayableNote pNote;
                     pNote.timeSec = static_cast<float>(saveNote.time) / 1000.0f;
                     pNote.lane = saveNote.lane;
 
-                     if ((saveNote.type & 128) != 0 || saveNote.type == 128) {
-        pNote.type = 1;
-    } else {
-        pNote.type = saveNote.type;
-    }
-    
-    pNote.active = true;
-    s_PlayableNotes.push_back(pNote);
-}
+                    if ((saveNote.type & 128) != 0 || saveNote.type == 128) {
+                        pNote.type = 1;
+                    } else {
+                        pNote.type = saveNote.type;
+                    }
+                    
+                    pNote.active = true;
+                    s_PlayableNotes.push_back(pNote);
+                }
 
                 std::sort(s_PlayableNotes.begin(), s_PlayableNotes.end(), [](const PlayableNote& a, const PlayableNote& b) {
                     return a.timeSec < b.timeSec;
@@ -1209,9 +1204,6 @@ void PlayScene::Update()
 
             s_SongTimer = 0.0f;
             s_IsPaused = false;
-
-            s_SongTimer = 0.0f;
-            s_IsPaused = false;
             s_PauseSelection = 0;
             s_IgnoreFirstEnter = true; 
             
@@ -1238,6 +1230,23 @@ void PlayScene::Update()
                 s_BeatmapClock.SetChannel(channel);
                 s_BeatmapClock.LoadComplete();
                 s_BeatmapClock.Start();
+
+                // [추가된 코드] 재생될 음악의 실제 총 길이를 구해서 s_SongInfo에 저장합니다.
+                if (channel)
+                {
+                    FMOD_SOUND* currentSound = nullptr;
+                    FMOD_Channel_GetCurrentSound(channel, &currentSound);
+                    if (currentSound)
+                    {
+                        unsigned int lengthMs = 0;
+                        FMOD_Sound_GetLength(currentSound, &lengthMs, FMOD_TIMEUNIT_MS);
+                        s_SongInfo.totalTimeSec = static_cast<float>(lengthMs) / 1000.0f;
+                    }
+                }
+                else
+                {
+                    s_SongInfo.totalTimeSec = 180.0f; 
+                }
             }
 
             s_IsLoading = false;
@@ -1314,6 +1323,7 @@ void PlayScene::Update()
         UpdatePlaying();
     }
 }
+
 
 void PlayScene::UpdatePlaying()
 {

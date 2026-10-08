@@ -22,6 +22,7 @@ struct SongInformation
     int goodCount;
     int missCount;
     float hpRatio;
+    float totalTimeSec;
 };
 
 class PlayMainUI

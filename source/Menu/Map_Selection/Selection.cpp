@@ -80,7 +80,7 @@ void SongSelect::Init() {
             "Four Beat Sounds", "Mapper_A",
             "별이 보이지 않는 밤",
             "Plum",
-            "boyangsic",
+            "Seta",
             "Kaleidoscope",
             "Timeline", "R",
             "Cybernetic Dream", 
@@ -167,7 +167,7 @@ void SongSelect::LoadSongs() {
     SongData song1;
     song1.title = "별이 보이지 않는 밤";
     song1.artist = "Plum";
-    song1.mapper = "boyangsic";
+    song1.mapper = "Seta";
     song1.bpm = 88.0f;
     song1.length = 152.0f;
     song1.cleared = true;
@@ -180,7 +180,7 @@ void SongSelect::LoadSongs() {
     SongData song2;
     song2.title = "Kaleidoscope";
     song2.artist = "Plum";
-    song2.mapper = "boyangsic";
+    song2.mapper = "Seta";
     song2.bpm = 128.0f;
     song2.length = 135.0f;
     song2.cleared = false;
@@ -193,7 +193,7 @@ void SongSelect::LoadSongs() {
     SongData song3;
     song3.title = "SkysCape";
     song3.artist = "Plum";
-    song3.mapper = "boyangsic";
+    song3.mapper = "Seta";
     song3.bpm = 138.0f;
     song3.length = 142.0f;
     song3.cleared = false;
@@ -206,7 +206,7 @@ void SongSelect::LoadSongs() {
     SongData song4;
     song4.title = "The Lost Aria";
     song4.artist = "Plum";
-    song4.mapper = "boyangsic";
+    song4.mapper = "Seta";
     song4.bpm = 140.0f; 
     song4.length = 235.0f;
     song4.cleared = false;
@@ -219,9 +219,9 @@ void SongSelect::LoadSongs() {
     SongData song5;
     song5.title = "Timeline";
     song5.artist = "Plum";
-    song5.mapper = "boyangsic";
+    song5.mapper = "Seta";
     song5.bpm = 155.0f;
-    song5.length = 168.0f;
+    song5.length = 129.0f;
     song5.cleared = true;
     song5.difficulties = { {"EXPERT", 17, 155.0f, 1300, 2650, 6.5f} };
     song5.osuFileName = "Timeline.osu";   
@@ -232,11 +232,11 @@ void SongSelect::LoadSongs() {
     SongData song6;
     song6.title = "Terrasphere";
     song6.artist = "Plum";
-    song6.mapper = "boyangsic";
+    song6.mapper = "Seta";
     song6.bpm = 160.0f;
     song6.length = 142.0f;
     song6.cleared = false;
-    song6.difficulties = { {"EXPERT", 18, 160.0f, 1450, 2900, 6.5f} }; // song4 -> song6 수정
+    song6.difficulties = { {"EXPERT", 18, 160.0f, 1450, 2900, 6.5f} };
     song6.osuFileName = "Terrasphere.osu";          
     song6.musicPlayerActive = 6; 
     song6.videoFileName = "";
@@ -245,7 +245,7 @@ void SongSelect::LoadSongs() {
     SongData song7;
     song7.title = "N";
     song7.artist = "Plum";
-    song7.mapper = "boyangsic";
+    song7.mapper = "Seta";
     song7.bpm = 165.0f;
     song7.length = 142.0f;
     song7.cleared = false;
@@ -258,7 +258,7 @@ void SongSelect::LoadSongs() {
     SongData song8;
     song8.title = "비밀인형극 II";
     song8.artist = "Plum";
-    song8.mapper = "boyangsic";
+    song8.mapper = "Seta";
     song8.bpm = 170.0f;
     song8.length = 142.0f;
     song8.cleared = false;
@@ -271,7 +271,7 @@ void SongSelect::LoadSongs() {
     SongData song9;
     song9.title = "R";
     song9.artist = "Plum";
-    song9.mapper = "boyangsic";
+    song9.mapper = "Seta";
     song9.bpm = 180.0f;
     song9.length = 142.0f;
     song9.cleared = false;
@@ -284,7 +284,7 @@ void SongSelect::LoadSongs() {
     SongData song10;
     song10.title = "PLUM MEGAMIX";
     song10.artist = "Plum";
-    song10.mapper = "boyangsic";
+    song10.mapper = "Seta";
     song10.bpm = 175.0f;
     song10.length = 300.0f;
     song10.cleared = false;
