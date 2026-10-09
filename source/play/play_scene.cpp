@@ -491,7 +491,7 @@ static void DrawBackground()
     for (int i = 0; i < 90; ++i)
     {
         const float fx = fmodf(i * 197.31f + 37.0f, static_cast<float>(screenW));
-        const float fy = fmodf(i * 91.73f + 11.0f, 590.0f);
+        const float fy = fmodf(i * 91.73f + 11.0f, static_cast<float>(screenH));
         const float wave = 0.5f + 0.5f * sinf(time * 0.35f + i * 1.37f);
         const unsigned char alpha = static_cast<unsigned char>(8.0f + wave * 24.0f);
         const float radius = (i % 13 == 0) ? 1.4f : 0.65f;
@@ -499,27 +499,31 @@ static void DrawBackground()
         DrawCircle(static_cast<int>(fx), static_cast<int>(fy), radius, Color{ 230, 230, 235, alpha });
     }
 
-    for (int y = 18; y < 600; y += 36)
+    for (int y = 18; y < screenH; y += 36)
     {
         DrawRectangle(0, y, screenW, 1, Color{ 255, 255, 255, 4 });
     }
 
     for (int x = 0; x < screenW; x += 80)
     {
-        DrawRectangle(x, 0, 1, 600, Color{ 255, 255, 255, 3 });
+        DrawRectangle(x, 0, 1, screenH, Color{ 255, 255, 255, 3 });
     }
 
     for (int i = 0; i < 5; ++i)
     {
         const float radius = 150.0f + i * 55.0f;
         const float pulse = 0.5f + 0.5f * sinf(time * 0.28f + i);
-        DrawCircleLines(static_cast<int>(centerX), 310, radius, Color{ 255, 255, 255, static_cast<unsigned char>(2 + pulse * 5) });
+        DrawCircleLines(static_cast<int>(centerX), screenH / 2, radius, Color{ 255, 255, 255, static_cast<unsigned char>(2 + pulse * 5) });
     }
 
     DrawRectangleGradientH(0, 0, static_cast<int>(PLAYFIELD_X), screenH, Color{ 0, 0, 0, 0 }, Color{ 0, 0, 0, 135 });
     DrawRectangleGradientH(static_cast<int>(PLAYFIELD_X + PLAYFIELD_WIDTH), 0, screenW - static_cast<int>(PLAYFIELD_X + PLAYFIELD_WIDTH), screenH, Color{ 0, 0, 0, 135 }, Color{ 0, 0, 0, 0 });
-    DrawRectangleGradientV(0, 0, screenW, 130, Color{ 0, 0, 0, 105 }, Color{ 0, 0, 0, 0 });
-    DrawRectangleGradientV(0, 560, screenW, 160, Color{ 0, 0, 0, 0 }, Color{ 0, 0, 0, 160 });
+    
+    int topGlowHeight = static_cast<int>(screenH * 0.2f);
+    int bottomGlowHeight = static_cast<int>(screenH * 0.2f);
+    
+    DrawRectangleGradientV(0, 0, screenW, topGlowHeight, Color{ 0, 0, 0, 105 }, Color{ 0, 0, 0, 0 });
+    DrawRectangleGradientV(0, screenH - bottomGlowHeight, screenW, bottomGlowHeight, Color{ 0, 0, 0, 0 }, Color{ 0, 0, 0, 160 });
 }
 
 static void DrawMechanicalFrame()
@@ -686,16 +690,30 @@ static void DrawNotes(float judgmentLineY)
     const float nowMs = s_SongTimer * 1000.0f;
     const float time = GetTime();
 
+    //int monitorRefreshRate = GetMonitorRefreshRate(GetCurrentMonitor());
+    //if (monitorRefreshRate <= 0) monitorRefreshRate = 60;
+
+    //float frameTimeSec = 1.0f / static_cast<float>(monitorRefreshRate);
+    //float displayLatencySec = frameTimeSec * 2.0f;
+
     for (const auto& pNote : s_PlayableNotes)
     {
-        if (!pNote.active || pNote.lane < 0 || pNote.lane >= LANE_COUNT)
+        // if (!pNote.active || pNote.lane < 0 || pNote.lane >= LANE_COUNT)
+          //  continue;
+
+          if (!pNote.active)
+          continue;
+
+           if (pNote.lane < 0 || pNote.lane >= LANE_COUNT)
             continue;
 
-               // 💡 앞에 붙어있던 float 키워드를 지워서 중복 선언 오류를 없앱니다.
         float uiScale = (float)GetScreenHeight() / 720.0f; 
         const float diffSec = (pNote.timeSec * 1000.0f - nowMs) / 1000.0f;
-        const float y = judgmentLineY - diffSec * (s_NoteScrollSpeed * uiScale);
-
+        //float displayLatencySec = 0.035f; 
+        //const float diffSec = (pNote.timeSec * 1000.0f - nowMs) / 1000.0f;
+        //const float diffSec = ((pNote.timeSec * 1000.0f - nowMs) / 1000.0f) - displayLatencySec;
+        //const float y = judgmentLineY - diffSec * (s_NoteScrollSpeed * uiScale);
+         const float y = judgmentLineY - (diffSec * s_NoteScrollSpeed);
 
         int screenH = GetScreenHeight();
 

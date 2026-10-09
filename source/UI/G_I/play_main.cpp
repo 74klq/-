@@ -101,40 +101,43 @@ void PlayMainUI::Update(const SongInformation& songInfo)
 
 void PlayMainUI::Draw(const SongInformation& songInfo, int screenWidth, int screenHeight)
 {
-    float leftX = 20.0f;
-    float leftY = 20.0f;
-    float leftW = PLAYFIELD_X - 40.0f;
-    float leftH = static_cast<float>(screenHeight) - 40.0f;
+    float uiScale = static_cast<float>(screenHeight) / 720.0f;
+    float maxSideWidth = 260.0f * uiScale;
+
+    float leftW = (PLAYFIELD_X - 40.0f) > maxSideWidth ? maxSideWidth : (PLAYFIELD_X - 40.0f);
+    float leftX = PLAYFIELD_X - 20.0f - leftW;
+    float leftY = (static_cast<float>(screenHeight) - (680.0f * uiScale)) * 0.5f;
+    float leftH = 680.0f * uiScale;
 
     float rightX = PLAYFIELD_X + PLAYFIELD_WIDTH + 20.0f;
-    float rightY = 20.0f;
-    float rightW = static_cast<float>(screenWidth) - rightX - 20.0f;
-    float rightH = static_cast<float>(screenHeight) - 40.0f;
+    float rightW = (static_cast<float>(screenWidth) - rightX - 20.0f) > maxSideWidth ? maxSideWidth : (static_cast<float>(screenWidth) - rightX - 20.0f);
+    float rightY = (static_cast<float>(screenHeight) - (680.0f * uiScale)) * 0.5f;
+    float rightH = 680.0f * uiScale;
 
-    if (rightW < 150.0f) return;
+    if (rightW < 100.0f) return;
 
     DrawSidebarPanel(leftX, leftY, leftW, leftH);
     DrawSidebarPanel(rightX, rightY, rightW, rightH);
 
-    float contentLeftX = leftX + 16.0f;
-    float contentLeftW = leftW - 32.0f;
-    float currentLeftY = leftY + 20.0f;
+    float contentLeftX = leftX + (16.0f * uiScale);
+    float contentLeftW = leftW - (32.0f * uiScale);
+    float currentLeftY = leftY + (20.0f * uiScale);
 
-    float jacketSize = contentLeftW > 180.0f ? 180.0f : contentLeftW;
+    float jacketSize = contentLeftW > (180.0f * uiScale) ? (180.0f * uiScale) : contentLeftW;
     DrawJacket(songInfo, contentLeftX + (contentLeftW - jacketSize) * 0.5f, currentLeftY, jacketSize);
-    currentLeftY += jacketSize + 25.0f;
+    currentLeftY += jacketSize + (25.0f * uiScale);
 
     DrawSongInfo(songInfo, contentLeftX, currentLeftY, contentLeftW);
-    currentLeftY += 110.0f;
+    currentLeftY += 110.0f * uiScale;
 
-    DrawHealthGauge(songInfo, contentLeftX, currentLeftY, contentLeftW, 10.0f);
+    DrawHealthGauge(songInfo, contentLeftX, currentLeftY, contentLeftW, 10.0f * uiScale);
 
-    float contentRightX = rightX + 16.0f;
-    float contentRightW = rightW - 32.0f;
-    float currentRightY = rightY + 20.0f;
+    float contentRightX = rightX + (16.0f * uiScale);
+    float contentRightW = rightW - (32.0f * uiScale);
+    float currentRightY = rightY + (20.0f * uiScale);
 
     DrawScoreAndAccuracy(songInfo, contentRightX, currentRightY, contentRightW);
-    currentRightY += 210.0f;
+    currentRightY += 210.0f * uiScale;
 
     DrawJudgements(songInfo, contentRightX, currentRightY, contentRightW);
 
@@ -144,8 +147,8 @@ void PlayMainUI::Draw(const SongInformation& songInfo, int screenWidth, int scre
 
     float laneAreaWidth = 4.0f * 68.0f;
     float laneStartX = PLAYFIELD_X + (PLAYFIELD_WIDTH - laneAreaWidth) * 0.5f;
-    float topY = 42.0f;
-    float barHeight = 12.0f;
+    float topY = 42.0f * uiScale;
+    float barHeight = 12.0f * uiScale;
 
     float maxTimeSec = (songInfo.totalTimeSec > 0.0f) ? songInfo.totalTimeSec : 180.0f;
     int curSecTotal = static_cast<int>(curTimeSec);
@@ -160,11 +163,11 @@ void PlayMainUI::Draw(const SongInformation& songInfo, int screenWidth, int scre
     snprintf(playfieldTimerStr, sizeof(playfieldTimerStr), "%02d:%02d / %02d:%02d", curMin, curSec, totalMin, totalSec);
 
     Font fontToUse = (m_MainFont.texture.id != 0) ? m_MainFont : GetFontDefault();
-    Vector2 pfTmSz = MeasureTextEx(fontToUse, playfieldTimerStr, 15.0f, 1.0f);
-    DrawTextEx(fontToUse, playfieldTimerStr, { laneStartX + (laneAreaWidth - pfTmSz.x) * 0.5f, topY - 22.0f }, 15.0f, 1.0f, WHITE);
+    Vector2 pfTmSz = MeasureTextEx(fontToUse, playfieldTimerStr, 15.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, playfieldTimerStr, { laneStartX + (laneAreaWidth - pfTmSz.x) * 0.5f, topY - (22.0f * uiScale) }, 15.0f * uiScale, 1.0f, WHITE);
 
-    DrawRectangleRounded({ laneStartX - 2.0f, topY - 2.0f, laneAreaWidth + 4.0f, barHeight + 4.0f }, 0.2f, 4, Color{ 20, 20, 25, 220 });
-    DrawRectangleRoundedLines({ laneStartX - 2.0f, topY - 2.0f, laneAreaWidth + 4.0f, barHeight + 4.0f }, 0.2f, 4, Color{ 255, 255, 255, 120 });
+    DrawRectangleRounded({ laneStartX - (2.0f * uiScale), topY - (2.0f * uiScale), laneAreaWidth + (4.0f * uiScale), barHeight + (4.0f * uiScale) }, 0.2f, 4, Color{ 20, 20, 25, 220 });
+    DrawRectangleRoundedLines({ laneStartX - (2.0f * uiScale), topY - (2.0f * uiScale), laneAreaWidth + (4.0f * uiScale), barHeight + (4.0f * uiScale) }, 0.2f, 4, Color{ 255, 255, 255, 120 });
     DrawRectangle(static_cast<int>(laneStartX), static_cast<int>(topY), static_cast<int>(laneAreaWidth), static_cast<int>(barHeight), Color{ 40, 40, 50, 255 });
 
     float progressRatio = curTimeSec / maxTimeSec;
@@ -176,9 +179,9 @@ void PlayMainUI::Draw(const SongInformation& songInfo, int screenWidth, int scre
     }
 
     float arrowX = laneStartX + progressRatio * laneAreaWidth;
-    Vector2 p1 = { arrowX, topY + barHeight + 10.0f };
-    Vector2 p2 = { arrowX - 7.0f, topY + barHeight + 2.0f };
-    Vector2 p3 = { arrowX + 7.0f, topY + barHeight + 2.0f };
+    Vector2 p1 = { arrowX, topY + barHeight + (10.0f * uiScale) };
+    Vector2 p2 = { arrowX - (7.0f * uiScale), topY + barHeight + (2.0f * uiScale) };
+    Vector2 p3 = { arrowX + (7.0f * uiScale), topY + barHeight + (2.0f * uiScale) };
     DrawTriangle(p1, p2, p3, WHITE);
     DrawTriangleLines(p1, p2, p3, Color{ 180, 180, 180, 255 });
 }
@@ -233,38 +236,39 @@ void PlayMainUI::DrawJacket(const SongInformation& songInfo, float x, float y, f
 void PlayMainUI::DrawSongInfo(const SongInformation& songInfo, float x, float y, float width)
 {
     Font fontToUse = (m_MainFont.texture.id != 0) ? m_MainFont : GetFontDefault();
+    float uiScale = static_cast<float>(GetScreenHeight()) / 720.0f;
 
-    DrawTextEx(fontToUse, songInfo.title.c_str(), { x, y }, 28.0f, 1.0f, WHITE);
-    DrawTextEx(fontToUse, songInfo.artist.c_str(), { x, y + 36.0f }, 18.0f, 1.0f, Color{ 200, 200, 200, 255 });
+    DrawTextEx(fontToUse, songInfo.title.c_str(), { x, y }, 28.0f * uiScale, 1.0f, WHITE);
+    DrawTextEx(fontToUse, songInfo.artist.c_str(), { x, y + (36.0f * uiScale) }, 18.0f * uiScale, 1.0f, Color{ 200, 200, 200, 255 });
 
     char diffBuf[64];
     snprintf(diffBuf, sizeof(diffBuf), "%s LV.%d", songInfo.difficultyName.c_str(), songInfo.difficultyLevel);
-    DrawTextEx(fontToUse, diffBuf, { x, y + 68.0f }, 18.0f, 1.0f, WHITE);
+    DrawTextEx(fontToUse, diffBuf, { x, y + (68.0f * uiScale) }, 18.0f * uiScale, 1.0f, WHITE);
 
     char bpmBuf[32];
     snprintf(bpmBuf, sizeof(bpmBuf), "BPM %.0f", songInfo.bpm);
-    Vector2 bpmSz = MeasureTextEx(fontToUse, bpmBuf, 18.0f, 1.0f);
-    DrawTextEx(fontToUse, bpmBuf, { x + width - bpmSz.x, y + 68.0f }, 18.0f, 1.0f, WHITE);
+    Vector2 bpmSz = MeasureTextEx(fontToUse, bpmBuf, 18.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, bpmBuf, { x + width - bpmSz.x, y + (68.0f * uiScale) }, 18.0f * uiScale, 1.0f, WHITE);
 }
 
 void PlayMainUI::DrawScoreAndAccuracy(const SongInformation& songInfo, float x, float y, float width)
 {
     Font fontToUse = (m_MainFont.texture.id != 0) ? m_MainFont : GetFontDefault();
-
+    float uiScale = static_cast<float>(GetScreenHeight()) / 720.0f;
     const bool isMapActive = !songInfo.jacketPath.empty() && !m_LoadedJacketPath.empty();
 
     const char* highLabel = "HIGH SCORE";
-    Vector2 highLblSz = MeasureTextEx(fontToUse, highLabel, 14.0f, 1.0f);
-    DrawTextEx(fontToUse, highLabel, { x + width - highLblSz.x, y }, 14.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    Vector2 highLblSz = MeasureTextEx(fontToUse, highLabel, 14.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, highLabel, { x + width - highLblSz.x, y }, 14.0f * uiScale, 1.0f, Color{ 180, 180, 180, 255 });
 
     const char* highVal = "0";
-    Vector2 highValSz = MeasureTextEx(fontToUse, highVal, 20.0f, 1.0f);
-    DrawTextEx(fontToUse, highVal, { x + width - highValSz.x, y + 18.0f }, 20.0f, 1.0f, WHITE);
+    Vector2 highValSz = MeasureTextEx(fontToUse, highVal, 20.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, highVal, { x + width - highValSz.x, y + (18.0f * uiScale) }, 20.0f * uiScale, 1.0f, WHITE);
 
-    float currentY = y + 52.0f;
+    float currentY = y + (52.0f * uiScale);
     const char* curLabel = "SCORE";
-    Vector2 curLblSz = MeasureTextEx(fontToUse, curLabel, 16.0f, 1.0f);
-    DrawTextEx(fontToUse, curLabel, { x + width - curLblSz.x, currentY }, 16.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    Vector2 curLblSz = MeasureTextEx(fontToUse, curLabel, 16.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, curLabel, { x + width - curLblSz.x, currentY }, 16.0f * uiScale, 1.0f, Color{ 180, 180, 180, 255 });
 
     int sc = 0;
     if (isMapActive)
@@ -277,32 +281,24 @@ void PlayMainUI::DrawScoreAndAccuracy(const SongInformation& songInfo, float x, 
     }
 
     char scoreBuf[32];
-    if (sc >= 1000000)
-    {
-        snprintf(scoreBuf, sizeof(scoreBuf), "%d,%03d,%03d", sc / 1000000, (sc / 1000) % 1000, sc % 1000);
-    }
-    else if (sc >= 1000)
-    {
-        snprintf(scoreBuf, sizeof(scoreBuf), "%d,%03d", sc / 1000, sc % 1000);
-    }
-    else
-    {
-        snprintf(scoreBuf, sizeof(scoreBuf), "%d", sc);
-    }
-    Vector2 scSz = MeasureTextEx(fontToUse, scoreBuf, 52.0f, 1.5f);
-    DrawTextEx(fontToUse, scoreBuf, { x + width - scSz.x, currentY + 22.0f }, 52.0f, 1.5f, WHITE);
+    if (sc >= 1000000) snprintf(scoreBuf, sizeof(scoreBuf), "%d,%03d,%03d", sc / 1000000, (sc / 1000) % 1000, sc % 1000);
+    else if (sc >= 1000) snprintf(scoreBuf, sizeof(scoreBuf), "%d,%03d", sc / 1000, sc % 1000);
+    else snprintf(scoreBuf, sizeof(scoreBuf), "%d", sc);
 
-    currentY += 88.0f;
+    Vector2 scSz = MeasureTextEx(fontToUse, scoreBuf, 52.0f * uiScale, 1.5f);
+    DrawTextEx(fontToUse, scoreBuf, { x + width - scSz.x, currentY + (22.0f * uiScale) }, 52.0f * uiScale, 1.5f, WHITE);
 
-    DrawTextEx(fontToUse, "ACCURACY", { x, currentY }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    currentY += 88.0f * uiScale;
+
+    DrawTextEx(fontToUse, "ACCURACY", { x, currentY }, 15.0f * uiScale, 1.0f, Color{ 180, 180, 180, 255 });
     char accBuf[32];
     float accuracy = isMapActive ? songInfo.accuracy : 0.0f;
     snprintf(accBuf, sizeof(accBuf), "%.2f%%", accuracy);
-    DrawTextEx(fontToUse, accBuf, { x, currentY + 20.0f }, 26.0f, 1.0f, WHITE);
+    DrawTextEx(fontToUse, accBuf, { x, currentY + (20.0f * uiScale) }, 26.0f * uiScale, 1.0f, WHITE);
 
     const char* comboLbl = "COMBO";
-    Vector2 comboLblSz = MeasureTextEx(fontToUse, comboLbl, 15.0f, 1.0f);
-    DrawTextEx(fontToUse, comboLbl, { x + width - comboLblSz.x, currentY }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    Vector2 comboLblSz = MeasureTextEx(fontToUse, comboLbl, 15.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, comboLbl, { x + width - comboLblSz.x, currentY }, 15.0f * uiScale, 1.0f, Color{ 180, 180, 180, 255 });
 
     int currentCombo = 0;
     if (isMapActive)
@@ -313,22 +309,17 @@ void PlayMainUI::DrawScoreAndAccuracy(const SongInformation& songInfo, float x, 
 
     char comboBuf[32];
     snprintf(comboBuf, sizeof(comboBuf), "%d", currentCombo);
-    Vector2 comboValSz = MeasureTextEx(fontToUse, comboBuf, 26.0f, 1.0f);
-    DrawTextEx(fontToUse, comboBuf, { x + width - comboValSz.x, currentY + 20.0f }, 26.0f, 1.0f, WHITE);
+    Vector2 comboValSz = MeasureTextEx(fontToUse, comboBuf, 26.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, comboBuf, { x + width - comboValSz.x, currentY + (20.0f * uiScale) }, 26.0f * uiScale, 1.0f, WHITE);
 }
 
 void PlayMainUI::DrawJudgements(const SongInformation& songInfo, float x, float y, float width)
 {
     Font fontToUse = (m_MainFont.texture.id != 0) ? m_MainFont : GetFontDefault();
-
+    float uiScale = static_cast<float>(GetScreenHeight()) / 720.0f;
     const bool isMapActive = !songInfo.jacketPath.empty() && !m_LoadedJacketPath.empty();
 
-    struct JudgItem
-    {
-        const char* label;
-        int count;
-    };
-
+    struct JudgItem { const char* label; int count; };
     JudgItem items[4] = {
         { "PERFECT", isMapActive ? songInfo.perfectCount : 0 },
         { "GREAT",   isMapActive ? songInfo.greatCount : 0 },
@@ -339,22 +330,21 @@ void PlayMainUI::DrawJudgements(const SongInformation& songInfo, float x, float 
     float itemY = y;
     for (int i = 0; i < 4; ++i)
     {
-        DrawTextEx(fontToUse, items[i].label, { x, itemY }, 18.0f, 1.0f, WHITE);
+        DrawTextEx(fontToUse, items[i].label, { x, itemY }, 18.0f * uiScale, 1.0f, WHITE);
 
         char cntBuf[16];
         snprintf(cntBuf, sizeof(cntBuf), "%d", items[i].count);
-        Vector2 cntSz = MeasureTextEx(fontToUse, cntBuf, 22.0f, 1.0f);
+        Vector2 cntSz = MeasureTextEx(fontToUse, cntBuf, 22.0f * uiScale, 1.0f);
 
-        DrawTextEx(fontToUse, cntBuf, { x + width - cntSz.x, itemY }, 22.0f, 1.0f, WHITE);
-
-        itemY += 30.0f;
+        DrawTextEx(fontToUse, cntBuf, { x + width - cntSz.x, itemY }, 22.0f * uiScale, 1.0f, WHITE);
+        itemY += 30.0f * uiScale;
     }
 }
 
 void PlayMainUI::DrawHealthGauge(const SongInformation& songInfo, float x, float y, float width, float height)
 {
     Font fontToUse = (m_MainFont.texture.id != 0) ? m_MainFont : GetFontDefault();
-
+    float uiScale = static_cast<float>(GetScreenHeight()) / 720.0f;
     const bool isMapActive = !songInfo.jacketPath.empty() && !m_LoadedJacketPath.empty();
 
     float hpRatio = isMapActive ? songInfo.hpRatio : 0.0f;
@@ -363,14 +353,14 @@ void PlayMainUI::DrawHealthGauge(const SongInformation& songInfo, float x, float
 
     int hpPercent = static_cast<int>(hpRatio * 100.0f);
 
-    DrawTextEx(fontToUse, "HP", { x, y }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
+    DrawTextEx(fontToUse, "HP", { x, y }, 15.0f * uiScale, 1.0f, Color{ 180, 180, 180, 255 });
 
     char percentBuf[16];
     snprintf(percentBuf, sizeof(percentBuf), "%d%%", hpPercent);
-    Vector2 pSz = MeasureTextEx(fontToUse, percentBuf, 15.0f, 1.0f);
-    DrawTextEx(fontToUse, percentBuf, { x + width - pSz.x, y }, 15.0f, 1.0f, WHITE);
+    Vector2 pSz = MeasureTextEx(fontToUse, percentBuf, 15.0f * uiScale, 1.0f);
+    DrawTextEx(fontToUse, percentBuf, { x + width - pSz.x, y }, 15.0f * uiScale, 1.0f, WHITE);
 
-    float barY = y + 24.0f;
+    float barY = y + (24.0f * uiScale);
     DrawRectangle(static_cast<int>(x), static_cast<int>(barY), static_cast<int>(width), static_cast<int>(height), Color{ 255, 255, 255, 30 });
 
     if (hpRatio > 0.0f)
@@ -378,17 +368,4 @@ void PlayMainUI::DrawHealthGauge(const SongInformation& songInfo, float x, float
         float fillWidth = width * hpRatio;
         DrawRectangle(static_cast<int>(x), static_cast<int>(barY), static_cast<int>(fillWidth), static_cast<int>(height), WHITE);
     }
-
-    float curTimeSec = isMapActive ? songInfo.playTimeSec : 0.0f;
-    if (curTimeSec < 0.0f) curTimeSec = 0.0f;
-
-    int curSecTotal = static_cast<int>(curTimeSec);
-    int curMin = curSecTotal / 60;
-    int curSec = curSecTotal % 60;
-
-    char timerStr[32];
-    snprintf(timerStr, sizeof(timerStr), "%02d:%02d", curMin, curSec);
-
-    //Vector2 tmSz = MeasureTextEx(fontToUse, timerStr, 15.0f, 1.0f);
-    //DrawTextEx(fontToUse, timerStr, { x + width - tmSz.x, barY + height + 6.0f }, 15.0f, 1.0f, Color{ 180, 180, 180, 255 });
 }

@@ -4,11 +4,18 @@
 #include "../play/play_scene.h"
 
 int main() {
-    SetConfigFlags(FLAG_FULLSCREEN_MODE | FLAG_VSYNC_HINT);
+      SetConfigFlags(FLAG_WINDOW_UNDECORATED | FLAG_VSYNC_HINT);
     
     InitWindow(1280, 720, "R.A");
     InitAudioDevice();
     SetTargetFPS(0); 
+
+    int monitor = GetCurrentMonitor();
+    int monitorWidth = GetMonitorWidth(monitor);
+    int monitorHeight = GetMonitorHeight(monitor);
+
+    SetWindowPosition(0, 0);
+    SetWindowSize(monitorWidth, monitorHeight);
 
     int currentWidth = GetScreenWidth();
     int currentHeight = GetScreenHeight();
