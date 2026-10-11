@@ -1,3 +1,5 @@
+// 참고로 유령코드입니다 (지우기 귀찮아서 방치중)
+
 #include "background_rotation.h"
 #include <cstdlib>
 #include <ctime>

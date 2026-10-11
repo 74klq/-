@@ -5,8 +5,47 @@
 #include <vector>
 #include <set>
 #include <string>
+#include <fmod.h>
 
 static std::vector<Texture2D> g_jacketTextures;
+static FMOD_SYSTEM* g_fmodSystem = nullptr;
+static FMOD_SOUND* g_fmodSounds[10] = { nullptr };
+static FMOD_CHANNEL* g_fmodChannel = nullptr;
+static int g_currentPlayingSongIndex = -1;
+static float g_songSwitchTimer = 0.0f;
+static bool g_pendingSongSwitch = false;
+static int g_pendingSongIndex = -1;
+
+struct SongHighlight {
+    unsigned int startMs;
+    unsigned int durationMs;
+};
+
+static const SongHighlight g_songHighlights[10] = {
+    { 95000, 12000 },
+    { 99000, 12000 },
+    { 73000, 12000 },
+    { 164000, 12000 },
+    { 76000, 12000 },
+    { 99000, 12000 },
+    { 22000, 12000 },
+    { 76000, 12000 },
+    { 118000, 12000 },
+    { 511000, 12000 }
+};
+
+static const char* g_musicPaths[10] = {
+    "music/A_Night_Without_Visible_Stars.ogg",
+    "music/kaleidoscope.ogg",
+    "music/SkysCape.wav",
+    "music/TheLostAria.ogg",
+    "music/Timeline.ogg",
+    "music/Terrasphere.ogg",
+    "music/N.ogg",
+    "music/doll.ogg",
+    "music/R.ogg",
+    "music/Megamix.ogg"
+};
 
 static inline float EaseOutCubic(float x) {
     return 1.0f - std::pow(1.0f - x, 3.0f);
@@ -30,6 +69,22 @@ SongSelect::SongSelect()
 }
 
 SongSelect::~SongSelect() {
+    if (g_fmodChannel) {
+        FMOD_Channel_Stop(g_fmodChannel);
+        g_fmodChannel = nullptr;
+    }
+    for (int i = 0; i < 10; ++i) {
+        if (g_fmodSounds[i]) {
+            FMOD_Sound_Release(g_fmodSounds[i]);
+            g_fmodSounds[i] = nullptr;
+        }
+    }
+    if (g_fmodSystem) {
+        FMOD_System_Close(g_fmodSystem);
+        FMOD_System_Release(g_fmodSystem);
+        g_fmodSystem = nullptr;
+    }
+
     if (fontLoaded) {
         UnloadFont(suitFont);
     }
@@ -44,6 +99,17 @@ SongSelect::~SongSelect() {
 
 void SongSelect::Init() {
     LoadSongs();
+
+    if (!g_fmodSystem) {
+        FMOD_System_Create(&g_fmodSystem, FMOD_VERSION);
+        FMOD_System_Init(g_fmodSystem, 512, FMOD_INIT_NORMAL, 0);
+    }
+
+    for (int i = 0; i < 10; ++i) {
+        if (!g_fmodSounds[i]) {
+            FMOD_System_CreateSound(g_fmodSystem, g_musicPaths[i], FMOD_CREATESTREAM, 0, &g_fmodSounds[i]);
+        }
+    }
     
     for (auto& tex : g_jacketTextures) {
         if (tex.id != 0) UnloadTexture(tex);
@@ -152,13 +218,20 @@ void SongSelect::Init() {
         }
     }
     
-    // selectedSongIndex = 0;
     selectedDiffIndex = 0;
     animScrollOffset = (float)selectedSongIndex;
     targetScrollOffset = (float)selectedSongIndex;
     carouselAnimProgress = 1.0f;
     bgTransitionAlpha = 1.0f;
     playRequested = false;
+    g_pendingSongSwitch = false;
+    g_songSwitchTimer = 0.0f;
+
+    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 10 && g_fmodSounds[selectedSongIndex]) {
+        FMOD_System_PlaySound(g_fmodSystem, g_fmodSounds[selectedSongIndex], 0, false, &g_fmodChannel);
+        FMOD_Channel_SetPosition(g_fmodChannel, g_songHighlights[selectedSongIndex].startMs, FMOD_TIMEUNIT_MS);
+        g_currentPlayingSongIndex = selectedSongIndex;
+    }
 }
 
 void SongSelect::LoadSongs() {
@@ -169,7 +242,7 @@ void SongSelect::LoadSongs() {
     song1.artist = "Plum";
     song1.mapper = "Seta";
     song1.bpm = 88.0f;
-    song1.length = 152.0f;
+    song1.length = 153.0f;
     song1.cleared = true;
     song1.difficulties = { {"NORMAL", 7, 140.0f, 430, 890, 6.0f} };
     song1.osuFileName = "G.osu";
@@ -182,7 +255,7 @@ void SongSelect::LoadSongs() {
     song2.artist = "Plum";
     song2.mapper = "Seta";
     song2.bpm = 128.0f;
-    song2.length = 135.0f;
+    song2.length = 306.0f;
     song2.cleared = false;
     song2.difficulties = { {"HARD", 10, 128.0f, 650, 1300, 6.0f} };
     song2.osuFileName = "Kaleidoscope.osu";  
@@ -195,7 +268,7 @@ void SongSelect::LoadSongs() {
     song3.artist = "Plum";
     song3.mapper = "Seta";
     song3.bpm = 138.0f;
-    song3.length = 142.0f;
+    song3.length = 261.0f;
     song3.cleared = false;
     song3.difficulties = { {"HARD", 12, 138.0f, 850, 1700, 6.0f} };
     song3.osuFileName = "SkysCape.osu";          
@@ -234,7 +307,7 @@ void SongSelect::LoadSongs() {
     song6.artist = "Plum";
     song6.mapper = "Seta";
     song6.bpm = 160.0f;
-    song6.length = 142.0f;
+    song6.length = 155.0f;
     song6.cleared = false;
     song6.difficulties = { {"EXPERT", 18, 160.0f, 1450, 2900, 6.5f} };
     song6.osuFileName = "Terrasphere.osu";          
@@ -247,7 +320,7 @@ void SongSelect::LoadSongs() {
     song7.artist = "Plum";
     song7.mapper = "Seta";
     song7.bpm = 165.0f;
-    song7.length = 142.0f;
+    song7.length = 255.0f;
     song7.cleared = false;
     song7.difficulties = { {"EXPERT", 19, 165.0f, 1600, 3200, 6.5f} };
     song7.osuFileName = "N.osu";          
@@ -260,7 +333,7 @@ void SongSelect::LoadSongs() {
     song8.artist = "Plum";
     song8.mapper = "Seta";
     song8.bpm = 170.0f;
-    song8.length = 142.0f;
+    song8.length = 226.0f;
     song8.cleared = false;
     song8.difficulties = { {"MASTER", 20, 170.0f, 1750, 3500, 6.5f} };
     song8.osuFileName = "doll.osu";          
@@ -273,7 +346,7 @@ void SongSelect::LoadSongs() {
     song9.artist = "Plum";
     song9.mapper = "Seta";
     song9.bpm = 180.0f;
-    song9.length = 142.0f;
+    song9.length = 147.0f;
     song9.cleared = false;
     song9.difficulties = { {"MASTER", 21, 180.0f, 1900, 3800, 6.5f} };
     song9.osuFileName = "R.osu";          
@@ -286,7 +359,7 @@ void SongSelect::LoadSongs() {
     song10.artist = "Plum";
     song10.mapper = "Seta";
     song10.bpm = 175.0f;
-    song10.length = 300.0f;
+    song10.length = 604.0f;
     song10.cleared = false;
     song10.difficulties = { {"HELL", 23, 175.0f, 2500, 5000, 7.0f} };
     song10.osuFileName = "PlumMegamix.osu";          
@@ -313,6 +386,8 @@ void SongSelect::Update() {
         if (bgTransitionAlpha > 1.0f) bgTransitionAlpha = 1.0f;
     }
 
+    int prevIndex = selectedSongIndex;
+
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
         if (selectedSongIndex > 0) {
             previousSongIndex = selectedSongIndex;
@@ -334,10 +409,6 @@ void SongSelect::Update() {
         }
     }
 
-    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-        playRequested = true;
-    }
-
     float wheel = GetMouseWheelMove();
     if (wheel != 0.0f) {
         int newIndex = selectedSongIndex - (int)wheel;
@@ -349,6 +420,54 @@ void SongSelect::Update() {
             carouselAnimProgress = 0.0f;
             bgTransitionAlpha = 0.0f;
             selectedDiffIndex = 0;
+        }
+    }
+
+    if (selectedSongIndex != prevIndex) {
+        g_pendingSongSwitch = true;
+        g_songSwitchTimer = 0.0f;
+        g_pendingSongIndex = selectedSongIndex;
+        if (g_fmodChannel) {
+            FMOD_Channel_Stop(g_fmodChannel);
+            g_fmodChannel = nullptr;
+        }
+    }
+
+    if (g_pendingSongSwitch) {
+        g_songSwitchTimer += dt;
+        if (g_songSwitchTimer >= 0.5f) {
+            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 10 && g_fmodSounds[g_pendingSongIndex]) {
+                if (g_fmodChannel) {
+                    FMOD_Channel_Stop(g_fmodChannel);
+                    g_fmodChannel = nullptr;
+                }
+                FMOD_System_PlaySound(g_fmodSystem, g_fmodSounds[g_pendingSongIndex], 0, false, &g_fmodChannel);
+                FMOD_Channel_SetPosition(g_fmodChannel, g_songHighlights[g_pendingSongIndex].startMs, FMOD_TIMEUNIT_MS);
+                g_currentPlayingSongIndex = g_pendingSongIndex;
+            }
+            g_pendingSongSwitch = false;
+        }
+    }
+
+    if (g_fmodSystem) {
+        FMOD_System_Update(g_fmodSystem);
+    }
+
+    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 10) {
+        unsigned int pos = 0;
+        FMOD_Channel_GetPosition(g_fmodChannel, &pos, FMOD_TIMEUNIT_MS);
+        unsigned int startMs = g_songHighlights[g_currentPlayingSongIndex].startMs;
+        unsigned int durationMs = g_songHighlights[g_currentPlayingSongIndex].durationMs;
+        if (pos >= startMs + durationMs || pos < startMs) {
+            FMOD_Channel_SetPosition(g_fmodChannel, startMs, FMOD_TIMEUNIT_MS);
+        }
+    }
+
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        playRequested = true;
+        if (g_fmodChannel) {
+            FMOD_Channel_Stop(g_fmodChannel);
+            g_fmodChannel = nullptr;
         }
     }
 }
@@ -620,7 +739,6 @@ void SongSelect::DrawInputHints(int screenWidth, int screenHeight) {
     }
 }
 
-
 bool SongSelect::IsPlaySelected() const {
     return playRequested;
 }
@@ -644,16 +762,3 @@ int SongSelect::GetCurrentDifficultyIndex() const {
 void SongSelect::ResetPlayRequest() {
     playRequested = false;
 }
-
-/*void SongSelect::SetSelectedSongIndex(int index) { 
-    if (index >= 0 && index < (int)songs.size()) {
-        selectedSongIndex = index; 
-        
-        targetScrollOffset = (float)index;
-        animScrollOffset = (float)index;
-        
-        carouselAnimProgress = 1.0f;
-        bgTransitionAlpha = 1.0f;
-        previousSongIndex = index;
-    }
-} */

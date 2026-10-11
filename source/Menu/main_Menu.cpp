@@ -1,4 +1,8 @@
 #include "main_Menu.h"
+#include "Menu_background.h"
+#include "slow_screen.h"
+#include "curtain_vfx.h"
+#include "../music_execute/Lobby_Music/lobby_bgm.h"
 #include <raylib.h>
 #include <cstdlib>
 #include <algorithm>
@@ -17,6 +21,7 @@ struct RadialParticle {
     float alpha;
     float life;
     float maxLife;
+    Color color;
 };
 
 struct BurstParticle {
@@ -36,6 +41,7 @@ struct MenuTrailParticle {
     float alpha;
     float life;
     float maxLife;
+    Color color;
 };
 
 static const int MAX_RADIAL_PARTICLES = 150;
@@ -56,6 +62,7 @@ static Texture2D setaTexture = { 0 };
 static Font customFont = { 0 };
 static bool isAssetsLoaded = false;
 static int activeFrames = 0;
+static CurtainVFX curtainVfx;
 
 static float logoScale = 0.0f;
 static float logoAlpha = 0.0f;
@@ -90,9 +97,17 @@ static float menuItemSweep[3] = { 0.0f, 0.0f, 0.0f };
 static float menuItemPulse[3] = { 0.0f, 0.0f, 0.0f };
 
 static const float MENU_BPM = 180.0f;
-static const Color WHITE_SOFT = { 245, 245, 245, 255 };
-static const Color WHITE_DIM = { 155, 155, 155, 255 };
+static const Color PASTE_PINK = { 255, 182, 193, 255 };
+static const Color PASTE_YELLOW = { 253, 238, 154, 255 };
+static const Color PASTE_BLUE = { 135, 206, 235, 255 };
+static const Color PASTE_MINT = { 152, 251, 152, 255 };
+static const Color PASTE_PURPLE = { 221, 160, 221, 255 };
 static const Color BLACK_DEEP = { 3, 3, 3, 255 };
+
+static Color GetPastelColor(int index) {
+    Color palette[5] = { PASTE_PINK, PASTE_YELLOW, PASTE_BLUE, PASTE_MINT, PASTE_PURPLE };
+    return palette[index % 5];
+}
 
 static float Clamp01(float value) {
     return std::max(0.0f, std::min(1.0f, value));
@@ -129,11 +144,11 @@ static void SpawnBurst(Vector2 origin, int amount = MAX_BURST) {
 
         bursts[i].position = origin;
         bursts[i].velocity = { std::cos(angle) * speed, std::sin(angle) * speed };
-        bursts[i].size = 1.0f + ((float)rand() / RAND_MAX) * 5.0f;
+        bursts[i].size = 1.5f + ((float)rand() / RAND_MAX) * 5.5f;
         bursts[i].maxLife = 0.28f + ((float)rand() / RAND_MAX) * 0.62f;
         bursts[i].life = bursts[i].maxLife;
         bursts[i].alpha = 1.0f;
-        bursts[i].color = (i % 4 == 0) ? WHITE_SOFT : Color{ 175, 175, 175, 255 };
+        bursts[i].color = GetPastelColor(rand() % 5);
     }
 }
 
@@ -146,19 +161,21 @@ static void SpawnRadialParticles(int screenWidth, int screenHeight) {
         radialParticles[i].angle = ((float)rand() / RAND_MAX) * PI * 2.0f;
         radialParticles[i].distance = 120.0f + ((float)rand() / RAND_MAX) * maxRadius;
         radialParticles[i].speed = 8.0f + ((float)rand() / RAND_MAX) * 55.0f;
-        radialParticles[i].size = 0.5f + ((float)rand() / RAND_MAX) * 2.4f;
-        radialParticles[i].alpha = 0.12f + ((float)rand() / RAND_MAX) * 0.48f;
+        radialParticles[i].size = 0.8f + ((float)rand() / RAND_MAX) * 2.8f;
+        radialParticles[i].alpha = 0.15f + ((float)rand() / RAND_MAX) * 0.55f;
         radialParticles[i].maxLife = 4.0f + ((float)rand() / RAND_MAX) * 7.0f;
         radialParticles[i].life = ((float)rand() / RAND_MAX) * radialParticles[i].maxLife;
+        radialParticles[i].color = GetPastelColor(i);
     }
 
     for (int i = 0; i < MAX_TRAIL; ++i) {
         trails[i].position = { cx, cy };
         trails[i].velocity = { 0.0f, 0.0f };
-        trails[i].size = 1.0f;
+        trails[i].size = 1.2f;
         trails[i].alpha = 0.0f;
         trails[i].maxLife = 0.5f;
         trails[i].life = 0.0f;
+        trails[i].color = GetPastelColor(i);
     }
 
     for (int i = 0; i < EQUALIZER_BARS; ++i) {
@@ -178,10 +195,11 @@ static void UpdateRadialParticles(float dt, int screenWidth, int screenHeight) {
             radialParticles[i].angle = ((float)rand() / RAND_MAX) * PI * 2.0f;
             radialParticles[i].distance = 120.0f + ((float)rand() / RAND_MAX) * 90.0f;
             radialParticles[i].speed = 8.0f + ((float)rand() / RAND_MAX) * 55.0f;
-            radialParticles[i].size = 0.5f + ((float)rand() / RAND_MAX) * 2.4f;
-            radialParticles[i].alpha = 0.12f + ((float)rand() / RAND_MAX) * 0.48f;
+            radialParticles[i].size = 0.8f + ((float)rand() / RAND_MAX) * 2.8f;
+            radialParticles[i].alpha = 0.15f + ((float)rand() / RAND_MAX) * 0.55f;
             radialParticles[i].maxLife = 4.0f + ((float)rand() / RAND_MAX) * 7.0f;
             radialParticles[i].life = radialParticles[i].maxLife;
+            radialParticles[i].color = GetPastelColor(rand() % 5);
         }
     }
 
@@ -229,10 +247,11 @@ static void SpawnMenuTrail(Vector2 origin, Vector2 velocity) {
             velocity.x + std::cos(angle) * spread,
             velocity.y + std::sin(angle) * spread
         };
-        trails[i].size = 1.0f + ((float)rand() / RAND_MAX) * 2.8f;
+        trails[i].size = 1.2f + ((float)rand() / RAND_MAX) * 3.0f;
         trails[i].maxLife = 0.25f + ((float)rand() / RAND_MAX) * 0.45f;
         trails[i].life = trails[i].maxLife;
-        trails[i].alpha = 0.75f;
+        trails[i].alpha = 0.8f;
+        trails[i].color = GetPastelColor(i);
     }
 }
 
@@ -255,11 +274,12 @@ static void DrawRadialBackground(int width, int height, Vector2 center, float ti
             center.y + std::sin(angle) * endRadius
         };
 
+        Color rayColor = GetPastelColor(i);
         DrawLineEx(
             start,
             end,
-            1.0f + beat * 1.5f,
-            Color{ 255, 255, 255, (unsigned char)(5.0f + widthPulse * 10.0f + beat * 12.0f) }
+            1.2f + beat * 1.8f,
+            WithAlpha(rayColor, 0.1f + widthPulse * 0.12f + beat * 0.15f)
         );
     }
 
@@ -268,14 +288,15 @@ static void DrawRadialBackground(int width, int height, Vector2 center, float ti
         float rotation = time * (5.0f + i * 1.2f) * (i % 2 == 0 ? 1.0f : -1.0f);
         float arcLength = 38.0f + std::sin(time * 1.8f + i) * 16.0f;
 
+        Color ringColor = GetPastelColor(i);
         DrawRing(
             center,
             radius,
-            radius + 1.0f + beat,
+            radius + 1.5f + beat,
             rotation,
             rotation + arcLength,
             64,
-            Color{ 255, 255, 255, (unsigned char)(8.0f + beat * 15.0f) }
+            WithAlpha(ringColor, 0.2f + beat * 0.25f)
         );
     }
 
@@ -288,14 +309,14 @@ static void DrawRadialBackground(int width, int height, Vector2 center, float ti
 
         DrawCircleV(
             { x, y },
-            radialParticles[i].size + beat * 0.8f,
-            Color{ 255, 255, 255, (unsigned char)(alpha * 120.0f) }
+            radialParticles[i].size + beat * 0.9f,
+            WithAlpha(radialParticles[i].color, alpha * 0.8f)
         );
     }
 
     float halo = 210.0f + beat * 28.0f + std::sin(time * 1.6f) * 8.0f;
-    DrawCircleV(center, halo, Color{ 255, 255, 255, (unsigned char)(2.0f + beat * 5.0f) });
-    DrawCircleV(center, halo * 0.72f, Color{ 255, 255, 255, (unsigned char)(2.0f + beat * 4.0f) });
+    DrawCircleV(center, halo, WithAlpha(PASTE_PINK, 0.08f + beat * 0.12f));
+    DrawCircleV(center, halo * 0.72f, WithAlpha(PASTE_BLUE, 0.08f + beat * 0.12f));
 }
 
 static void DrawBottomBars(int width, int height, float beat) {
@@ -305,12 +326,13 @@ static void DrawBottomBars(int width, int height, float beat) {
         float centerDistance = std::abs(i - EQUALIZER_BARS * 0.5f) / (EQUALIZER_BARS * 0.5f);
         float h = eqBarHeights[i] * (1.0f - centerDistance * 0.45f) + beat * 14.0f * (1.0f - centerDistance);
 
+        Color barColor = GetPastelColor(i);
         DrawRectangle(
             (int)(i * barWidth),
             height - (int)h,
             (int)std::max(1.0f, barWidth - 2.0f),
             (int)h,
-            Color{ 255, 255, 255, (unsigned char)(7.0f + beat * 16.0f) }
+            WithAlpha(barColor, 0.25f + beat * 0.35f)
         );
     }
 }
@@ -319,33 +341,77 @@ static void DrawCornerUI(Font font, int width, int height, float alpha, float ti
     float uiScale = (float)height / 720.0f;
     float margin = std::max(24.0f * uiScale, width * 0.025f);
     float length = 34.0f * uiScale;
-    Color line = WithAlpha(WHITE_SOFT, alpha * 0.34f);
+    Color line = WithAlpha(PASTE_PINK, alpha * 0.6f);
 
-    DrawLineEx({ margin, margin + length }, { margin, margin }, 1.5f * uiScale, line);
-    DrawLineEx({ margin, margin }, { margin + length, margin }, 1.5f * uiScale, line);
-    DrawLineEx({ width - margin - length, margin }, { width - margin, margin }, 1.5f * uiScale, line);
-    DrawLineEx({ width - margin, margin }, { width - margin, margin + length }, 1.5f * uiScale, line);
-    DrawLineEx({ margin, height - margin - length }, { margin, height - margin }, 1.5f * uiScale, line);
-    DrawLineEx({ margin, height - margin }, { margin + length, height - margin }, 1.5f * uiScale, line);
-    DrawLineEx({ width - margin - length, height - margin }, { width - margin, height - margin }, 1.5f * uiScale, line);
-    DrawLineEx({ width - margin, height - margin - length }, { width - margin, height - margin }, 1.5f * uiScale, line);
+    DrawLineEx({ margin, margin + length }, { margin, margin }, 2.0f * uiScale, line);
+    DrawLineEx({ margin, margin }, { margin + length, margin }, 2.0f * uiScale, line);
+    DrawLineEx({ width - margin - length, margin }, { width - margin, margin }, 2.0f * uiScale, WithAlpha(PASTE_YELLOW, alpha * 0.6f));
+    DrawLineEx({ width - margin, margin }, { width - margin, margin + length }, 2.0f * uiScale, WithAlpha(PASTE_YELLOW, alpha * 0.6f));
+    DrawLineEx({ margin, height - margin - length }, { margin, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_BLUE, alpha * 0.6f));
+    DrawLineEx({ margin, height - margin }, { margin + length, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_BLUE, alpha * 0.6f));
+    DrawLineEx({ width - margin - length, height - margin }, { width - margin, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_MINT, alpha * 0.6f));
+    DrawLineEx({ width - margin, height - margin - length }, { width - margin, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_MINT, alpha * 0.6f));
 
-    DrawTextEx(font, "SETA", { margin + 3.0f * uiScale, margin + 42.0f * uiScale }, 12.0f * uiScale, 2.5f * uiScale, WithAlpha(WHITE_SOFT, alpha * 0.45f));
+    DrawTextEx(font, "SETA", { margin + 3.0f * uiScale, margin + 42.0f * uiScale }, 12.0f * uiScale, 2.5f * uiScale, WithAlpha(PASTE_PINK, alpha * 0.75f));
 
     const char* status = "MAIN MENU";
     Vector2 statusSize = MeasureTextEx(font, status, 11.0f * uiScale, 2.0f * uiScale);
-    DrawTextEx(font, status, { width - margin - statusSize.x, margin + 42.0f * uiScale }, 11.0f * uiScale, 2.0f * uiScale, WithAlpha(WHITE_SOFT, alpha * 0.4f));
+    DrawTextEx(font, status, { width - margin - statusSize.x, margin + 42.0f * uiScale }, 11.0f * uiScale, 2.0f * uiScale, WithAlpha(PASTE_BLUE, alpha * 0.75f));
 
     float pulse = 0.45f + std::sin(time * 3.0f) * 0.25f;
-    DrawCircleV({ width - margin - 6.0f * uiScale, height - margin - 5.0f * uiScale }, 2.5f * uiScale, WithAlpha(WHITE_SOFT, pulse * alpha));
+    DrawCircleV({ width - margin - 6.0f * uiScale, height - margin - 5.0f * uiScale }, 3.0f * uiScale, WithAlpha(PASTE_YELLOW, pulse * alpha));
+}
+
+static void DrawPremiumAtmosphere(int width, int height, float time, float alpha, float beat) {
+    float scale = (float)height / 720.0f;
+    float margin = std::max(26.0f * scale, width * 0.025f);
+    Color faint = WithAlpha(PASTE_BLUE, 0.12f * alpha);
+    Color dim = WithAlpha(PASTE_PINK, 0.35f * alpha);
+    float gridSpacing = 46.0f * scale;
+    float drift = std::fmod(time * 5.0f * scale, gridSpacing);
+    for (float x = -gridSpacing + drift; x < width + gridSpacing; x += gridSpacing) {
+        DrawLineEx({ x, height * 0.22f }, { x, height * 0.84f }, 1.0f, faint);
+    }
+    for (float y = height * 0.22f; y < height * 0.84f; y += gridSpacing) {
+        DrawLineEx({ width * 0.06f, y }, { width * 0.94f, y }, 1.0f, faint);
+    }
+    float scanY = std::fmod(time * 85.0f * scale, (float)height);
+    DrawRectangle(0, (int)scanY, width, std::max(1, (int)(1.0f * scale)), WithAlpha(PASTE_YELLOW, 0.15f * alpha));
+    DrawLineEx({ margin, height * 0.205f }, { width - margin, height * 0.205f }, 1.5f, dim);
+    DrawLineEx({ margin, height * 0.855f }, { width - margin, height * 0.855f }, 1.5f, dim);
+    float centerX = width * 0.5f;
+    for (int side = 0; side < 2; ++side) {
+        float originX = side == 0 ? margin + 8.0f * scale : width - margin - 8.0f * scale;
+        float direction = side == 0 ? 1.0f : -1.0f;
+        for (int i = 0; i < 52; ++i) {
+            float phase = time * 2.3f + i * 0.27f + side * 1.7f;
+            float envelope = 0.25f + 0.75f * std::abs(std::sin(phase * 0.72f));
+            float h = (3.0f + envelope * (10.0f + beat * 15.0f)) * scale;
+            float x = originX + direction * i * 3.2f * scale;
+            float y = height * 0.5f + std::sin(phase) * 23.0f * scale;
+            Color multiColor = GetPastelColor(i);
+            DrawLineEx({x, y - h}, {x, y + h}, 1.2f * scale, WithAlpha(multiColor, (0.15f + envelope * 0.25f) * alpha));
+        }
+    }
+    DrawText("S E T A   /   Rythm Air", (int)margin, (int)(height * 0.885f), (int)std::max(9.0f, 10.0f * scale), WithAlpha(PASTE_PINK, 0.8f * alpha));
+    const char* build = "INTERACTIVE AUDIO VISUAL";
+    int buildW = MeasureText(build, (int)std::max(9.0f, 9.0f * scale));
+    DrawText(build, width - (int)margin - buildW, (int)(height * 0.885f), (int)std::max(9.0f, 9.0f * scale), WithAlpha(PASTE_BLUE, 0.8f * alpha));
+    float tickW = 32.0f * scale;
+    for (int i = 0; i < 5; ++i) {
+        float x = centerX + (i - 2) * tickW;
+        float h = (i == 2 ? 10.0f : 4.0f) * scale;
+        Color tickColor = GetPastelColor(i);
+        DrawLineEx({x, height * 0.865f}, {x, height * 0.865f + h}, 1.5f, WithAlpha(tickColor, (i == 2 ? 0.9f : 0.4f) * alpha));
+    }
 }
 
 static void DrawLogoDecorations(Vector2 center, float radius, float time, float beat, float alpha) {
     float r1 = radius + 26.0f + beat * 20.0f;
     float r2 = radius + 48.0f + beat * 30.0f;
 
-    DrawRing(center, r1, r1 + 1.5f, ringRotation1, ringRotation1 + 100.0f, 64, WithAlpha(WHITE_SOFT, alpha * (0.16f + beat * 0.18f)));
-    DrawRing(center, r2, r2 + 1.0f, ringRotation2, ringRotation2 + 62.0f, 64, WithAlpha(WHITE_SOFT, alpha * (0.10f + beat * 0.15f)));
+    DrawRing(center, r1, r1 + 2.0f, ringRotation1, ringRotation1 + 100.0f, 64, WithAlpha(PASTE_PINK, alpha * (0.35f + beat * 0.3f)));
+    DrawRing(center, r2, r2 + 1.5f, ringRotation2, ringRotation2 + 62.0f, 64, WithAlpha(PASTE_BLUE, alpha * (0.25f + beat * 0.25f)));
 
     for (int i = 0; i < 12; ++i) {
         float angle = (time * (10.0f + i * 0.2f) + i * 30.0f) * PI / 180.0f;
@@ -356,95 +422,56 @@ static void DrawLogoDecorations(Vector2 center, float radius, float time, float 
         };
 
         float dotPulse = 0.35f + 0.65f * std::sin(time * 3.0f + i * 0.7f);
-        DrawCircleV(p, 1.2f + beat * 1.5f, WithAlpha(WHITE_SOFT, alpha * (0.12f + dotPulse * 0.2f)));
+        Color dotColor = GetPastelColor(i);
+        DrawCircleV(p, 1.8f + beat * 1.8f, WithAlpha(dotColor, alpha * (0.3f + dotPulse * 0.4f)));
     }
 
     float cross = radius + 67.0f;
-    Color crossColor = WithAlpha(WHITE_SOFT, alpha * 0.13f);
-
-    DrawLineEx({ center.x - cross, center.y }, { center.x - radius - 4.0f, center.y }, 1.0f, crossColor);
-    DrawLineEx({ center.x + radius + 4.0f, center.y }, { center.x + cross, center.y }, 1.0f, crossColor);
-    DrawLineEx({ center.x, center.y - cross }, { center.x, center.y - radius - 4.0f }, 1.0f, crossColor);
-    DrawLineEx({ center.x, center.y + radius + 4.0f }, { center.x, center.y + cross }, 1.0f, crossColor);
+    DrawLineEx({ center.x - cross, center.y }, { center.x - radius - 4.0f, center.y }, 1.5f, WithAlpha(PASTE_YELLOW, alpha * 0.4f));
+    DrawLineEx({ center.x + radius + 4.0f, center.y }, { center.x + cross, center.y }, 1.5f, WithAlpha(PASTE_MINT, alpha * 0.4f));
+    DrawLineEx({ center.x, center.y - cross }, { center.x, center.y - radius - 4.0f }, 1.5f, WithAlpha(PASTE_PINK, alpha * 0.4f));
+    DrawLineEx({ center.x, center.y + radius + 4.0f }, { center.x, center.y + cross }, 1.5f, WithAlpha(PASTE_PURPLE, alpha * 0.4f));
 }
 
 static void DrawExpandedMenuItem(Font font, const char* label, const char* indexText, Vector2 center, float open, float selected, float hover, float time, int index) {
     float uiScale = (float)GetScreenHeight() / 720.0f;
-
-    float directionX = index == 0 ? -1.0f : (index == 1 ? 0.0f : 1.0f);
-    float directionY = index == 1 ? 1.0f : -0.18f;
-
-    float distance = (index == 1 ? 235.0f : 250.0f) * uiScale;
-    float targetX = center.x + directionX * distance;
-    float targetY = center.y + directionY * distance;
-
+    float screenW = (float)GetScreenWidth();
     float itemOpen = EaseOutBack(open);
+    float targetX = screenW * (0.505f + index * 0.155f);
     float x = center.x + (targetX - center.x) * itemOpen;
-    float y = center.y + (targetY - center.y) * itemOpen;
+    float y = center.y + std::sin(time * 1.5f + index * 0.7f) * 1.2f * uiScale;
+    float appear = Clamp01(open * 1.3f - index * 0.055f);
+    float width = (160.0f + selected * 18.0f + hover * 8.0f) * uiScale;
+    float height = 104.0f * uiScale;
+    Rectangle box = { x - width * 0.5f, y - height * 0.5f, width, height };
+    if (appear <= 0.01f) return;
 
-    float appear = Clamp01(open * 1.18f - index * 0.08f);
-    float selectedLift = selected * -8.0f * uiScale;
-    float hoverLift = hover * -5.0f * uiScale;
+    Color baseColor = GetPastelColor(index);
+    Color secondColor = GetPastelColor(index + 2);
+    Color thirdColor = GetPastelColor(index + 4);
 
-    x += std::sin(time * 2.0f + index) * (1.0f + selected * 2.0f) * uiScale;
-    y += selectedLift + hoverLift;
+    Color panel = selected > 0.5f ? Color{ 255, 255, 255, (unsigned char)(245.0f * appear) } 
+                                  : WithAlpha(baseColor, 0.55f * appear);
 
-    float width = (178.0f + selected * 24.0f + hover * 10.0f) * uiScale;
-    float height = (58.0f + selected * 7.0f + hover * 4.0f) * uiScale;
+    DrawRectangleRounded(box, 0.85f, 16, panel);
+    DrawRectangleRoundedLines(box, 0.85f, 16, WithAlpha(secondColor, appear * 0.85f));
+    
+    Rectangle innerBox = { box.x + 5, box.y + 5, box.width - 10, box.height - 10 };
+    DrawRectangleRoundedLines(innerBox, 0.85f, 16, WithAlpha(thirdColor, appear * 0.4f));
 
-    Rectangle box = {
-        x - width * 0.5f,
-        y - height * 0.5f,
-        width,
-        height
-    };
+    DrawTextEx(font, indexText, { box.x + 18.0f * uiScale, box.y + 16.0f * uiScale }, 11.0f * uiScale, 1.0f * uiScale, WithAlpha(thirdColor, appear * 0.95f));
 
-    Color fill = selected > 0.5f
-        ? Color{ 247, 247, 247, (unsigned char)(245.0f * appear) }
-        : Color{ 10, 10, 10, (unsigned char)(185.0f * appear) };
-
-    Color border = selected > 0.5f
-        ? Color{ 255, 255, 255, (unsigned char)(255.0f * appear) }
-        : Color{ 120, 120, 120, (unsigned char)((95.0f + hover * 80.0f) * appear) };
-
-    if (appear > 0.01f) {
-        DrawRectangleRounded(
-            { box.x - 5.0f * uiScale, box.y - 5.0f * uiScale, box.width + 10.0f * uiScale, box.height + 10.0f * uiScale },
-            0.18f,
-            10,
-            Color{ 255, 255, 255, (unsigned char)(8.0f * appear + selected * 12.0f) }
-        );
-
-        DrawRectangleRounded(box, 0.18f, 10, fill);
-        DrawRectangleRoundedLinesEx(box, 0.18f, 10, (selected > 0.5f ? 2.0f : 1.0f) * uiScale, border);
-
-        DrawTextEx(font, indexText, { box.x + 14.0f * uiScale, box.y + 9.0f * uiScale }, 10.0f * uiScale, 1.5f, selected > 0.5f ? Color{ 80, 80, 80, 255 } : Color{ 130, 130, 130, (unsigned char)(180.0f * appear) });
-
-        float textSizeValue = (21.0f + selected * 6.0f + hover * 2.0f) * uiScale;
-        Vector2 textSize = MeasureTextEx(font, label, textSizeValue, 1.0f);
-        DrawTextEx(
-            font,
-            label,
-            { box.x + (box.width - textSize.x) * 0.5f, box.y + (box.height - textSize.y) * 0.5f + 2.0f * uiScale },
-            textSizeValue,
-            1.0f,
-            selected > 0.5f ? Color{ 10, 10, 10, (unsigned char)(255.0f * appear) } : Color{ 225, 225, 225, (unsigned char)(220.0f * appear) }
-        );
-
-        float lineLength = (selected > 0.5f ? 55.0f : 28.0f + hover * 22.0f) * uiScale;
-        DrawLineEx(
-            { box.x + 14.0f * uiScale, box.y + box.height - 6.0f * uiScale },
-            { box.x + 14.0f * uiScale + lineLength, box.y + box.height - 6.0f * uiScale },
-            (selected > 0.5f ? 2.0f : 1.0f) * uiScale,
-            selected > 0.5f ? Color{ 10, 10, 10, (unsigned char)(230.0f * appear) } : Color{ 180, 180, 180, (unsigned char)(100.0f * appear) }
-        );
-    }
+    float labelFontSize = (22.0f + selected * 3.0f) * uiScale;
+    Vector2 labelSize = MeasureTextEx(font, label, labelFontSize, 1.0f * uiScale);
+    Color textColor = selected > 0.5f ? Color{ 60, 50, 60, (unsigned char)(255.0f * appear) } : Color{ 255, 255, 255, (unsigned char)(245.0f * appear) };
+    DrawTextEx(font, label, { box.x + (box.width - labelSize.x) * 0.5f, box.y + (box.height - labelSize.y) * 0.5f + 4.0f * uiScale }, labelFontSize, 1.0f * uiScale, textColor);
 }
 
 MainMenu::MainMenu() {
     selectedIndex = 0;
     pulseTimer = 0.0f;
     currentState = MenuState::Main;
+    SlowScreen::Init();
 }
 
 void MainMenu::Update() {
@@ -452,7 +479,17 @@ void MainMenu::Update() {
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
 
-    pulseTimer += dt;
+    SlowScreen::Update(dt);
+    curtainVfx.Update(dt);
+    if (curtainVfx.IsActive()) return;
+
+    unsigned long long dspClock = LobbyBgm_GetDSPClock();
+    int sampleRate = LobbyBgm_GetSamplingRate();
+    if (sampleRate > 0) {
+        pulseTimer = (float)dspClock / (float)sampleRate;
+    } else {
+        pulseTimer += dt;
+    }
     uiTime += dt;
     beatTimer += dt;
 
@@ -480,6 +517,9 @@ void MainMenu::Update() {
 
         return;
     }
+
+    LobbyBgm_Init();
+    LobbyBgm_Update();
 
     UpdateRadialParticles(dt, screenW, screenH);
 
@@ -513,31 +553,33 @@ void MainMenu::Update() {
 
     if (!introFinished) {
         introTimer += dt;
-        float duration = 1.65f;
-        float progress = Clamp01(introTimer / duration);
+        int introMs = (int)(introTimer * 1000.0f);
 
-        if (progress < 0.55f) {
-            float t = progress / 0.55f;
-            float ease = EaseOutBack(t);
-            logoScale = 3.0f + (1.0f - 3.0f) * ease;
-            logoAlpha = EaseOutCubic(std::min(1.0f, t * 1.7f));
-            logoRotation = -360.0f * (1.0f - EaseOutCubic(t));
+        if (introMs < 800) {
+            logoScale = 0.0f;
+            logoAlpha = 0.0f;
+            logoRotation = 0.0f;
         }
-        else {
+        else if (introMs < 1600) {
             if (!introImpactTriggered) {
                 introImpactTriggered = true;
                 SpawnBurst({ screenW * 0.5f, screenH * 0.39f }, MAX_BURST);
                 introFlashAlpha = 0.48f;
             }
 
-            float t = (progress - 0.55f) / 0.45f;
-            float bounce = std::sin(t * PI * 3.0f) * std::exp(-t * 5.0f) * 0.12f;
-            logoScale = 1.0f + bounce;
+            float t = (float)(introMs - 800) / 800.0f;
+            float ease = EaseOutBack(t);
+            logoScale = 2.5f + (1.0f - 2.5f) * ease;
+            logoAlpha = EaseOutCubic(t);
+            logoRotation = -180.0f * (1.0f - EaseOutCubic(t));
+        }
+        else {
+            logoScale = 1.0f;
             logoAlpha = 1.0f;
             logoRotation = 0.0f;
         }
 
-        if (progress >= 1.0f) {
+        if (introMs >= 4000) {
             introFinished = true;
             logoScale = 1.0f;
             logoAlpha = 1.0f;
@@ -548,7 +590,10 @@ void MainMenu::Update() {
     }
 
     Vector2 mouse = GetMousePosition();
-    Vector2 logoCenter = { screenW * 0.5f, screenH * 0.39f };
+    Vector2 logoCenter = {
+        screenW * (0.5f + (0.335f - 0.5f) * EaseOutCubic(menuOpenAmount)),
+        screenH * (0.39f + (0.5f - 0.39f) * EaseOutCubic(menuOpenAmount))
+    };
 
     float logoRadius = std::min(screenW, screenH) * 0.22f;
     logoRadius = std::max(135.0f, std::min(250.0f, logoRadius));
@@ -598,17 +643,14 @@ void MainMenu::Update() {
     if (menuOpenAmount > 0.03f) {
         float uiScale = (float)screenH / 720.0f;
         for (int i = 0; i < 3; ++i) {
-            float directionX = i == 0 ? -1.0f : (i == 1 ? 0.0f : 1.0f);
-            float directionY = i == 1 ? 1.0f : -0.18f;
-            float distance = (i == 1 ? 235.0f : 250.0f) * uiScale;
-
+            float t = EaseOutBack(menuOpenAmount);
             Vector2 p = {
-                logoCenter.x + directionX * distance * EaseOutBack(menuOpenAmount),
-                logoCenter.y + directionY * distance * EaseOutBack(menuOpenAmount)
+                logoCenter.x + (screenW * (0.505f + i * 0.155f) - logoCenter.x) * t,
+                logoCenter.y
             };
 
-            float w = 190.0f * uiScale;
-            float h = 70.0f * uiScale;
+            float w = 160.0f * uiScale;
+            float h = 112.0f * uiScale;
 
             Rectangle hit = {
                 p.x - w * 0.5f,
@@ -632,15 +674,26 @@ void MainMenu::Update() {
         SpawnBurst(clickPos, 30);
 
         if (selectedIndex == 0) {
-            currentState = MenuState::SongSelect;
-            songSelect.Init();
-            activeFrames = 0;
-            menuOpen = false;
-            menuOpenAmount = 0.0f;
+            curtainVfx.Start([this]() {
+                currentState = MenuState::SongSelect;
+                songSelect.Init();
+                activeFrames = 0;
+                menuOpen = false;
+                menuOpenAmount = 0.0f;
+                LobbyBgm_Stop();
+            });
+            return;
+        }
+
+        if (selectedIndex == 1) {
+            curtainVfx.Start([this]() {
+            });
             return;
         }
 
         if (selectedIndex == 2) {
+            curtainVfx.Start([this]() {
+            });
             return;
         }
     }
@@ -662,15 +715,26 @@ void MainMenu::Update() {
 
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
             if (selectedIndex == 0) {
-                currentState = MenuState::SongSelect;
-                songSelect.Init();
-                activeFrames = 0;
-                menuOpen = false;
-                menuOpenAmount = 0.0f;
+                curtainVfx.Start([this]() {
+                    currentState = MenuState::SongSelect;
+                    songSelect.Init();
+                    activeFrames = 0;
+                    menuOpen = false;
+                    menuOpenAmount = 0.0f;
+                    LobbyBgm_Stop();
+                });
+                return;
+            }
+
+            if (selectedIndex == 1) {
+                curtainVfx.Start([this]() {
+                });
                 return;
             }
 
             if (selectedIndex == 2) {
+                curtainVfx.Start([this]() {
+                });
                 return;
             }
         }
@@ -711,12 +775,17 @@ void MainMenu::Update() {
 void MainMenu::Draw(int screenWidth, int screenHeight) {
     if (currentState == MenuState::SongSelect) {
         songSelect.Draw(screenWidth, screenHeight);
+        curtainVfx.Draw(screenWidth, screenHeight);
+        SlowScreen::Draw(screenWidth, screenHeight);
         return;
     }
 
     if (!isAssetsLoaded) {
         setaTexture = LoadTexture("assets/Seta.png");
-        if (setaTexture.id != 0) SetTextureFilter(setaTexture, TEXTURE_FILTER_BILINEAR);
+        if (setaTexture.id != 0) {
+            SetTextureFilter(setaTexture, TEXTURE_FILTER_BILINEAR);
+            GenTextureMipmaps(&setaTexture);
+        }
 
         int codepoints[512];
         int count = 0;
@@ -730,7 +799,10 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             codepoints[count++] = (int)krText[i];
         }
 
-        if (FileExists("fonts/Pretendard-Black.ttf")) {
+        if (FileExists("fonts/Hakgyoansim_Dunggeunmiso_TTF_B.ttf")) {
+            customFont = LoadFontEx("fonts/Hakgyoansim_Dunggeunmiso_TTF_B.ttf", 64, codepoints, count);
+        }
+        else if (FileExists("fonts/Pretendard-Black.ttf")) {
             customFont = LoadFontEx("fonts/Pretendard-Black.ttf", 64, codepoints, count);
         }
         else if (FileExists("assets/font.ttf")) {
@@ -754,28 +826,25 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     float parallaxY = ((mouse.y / (float)std::max(1, screenHeight)) - 0.5f) * 6.0f;
 
     Vector2 center = {
-        screenWidth * 0.5f + parallaxX,
-        screenHeight * 0.39f + parallaxY
+        screenWidth * (0.5f + (0.335f - 0.5f) * EaseOutCubic(menuOpenAmount)) + parallaxX,
+        screenHeight * (0.39f + (0.5f - 0.39f) * EaseOutCubic(menuOpenAmount)) + parallaxY
     };
 
     float beat = Clamp01(beatScale);
     float strongBeat = Clamp01(beatImpact);
     float uiScale = (float)screenHeight / 720.0f;
 
-    DrawRectangleGradientV(
-        0,
-        0,
-        screenWidth,
-        screenHeight,
-        Color{ 8, 8, 8, 255 },
-        Color{ 1, 1, 1, 255 }
-    );
-
-    DrawRadialBackground(screenWidth, screenHeight, center, uiTime, strongBeat);
-    DrawBottomBars(screenWidth, screenHeight, strongBeat);
+    MenuBackground::Draw(screenWidth, screenHeight);
+    DrawPremiumAtmosphere(screenWidth, screenHeight, uiTime, introFinished ? 1.0f : Clamp01((introTimer - 0.2f) / 0.8f), beatScale);
 
     float logoBaseRadius = std::min(screenWidth, screenHeight) * 0.205f;
     logoBaseRadius = std::max(125.0f * uiScale, std::min(235.0f * uiScale, logoBaseRadius));
+
+    if (!introFinished) {
+        float borderProgress = Clamp01((introTimer * 1000.0f) / 800.0f);
+        float currentRadius = logoBaseRadius * 1.6f * EaseOutCubic(borderProgress);
+        DrawRing(center, currentRadius - 1.5f, currentRadius + 1.5f, 0.0f, 360.0f * borderProgress, 64, WithAlpha(PASTE_PINK, 0.85f));
+    }
 
     float actualBeatScale = strongBeat * 0.085f;
     float hoverScale = logoHover * 0.035f;
@@ -788,31 +857,52 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     DrawLogoDecorations(center, logoBaseRadius * visualScale, uiTime, strongBeat, logoAlpha);
 
     if (menuOpenAmount > 0.001f) {
-        float menuLineAlpha = EaseOutCubic(menuOpenAmount);
+        float t = EaseOutCubic(menuOpenAmount);
+        float bandH = screenHeight * 0.192f;
+        float bandY = screenHeight * 0.5f - bandH * 0.5f;
+        
+        Rectangle bandRect = { 0, bandY, (float)screenWidth, bandH };
+        DrawRectangleRounded(bandRect, 0.25f, 16, WithAlpha(BLACK_DEEP, 0.5f * t));
 
-        for (int i = 0; i < 3; ++i) {
-            float directionX = i == 0 ? -1.0f : (i == 1 ? 0.0f : 1.0f);
-            float directionY = i == 1 ? 1.0f : -0.18f;
-            float distance = (i == 1 ? 235.0f : 250.0f) * uiScale;
-            float t = EaseOutBack(menuOpenAmount);
-
-            Vector2 destination = {
-                center.x + directionX * distance * t,
-                center.y + directionY * distance * t
+        int segments = 120;
+        float stepW = (float)screenWidth / segments;
+        
+        for (int i = 0; i < segments; ++i) {
+            float x = i * stepW;
+            float progress = (float)i / segments;
+            
+            float colorPos = progress * 5.0f;
+            int colorIdx = (int)colorPos % 5;
+            int nextColorIdx = (colorIdx + 1) % 5;
+            float localT = colorPos - std::floor(colorPos);
+            
+            Color c1 = GetPastelColor(colorIdx);
+            Color c2 = GetPastelColor(nextColorIdx);
+            Color blended = {
+                (unsigned char)(c1.r + (c2.r - c1.r) * localT),
+                (unsigned char)(c1.g + (c2.g - c1.g) * localT),
+                (unsigned char)(c1.b + (c2.b - c1.b) * localT),
+                255
             };
+            
+            float edgeFade = 1.0f;
+            if (progress < 0.06f) edgeFade = progress / 0.06f;
+            else if (progress > 0.94f) edgeFade = (1.0f - progress) / 0.06f;
 
-            DrawLineEx(
-                center,
-                destination,
-                1.0f * uiScale,
-                Color{ 255, 255, 255, (unsigned char)(10.0f * menuLineAlpha) }
-            );
+            DrawRectangle((int)x, (int)bandY, (int)(stepW + 1.5f), (int)bandH, WithAlpha(blended, 0.28f * t * edgeFade));
+        }
 
-            DrawCircleV(
-                destination,
-                (2.0f + menuItemSelected[i] * 2.0f) * uiScale,
-                Color{ 255, 255, 255, (unsigned char)(55.0f * menuLineAlpha) }
-            );
+        DrawRectangleRoundedLines(bandRect, 0.25f, 16, WithAlpha(PASTE_PINK, 0.7f * t));
+        
+        Rectangle innerBandRect = { bandRect.x + 3, bandRect.y + 3, bandRect.width - 6, bandRect.height - 6 };
+        DrawRectangleRoundedLines(innerBandRect, 0.25f, 16, WithAlpha(PASTE_BLUE, 0.4f * t));
+        
+        for (int i = 0; i < 32; ++i) {
+            float x = screenWidth * 0.42f + i * screenWidth * 0.018f;
+            float pulse = 0.25f + 0.75f * (0.5f + 0.5f * std::sin(uiTime * 2.0f + i * 0.43f));
+            float h = (5.0f + pulse * (10.0f + strongBeat * 18.0f)) * uiScale;
+            Color barCol = GetPastelColor(i);
+            DrawLineEx({x, bandY + bandH - 8.0f * uiScale}, {x, bandY + bandH - 8.0f * uiScale - h}, 1.5f * uiScale, WithAlpha(barCol, (0.4f + pulse * 0.4f) * t));
         }
     }
 
@@ -824,7 +914,10 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             (float)setaTexture.height
         };
 
-        float textureScale = visualScale * 0.62f;
+        float maxTexDim = (float)std::max(setaTexture.width, setaTexture.height);
+        float targetDiameter = logoBaseRadius * 2.0f * visualScale;
+        float textureScale = (maxTexDim > 0.0f) ? (targetDiameter / maxTexDim) : 1.0f;
+
         float textureWidth = setaTexture.width * textureScale;
         float textureHeight = setaTexture.height * textureScale;
 
@@ -845,7 +938,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         Vector2 auraOrigin = { aura.width * 0.5f, aura.height * 0.5f };
         Vector2 origin = { dest.width * 0.5f, dest.height * 0.5f };
 
-        unsigned char auraAlpha = (unsigned char)(logoAlpha * (14.0f + strongBeat * 32.0f + logoHover * 18.0f));
+        unsigned char auraAlpha = (unsigned char)(logoAlpha * (20.0f + strongBeat * 40.0f + logoHover * 20.0f));
 
         DrawTexturePro(
             setaTexture,
@@ -853,7 +946,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             aura,
             auraOrigin,
             logoRotation,
-            Color{ 255, 255, 255, auraAlpha }
+            WithAlpha(PASTE_PINK, (float)auraAlpha / 255.0f)
         );
 
         DrawTexturePro(
@@ -871,11 +964,11 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         DrawRing(
             center,
             ring,
-            ring + 2.0f * uiScale,
+            ring + 2.5f * uiScale,
             ringRotation1,
             ringRotation1 + 270.0f,
             64,
-            Color{ 255, 255, 255, (unsigned char)(30.0f + logoHover * 70.0f) }
+            WithAlpha(PASTE_YELLOW, 0.3f + logoHover * 0.7f)
         );
     }
 
@@ -902,22 +995,22 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 
     DrawCenteredText(
         customFont,
-        "THE LINE",
+        "Rythm Air",
         screenWidth * 0.5f,
         screenHeight * 0.09f,
         std::min(28.0f * uiScale, screenWidth * 0.022f),
         5.0f * uiScale,
-        WithAlpha(WHITE_SOFT, titleAlpha * 0.78f)
+        WithAlpha(PASTE_PINK, titleAlpha * 0.9f)
     );
 
     DrawCenteredText(
         customFont,
-        menuOpen ? "SELECT MODE" : "CLICK THE LOGO",
+        menuOpen ? "CHOOSE YOUR DESTINATION" : "PRESS ENTER TO BEGIN",
         screenWidth * 0.5f,
         screenHeight * 0.13f,
         std::min(11.0f * uiScale, screenWidth * 0.009f),
         2.2f * uiScale,
-        WithAlpha(WHITE_DIM, titleAlpha * 0.58f)
+        WithAlpha(PASTE_BLUE, titleAlpha * 0.8f)
     );
 
     float bpmWidth = 80.0f * uiScale;
@@ -925,7 +1018,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         { screenWidth * 0.5f - bpmWidth * 0.5f, screenHeight * 0.17f, bpmWidth, 24.0f * uiScale },
         0.35f,
         8,
-        Color{ 255, 255, 255, 7 }
+        WithAlpha(PASTE_PURPLE, 0.3f)
     );
 
     char bpmText[32];
@@ -938,7 +1031,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         screenHeight * 0.17f + 12.0f * uiScale,
         10.0f * uiScale,
         1.5f * uiScale,
-        Color{ 185, 185, 185, (unsigned char)(titleAlpha * 115.0f) }
+        WithAlpha(PASTE_YELLOW, titleAlpha * 0.9f)
     );
 
     DrawCornerUI(customFont, screenWidth, screenHeight, titleAlpha, uiTime);
@@ -959,7 +1052,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             },
             10.0f * uiScale,
             1.5f * uiScale,
-            Color{ 145, 145, 145, 105 }
+            WithAlpha(PASTE_MINT, 0.85f)
         );
     }
 
@@ -969,7 +1062,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         DrawCircleV(
             trails[i].position,
             trails[i].size * uiScale,
-            Color{ 255, 255, 255, (unsigned char)(trails[i].alpha * 90.0f) }
+            WithAlpha(trails[i].color, trails[i].alpha * 0.7f)
         );
     }
 
@@ -977,7 +1070,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         if (bursts[i].life <= 0.0f) continue;
 
         Color color = bursts[i].color;
-        color.a = (unsigned char)(bursts[i].alpha * 210.0f);
+        color.a = (unsigned char)(bursts[i].alpha * 230.0f);
         DrawCircleV(bursts[i].position, bursts[i].size * uiScale, color);
     }
 
@@ -987,9 +1080,12 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             0,
             screenWidth,
             screenHeight,
-            Color{ 255, 255, 255, (unsigned char)(introFlashAlpha * 255.0f) }
+            WithAlpha(PASTE_PINK, introFlashAlpha * 0.6f)
         );
     }
+
+    curtainVfx.Draw(screenWidth, screenHeight);
+    SlowScreen::Draw(screenWidth, screenHeight);
 }
 
 bool MainMenu::IsGameStartSelected() const {
@@ -1005,10 +1101,13 @@ bool MainMenu::IsExitSelected() const {
 }
 
 void MainMenu::Reset() {
+    LobbyBgm_Stop();
     selectedIndex = 0;
     pulseTimer = 0.0f;
     currentState = MenuState::Main;
     activeFrames = 0;
+    SlowScreen::Init();
+    curtainVfx.Init();
 
     introTimer = 0.0f;
     introFinished = false;

@@ -1,3 +1,5 @@
+// 참고로 유령코드입니다 (지우기 귀찮아서 방치중)
+
 #ifndef BACKGROUND_ROTATION_H
 #define BACKGROUND_ROTATION_H
 

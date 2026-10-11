@@ -15,6 +15,10 @@ BIN_DIR = bin
 OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/main_Menu.o \
        $(BIN_DIR)/background_rotation.o \
+       $(BIN_DIR)/Menu_background.o \
+       $(BIN_DIR)/cursor_move.o \
+       $(BIN_DIR)/slow_screen.o \
+       $(BIN_DIR)/curtain_vfx.o \
        $(BIN_DIR)/play_scene.o \
        $(BIN_DIR)/note.o \
        $(BIN_DIR)/editor_scene.o \
@@ -25,6 +29,7 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/hit_effect.o \
        $(BIN_DIR)/note_down_animation.o \
        $(BIN_DIR)/audio_manager.o \
+       $(BIN_DIR)/lobby_bgm.o \
        $(BIN_DIR)/Selection.o \
        $(BIN_DIR)/Load.o \
        $(BIN_DIR)/play_main.o \
@@ -58,6 +63,18 @@ $(BIN_DIR)/main_Menu.o: source/Menu/main_Menu.cpp
 $(BIN_DIR)/background_rotation.o: source/Menu/background_rotation.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+$(BIN_DIR)/Menu_background.o: source/Menu/Menu_background.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/cursor_move.o: source/Menu/cursor_move.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/slow_screen.o: source/Menu/slow_screen.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/curtain_vfx.o: source/Menu/curtain_vfx.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
 $(BIN_DIR)/play_scene.o: source/play/play_scene.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
@@ -86,6 +103,9 @@ $(BIN_DIR)/note_down_animation.o: source/Animation/note_down_animation.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/audio_manager.o: source/AudioManager/audio_manager.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/lobby_bgm.o: source/music_execute/Lobby_Music/lobby_bgm.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/Selection.o: source/Menu/Map_Selection/Selection.cpp
