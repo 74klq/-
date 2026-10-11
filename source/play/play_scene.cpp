@@ -29,6 +29,7 @@ extern "C" {
 #include "../AudioManager/audio_manager.h"
 #include "../UI/Loading/Load.h"
 #include "../UI/G_I/play_main.h"
+#include "../Ending/Clear.h"
 #include "../music_execute/music1_on.cpp"
 #include "../music_execute/music2_on.cpp"
 #include "../music_execute/music3_on.cpp"
@@ -153,14 +154,12 @@ public:
 #define PLAYFIELD_Y 0.0f
 #define PLAYFIELD_WIDTH BASE_PLAYFIELD_WIDTH
 #define PLAYFIELD_HEIGHT ((float)GetScreenHeight())
-
 static const int LANE_COUNT = 4;
-static const float LANE_WIDTH = 68.0f;
-#define LANE_AREA_WIDTH ((float)LANE_COUNT * LANE_WIDTH)
-#define LANE_START_X (PLAYFIELD_X + (PLAYFIELD_WIDTH - LANE_AREA_WIDTH) / 2.0f)
-
+#define LANE_WIDTH (BASE_PLAYFIELD_WIDTH / 4.0f) 
+#define LANE_AREA_WIDTH BASE_PLAYFIELD_WIDTH
+#define LANE_START_X PLAYFIELD_X
 static inline float GetLaneXCoord(int lane) {
-    return LANE_START_X + LANE_WIDTH * ((float)lane + 0.5f);
+    return LANE_START_X + (float)LANE_WIDTH * ((float)lane + 0.5f);
 }
 
 // TODO: 하드코딩 나중에 고칠 예정
@@ -390,9 +389,12 @@ static BgaVideoPlayer s_BgaPlayer;
 static std::vector<Note> s_Notes;
 
 static PlayMainUI s_PlayMainUI;
+static ClearScreen s_ClearScreen;
 static SongInformation s_SongInfo;
-
+static ClearResultData s_ClearResult;
+static bool s_IsCleared = false;
 static int s_PerfectCount = 0;
+
 static int s_GreatCount = 0;
 static int s_GoodCount = 0;
 static int s_MissCount = 0;
@@ -724,7 +726,7 @@ static void DrawNotes(float judgmentLineY)
         const float cx = GetLaneXCoord(pNote.lane);
         const float w = LANE_WIDTH - 6.0f;
         
-        const float h = 36.0f * uiScale; 
+        const float h = 27.0f * uiScale; 
         const bool nearHit = fabsf(diffSec) < 0.22f;
         const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + pNote.lane);
 
@@ -1130,7 +1132,9 @@ void PlayScene::Init(int startSongIndex)
         s_LoadedJacketTex = { 0 };
     }
 
-    s_PlayMainUI.Init();
+ s_PlayMainUI.Init();
+    s_ClearScreen.Init();
+    s_IsCleared = false;
 
     int codepoints[256];
     for (int i = 0; i < 256; i++) codepoints[i] = i;
@@ -1143,12 +1147,23 @@ void PlayScene::Init(int startSongIndex)
 
 void PlayScene::Update()
 {
+    if (s_IsCleared)
+    {
+        s_ClearScreen.Update(GetFrameTime());
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            s_IsCleared = false;
+            s_SongSelectEnterDelay = 0.3f;
+            m_State = PlaySceneState::SongSelect;
+        }
+        return;
+    }
+
     if (s_SongSelectEnterDelay > 0.0f)
     {
         s_SongSelectEnterDelay -= GetFrameTime();
         if (s_SongSelectEnterDelay < 0.0f) s_SongSelectEnterDelay = 0.0f;
     }
-
     if (IsKeyPressed(KEY_P))
     {
         s_IsEditorMode = true;
@@ -1501,7 +1516,7 @@ void PlayScene::UpdatePlaying()
         return; 
     }
 
-    if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
+if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
     {
         FMOD_CHANNEL* ch = s_MusicPlayer.GetChannelRaw();
         if (ch)
@@ -1515,13 +1530,35 @@ void PlayScene::UpdatePlaying()
                 s_PlayableNotes.clear();
                 s_SongTimer = 0.0f;
                 s_BeatmapClock.SetChannel(nullptr);
-                s_SongSelectEnterDelay = 0.3f;
-                m_State = PlaySceneState::SongSelect; 
+                
+                s_ClearResult.title = s_SongInfo.title;
+                s_ClearResult.artist = s_SongInfo.artist;
+                s_ClearResult.difficultyName = s_SongInfo.difficultyName;
+                s_ClearResult.difficultyLevel = s_SongInfo.difficultyLevel;
+                s_ClearResult.score = s_Score;
+                s_ClearResult.accuracy = s_Accuracy;
+                s_ClearResult.maxCombo = s_MaxCombo;
+                s_ClearResult.perfectCount = s_PerfectCount;
+                s_ClearResult.greatCount = s_GreatCount;
+                s_ClearResult.goodCount = s_GoodCount;
+                s_ClearResult.missCount = s_MissCount;
+               s_ClearResult.breakCount = 0;
+                s_ClearResult.fastCount = 0;
+                s_ClearResult.slowCount = 0;
+                s_ClearResult.jacketPath = s_SongInfo.jacketPath;
+
+                if (s_Accuracy >= 100.0f && s_MissCount == 0) s_ClearResult.grade = "X";
+                else if (s_Accuracy >= 95.0f) s_ClearResult.grade = "S";
+                else if (s_Accuracy >= 90.0f) s_ClearResult.grade = "A";
+                else if (s_Accuracy >= 80.0f) s_ClearResult.grade = "B";
+                else if (s_Accuracy >= 70.0f) s_ClearResult.grade = "C";
+                else s_ClearResult.grade = "D";
+
+                s_IsCleared = true;
                 return;
             }
         }
     }
-
     float dt = GetFrameTime();
 
     s_SongTimer = static_cast<float>(s_BeatmapClock.GetCurrentTime() / 1000.0);
@@ -1621,7 +1658,7 @@ void PlayScene::UpdatePlaying()
                     s_CurrentJudgment = "PERFECT"; 
                     s_Combo++; 
                     s_PerfectCount++; 
-                    s_Score += 1000 + s_Combo * 10; 
+                    s_Score += 20;
                     s_HpRatio += 0.01f; 
                 }
                 else if (absDiff <= 0.12f) 
@@ -1629,7 +1666,7 @@ void PlayScene::UpdatePlaying()
                     s_CurrentJudgment = "GREAT"; 
                     s_Combo++; 
                     s_GreatCount++; 
-                    s_Score += 700 + s_Combo * 5; 
+                    s_Score += 10;
                     s_HpRatio += 0.005f; 
                 }
                 else 
@@ -1637,7 +1674,7 @@ void PlayScene::UpdatePlaying()
                     s_CurrentJudgment = "GOOD"; 
                     s_Combo++; 
                     s_GoodCount++; 
-                    s_Score += 300; 
+                    s_Score += 5;
                 }
 
                 if (s_Combo > s_MaxCombo) 
@@ -1708,6 +1745,12 @@ void PlayScene::UpdatePlaying()
 
 void PlayScene::Draw()
 {
+    if (s_IsCleared)
+    {
+        s_ClearScreen.Draw(s_ClearResult, GetScreenWidth(), GetScreenHeight());
+        return;
+    }
+
     if (m_State == PlaySceneState::SongSelect)
     {
         m_SongSelect.Draw(GetScreenWidth(), GetScreenHeight());
@@ -1722,7 +1765,6 @@ void PlayScene::Draw()
         s_LoadingScreen.Draw();
     }
 }
-
 void PlayScene::DrawPlaying()
 {
     if (s_IsEditorMode)
@@ -1766,7 +1808,7 @@ void PlayScene::Unload()
     }
 
     s_BgaPlayer.Close();
-
+    s_ClearScreen.Release();
     if (s_LoadedJacketTex.id != 0)
     {
         UnloadTexture(s_LoadedJacketTex);

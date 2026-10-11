@@ -487,16 +487,18 @@ void ChartSave::HandleChartInput(const std::string& audioFile,
         int screenHeight = GetScreenHeight();
         Vector2 mousePos = GetMousePosition();
 
-        float boxWidth = 400.f;
-        float boxHeight = 50.f + charts.size() * 45.f;
-        if (boxHeight < 100.f) boxHeight = 100.f;
-        if (boxHeight > 500.f) boxHeight = 500.f;
+        float uiScale = (float)screenHeight / 720.0f;
+
+        float boxWidth = 400.f * uiScale;
+        float boxHeight = (50.f + charts.size() * 45.f) * uiScale;
+        if (boxHeight < 100.f * uiScale) boxHeight = 100.f * uiScale;
+        if (boxHeight > 500.f * uiScale) boxHeight = 500.f * uiScale;
 
         Rectangle box = { (float)screenWidth / 2.f - boxWidth / 2.f, (float)screenHeight / 2.f - boxHeight / 2.f, boxWidth, boxHeight };
 
-        float startY = box.y + 25.f;
+        float startY = box.y + (25.f * uiScale);
         for (size_t i = 0; i < charts.size(); ++i) {
-            Rectangle itemBox = { box.x + 20.f, startY + (float)(i * 45.f), boxWidth - 40.f, 35.f };
+            Rectangle itemBox = { box.x + (20.f * uiScale), startY + (float)(i * 45.f * uiScale), boxWidth - (40.f * uiScale), 35.f * uiScale };
             if (CheckCollisionPointRec(mousePos, itemBox)) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     if (LoadFromOsu(charts[i].c_str(), outAudioFile, outTitle, outArtist, outCreator, outVersion, outHP, outOD, outCS, outAR, outSliderMultiplier, outSliderTickRate, outBpm, outOffset, outNotes)) {
@@ -543,35 +545,36 @@ void ChartSave::DrawChartSystemUI() {
 
     if (s_IsLoadOpen) {
         std::vector<std::string> charts = GetSavedChartList();
+        float uiScale = (float)screenHeight / 720.0f;
 
-        float boxWidth = 400.f;
-        float boxHeight = 50.f + charts.size() * 45.f;
-        if (boxHeight < 100.f) boxHeight = 100.f;
-        if (boxHeight > 500.f) boxHeight = 500.f;
+        float boxWidth = 400.f * uiScale;
+        float boxHeight = (50.f + charts.size() * 45.f) * uiScale;
+        if (boxHeight < 100.f * uiScale) boxHeight = 100.f * uiScale;
+        if (boxHeight > 500.f * uiScale) boxHeight = 500.f * uiScale;
 
         Rectangle box = { (float)screenWidth / 2.f - boxWidth / 2.f, (float)screenHeight / 2.f - boxHeight / 2.f, boxWidth, boxHeight };
         DrawRectangleRounded(box, 0.15f, 8, RAYWHITE);
         DrawRectangleRoundedLines(box, 0.15f, 8, LIGHTGRAY);
 
-        float startY = box.y + 25.f;
+        float startY = box.y + (25.f * uiScale);
         for (size_t i = 0; i < charts.size(); ++i) {
-            Rectangle itemBox = { box.x + 20.f, startY + (float)(i * 45.f), boxWidth - 40.f, 35.f };
+            Rectangle itemBox = { box.x + (20.f * uiScale), startY + (float)(i * 45.f * uiScale), boxWidth - (40.f * uiScale), 35.f * uiScale };
             bool isHovered = CheckCollisionPointRec(mousePos, itemBox);
 
             Color itemBg = isHovered ? Color{ 230, 240, 255, 255 } : WHITE;
             Rectangle drawItemBox = itemBox;
 
             if (isHovered) {
-                drawItemBox.x -= 3.f;
-                drawItemBox.y -= 1.5f;
-                drawItemBox.width += 6.f;
-                drawItemBox.height += 3.f;
+                drawItemBox.x -= 3.f * uiScale;
+                drawItemBox.y -= 1.5f * uiScale;
+                drawItemBox.width += 6.f * uiScale;
+                drawItemBox.height += 3.f * uiScale;
             }
 
             DrawRectangleRounded(drawItemBox, 0.3f, 4, itemBg);
             DrawRectangleRoundedLines(drawItemBox, 0.3f, 4, LIGHTGRAY);
 
-            DrawTextEx(s_Font, charts[i].c_str(), Vector2{ drawItemBox.x + 15.f, drawItemBox.y + 7.f }, 20, 1, DARKGRAY);
+            DrawTextEx(s_Font, charts[i].c_str(), Vector2{ drawItemBox.x + (15.f * uiScale), drawItemBox.y + (7.f * uiScale) }, 20 * uiScale, 1, DARKGRAY);
         }
     }
 }

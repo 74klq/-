@@ -62,7 +62,7 @@ void PlayMainUI::Init()
         }
 
          std::vector<int> codepoints(cpSet.begin(), cpSet.end());
-        m_MainFont = LoadFontEx("fonts/Pretendard-Black.ttf", 32, codepoints.data(), static_cast<int>(codepoints.size()));
+        m_MainFont = LoadFontEx("fonts/Pretendard-Black.ttf", 96, codepoints.data(), static_cast<int>(codepoints.size()));
 
         if (m_MainFont.texture.id != 0) {
             SetTextureFilter(m_MainFont.texture, TEXTURE_FILTER_BILINEAR);

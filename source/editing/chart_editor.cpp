@@ -50,24 +50,20 @@ static std::string s_CurrentMusicPath = "";
 static Font s_SuitFont = { 0 };
 static bool s_IsFontLoaded = false;
 
-static const float PLAYFIELD_X = 680.0f;
-static const float PLAYFIELD_Y = 0.0f;
-static const float PLAYFIELD_WIDTH = 320.0f;
-static const float PLAYFIELD_HEIGHT = 720.0f;
+static float PLAYFIELD_X = 680.0f;
+static float PLAYFIELD_Y = 0.0f;
+static float PLAYFIELD_WIDTH = 320.0f;
+static float PLAYFIELD_HEIGHT = 720.0f;
 
 static const int LANE_COUNT = 4;
-static const float LANE_WIDTH = 70.0f;
-static const float LANE_AREA_WIDTH = LANE_COUNT * LANE_WIDTH;
-static const float LANE_START_X = PLAYFIELD_X + (PLAYFIELD_WIDTH - LANE_AREA_WIDTH) / 2.0f;
+static float LANE_WIDTH = 70.0f;
+static float LANE_AREA_WIDTH = LANE_COUNT * LANE_WIDTH;
+static float LANE_START_X = 0.0f;
 
-static const float LANE_X_COORDS[4] = {
-    LANE_START_X + LANE_WIDTH * 0.5f,
-    LANE_START_X + LANE_WIDTH * 1.5f,
-    LANE_START_X + LANE_WIDTH * 2.5f,
-    LANE_START_X + LANE_WIDTH * 3.5f
-};
+static float LANE_X_COORDS[4] = { 0.0f };
 
-static const float JUDGMENT_LINE_Y = 595.0f;
+static float JUDGMENT_LINE_Y = 595.0f;
+
 
 struct EditorNoteData {
     int lane;
@@ -806,6 +802,23 @@ void ChartEditor::Render() {
         return;
     }
 
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+
+    PLAYFIELD_WIDTH = 320.0f;
+    PLAYFIELD_HEIGHT = (float)screenHeight;
+    PLAYFIELD_X = (float)screenWidth - PLAYFIELD_WIDTH;
+    PLAYFIELD_Y = 0.0f;
+
+    LANE_START_X = PLAYFIELD_X + (PLAYFIELD_WIDTH - LANE_AREA_WIDTH) / 2.0f;
+
+    LANE_X_COORDS[0] = LANE_START_X + LANE_WIDTH * 0.5f;
+    LANE_X_COORDS[1] = LANE_START_X + LANE_WIDTH * 1.5f;
+    LANE_X_COORDS[2] = LANE_START_X + LANE_WIDTH * 2.5f;
+    LANE_X_COORDS[3] = LANE_START_X + LANE_WIDTH * 3.5f;
+
+    JUDGMENT_LINE_Y = (float)screenHeight - 125.0f;
+
     if ((s_IsRecording || s_IsAutoGenerating) && m_MusicPlayer) {
         float currentMs = (float)m_MusicPlayer->GetCurrentPositionMs();
         scrollOffset = currentMs;
@@ -825,10 +838,10 @@ void ChartEditor::Render() {
         s_MetronomeFlashAlpha = 0.0f;
     }
 
-    DrawRectangle(0, 0, 1280, 720, Color{ 8, 10, 15, 255 });
+    DrawRectangle(0, 0, screenWidth, screenHeight, Color{ 8, 10, 15, 255 });
 
     DrawRectangleGradientV(
-        0, 0, 1280, 720,
+        0, 0, screenWidth, screenHeight,
         Color{ 25, 18, 45, 120 },
         Color{ 5, 10, 20, 220 }
     );
@@ -845,8 +858,11 @@ void ChartEditor::Render() {
 
     float leftVisualizerX = 40.0f;
     float leftVisualizerY = 20.0f;
-    float leftVisualizerW = 600.0f;
-    float leftVisualizerH = 680.0f;
+    float leftVisualizerW = PLAYFIELD_X - 80.0f;
+    float leftVisualizerH = (float)screenHeight - 40.0f;
+
+    if (leftVisualizerW < 100.0f) leftVisualizerW = 100.0f;
+
 
     DrawRectangleRounded(
         Rectangle{ leftVisualizerX, leftVisualizerY, leftVisualizerW, leftVisualizerH },
@@ -912,11 +928,13 @@ void ChartEditor::Render() {
             FMOD_DSP_PARAMETER_FFT* fft = (FMOD_DSP_PARAMETER_FFT*)fftData;
 
             if (fft->numchannels > 0) {
-                int barCount = 32;
+                              int barCount = 32;
                 float startX = leftVisualizerX + 35.0f;
-                float baseY = leftVisualizerY + 520.0f;
+                float baseY = leftVisualizerY + leftVisualizerH - 160.0f;
                 float totalWidth = leftVisualizerW - 70.0f;
                 float barWidth = (totalWidth / (float)barCount) - 4.0f;
+
+                if (barWidth < 1.0f) barWidth = 1.0f;
 
                 DrawLineEx(
                     { startX - 10.0f, baseY },
@@ -926,7 +944,10 @@ void ChartEditor::Render() {
 
                 for (int i = 0; i < barCount; ++i) {
                     float amplitude = fft->spectrum[0][i];
-                    float barHeight = std::clamp(amplitude * 450.0f, 2.0f, 380.0f);
+                    float maxBarHeight = leftVisualizerH - 240.0f;
+                    if (maxBarHeight < 50.0f) maxBarHeight = 50.0f;
+                    float barHeight = std::clamp(amplitude * 450.0f, 2.0f, maxBarHeight);
+
 
                     Color barColor = ColorFromHSV(
                         (float)i * 10.0f + 180.0f,
