@@ -167,7 +167,7 @@ void HoldNoteManager::Draw(float songTimer, float noteScrollSpeed, float judgmen
             headY = judgmentLineY;
         }
 
-        if (headY < -150.0f || tailY > (float)GetScreenHeight() + 150.0f) continue;
+        if (tailY < -500.0f || headY > (float)GetScreenHeight() + 500.0f) continue;
 
         float cx = GetHoldLaneXCoord(note.lane);
         float w = (400.0f / 4.0f) - 6.0f;

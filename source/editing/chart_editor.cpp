@@ -70,6 +70,8 @@ struct EditorNoteData {
     float timeMs;
     float snapErrorMs;
     Color feedbackColor;
+    int type;      // 롱노트 플래그 저장용 추가
+    int endTime;   // 롱노트 종료 시간 저장용 추가
 };
 
 static std::vector<EditorNoteData> s_EditorNotes;
@@ -592,14 +594,15 @@ void ChartEditor::HandleInput() {
         ResetBeatAnalysis();
 
         for (const auto& n : loadedNotes) {
-            float exactTimeMs = (float)n.time;
-
-            s_EditorNotes.push_back({
-                n.lane,
-                exactTimeMs,
-                0.0f,
-                WHITE
-            });
+    float exactTimeMs = (float)n.time;
+    s_EditorNotes.push_back({
+        n.lane,
+        exactTimeMs,
+        0.0f,
+        WHITE,
+        n.type,    // 원본 타입 백업
+        n.endTime  // 원본 종료시간 백업
+    });
 
             notes.push_back({
                 n.lane,
@@ -628,13 +631,15 @@ void ChartEditor::HandleInput() {
     }
 
     std::vector<SaveNoteData> currentSaveData;
-    for (size_t i = 0; i < s_EditorNotes.size(); ++i) {
-        currentSaveData.push_back({
-            s_EditorNotes[i].lane,
-            (int)s_EditorNotes[i].timeMs,
-            0
-        });
-    }
+for (size_t i = 0; i < s_EditorNotes.size(); ++i) {
+    SaveNoteData snd;
+    snd.lane = s_EditorNotes[i].lane;
+    snd.time = (int)s_EditorNotes[i].timeMs;
+    snd.type = s_EditorNotes[i].type;       // 백업된 타입 복원
+    snd.endTime = s_EditorNotes[i].endTime; // 백업된 종료시간 복원
+    
+    currentSaveData.push_back(snd);
+}
 
     std::string dummyTitle = "";
     std::string dummyArtist = "";
@@ -644,9 +649,9 @@ void ChartEditor::HandleInput() {
     float dummySliderMultiplier = 1.4f, dummySliderTickRate = 1.0f;
 
     ChartSave::HandleChartInput(
-        s_CurrentMusicPath, dummyTitle, dummyArtist, dummyCreator, dummyVersion,
-        dummyHP, dummyOD, dummyCS, s_ScrollSpeed, dummySliderMultiplier, dummySliderTickRate, // ★ dummyAR 대신 s_ScrollSpeed 대입
-        currentSaveData,
+    s_CurrentMusicPath, dummyTitle, dummyArtist, dummyCreator, dummyVersion,
+    dummyHP, dummyOD, dummyCS, s_ScrollSpeed, dummySliderMultiplier, dummySliderTickRate, // 버그 발생 위치
+    currentSaveData,
         loadedMusicPath, loadedTitle, loadedArtist, loadedCreator, loadedVersion,
         loadedHP, loadedOD, loadedCS, loadedAR, loadedSliderMultiplier, loadedSliderTickRate, 
         loadedBpm, loadedOffset, s_ScrollSpeed, loadedNotes,

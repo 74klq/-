@@ -12,6 +12,7 @@ static bool s_FontLoaded = false;
 static int s_KeyCooldown = 0;
 
 static std::string s_LastLoadedFilename = "";
+static int s_SelectedIndex = 0;
 
 static int GetOsuXFromLane(int lane, int totalLanes = 4) {
     if (totalLanes <= 0) totalLanes = 4;
@@ -80,14 +81,13 @@ bool ChartSave::SaveToOsu(const char* filename,
     file << "SliderMultiplier: " << sliderMultiplier << "\n";
     file << "SliderTickRate: " << sliderTickRate << "\n\n";
 
-        file << "[TimingPoints]\n";
+    file << "[TimingPoints]\n";
     if (bpm > 0.0f) {
         float msPerBeat = 60000.0f / bpm;
         file << "0," << msPerBeat << ",4,2,1,100,1,0\n\n";
     } else {
         file << "0,500,4,2,1,100,1,0\n\n";
     }
-
 
     file << "[HitObjects]\n";
 
@@ -99,8 +99,8 @@ bool ChartSave::SaveToOsu(const char* filename,
         int hitSound = 0;
 
         if ((type & 128) != 0) {
-          file << x << "," << y << "," << time << "," << type << "," << hitSound << "," << note.endTime << ":0:0:0:\n";
-  }       else {
+            file << x << "," << y << "," << time << "," << type << "," << hitSound << "," << note.endTime << ":0:0:0:\n";
+        } else {
             file << x << "," << y << "," << time << "," << type << "," << hitSound << ",0:0:0:0:\n";
         }
     }
@@ -267,12 +267,23 @@ bool ChartSave::LoadFromOsu(const char* filename,
                 noteData.type = type;
                 noteData.endTime = 0;
 
-                if ((type & 128) != 0 && tokens.size() >= 6) {
-    std::stringstream colonSs(tokens[5]);
-    std::string endTimeToken;
-    if (std::getline(colonSs, endTimeToken, ':')) {
-        try { noteData.endTime = std::stoi(endTimeToken); } catch (...) { noteData.endTime = time; }
-    }
+                if (tokens.size() >= 6) {
+                    std::stringstream colonSs(tokens[5]);
+                    std::string endTimeToken;
+                    if (std::getline(colonSs, endTimeToken, ':')) {
+                        try { 
+                            noteData.endTime = std::stoi(endTimeToken); 
+                        } catch (...) { 
+                            noteData.endTime = 0; 
+                        }
+                    }
+                }
+
+                if ((type & 128) != 0 || noteData.endTime > noteData.time) {
+    noteData.type = 128; 
+} else {
+    noteData.type = 1;
+    noteData.endTime = 0;
 }
 
                 outNotes.push_back(noteData);
@@ -435,6 +446,7 @@ void ChartSave::HandleChartInput(const std::string& audioFile,
 
     if (!s_IsSaveOpen && IsKeyPressed(KEY_TWO) && s_KeyCooldown == 0) {
         s_IsLoadOpen = !s_IsLoadOpen;
+        s_SelectedIndex = 0;
         s_KeyCooldown = 10;
     }
 
@@ -483,30 +495,25 @@ void ChartSave::HandleChartInput(const std::string& audioFile,
         }
 
         std::vector<std::string> charts = GetSavedChartList();
-        int screenWidth = GetScreenWidth();
-        int screenHeight = GetScreenHeight();
-        Vector2 mousePos = GetMousePosition();
+        int chartCount = (int)charts.size();
 
-        float uiScale = (float)screenHeight / 720.0f;
+        if (chartCount > 0) {
+            if (IsKeyPressed(KEY_UP)) {
+                s_SelectedIndex--;
+                if (s_SelectedIndex < 0) s_SelectedIndex = chartCount - 1;
+            }
+            if (IsKeyPressed(KEY_DOWN)) {
+                s_SelectedIndex++;
+                if (s_SelectedIndex >= chartCount) s_SelectedIndex = 0;
+            }
 
-        float boxWidth = 400.f * uiScale;
-        float boxHeight = (50.f + charts.size() * 45.f) * uiScale;
-        if (boxHeight < 100.f * uiScale) boxHeight = 100.f * uiScale;
-        if (boxHeight > 500.f * uiScale) boxHeight = 500.f * uiScale;
-
-        Rectangle box = { (float)screenWidth / 2.f - boxWidth / 2.f, (float)screenHeight / 2.f - boxHeight / 2.f, boxWidth, boxHeight };
-
-        float startY = box.y + (25.f * uiScale);
-        for (size_t i = 0; i < charts.size(); ++i) {
-            Rectangle itemBox = { box.x + (20.f * uiScale), startY + (float)(i * 45.f * uiScale), boxWidth - (40.f * uiScale), 35.f * uiScale };
-            if (CheckCollisionPointRec(mousePos, itemBox)) {
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    if (LoadFromOsu(charts[i].c_str(), outAudioFile, outTitle, outArtist, outCreator, outVersion, outHP, outOD, outCS, outAR, outSliderMultiplier, outSliderTickRate, outBpm, outOffset, outNotes)) {
-                          scrollSpeed = outAR; 
-                        fileLoaded = true;
-                        s_IsLoadOpen = false;
-                        s_KeyCooldown = 10;
-                    }
+            if (IsKeyPressed(KEY_ENTER)) {
+                if (LoadFromOsu(charts[s_SelectedIndex].c_str(), outAudioFile, outTitle, outArtist, outCreator, outVersion, outHP, outOD, outCS, outAR, outSliderMultiplier, outSliderTickRate, outBpm, outOffset, outNotes)) {
+                    scrollSpeed = outAR; 
+                    fileLoaded = true;
+                    s_IsLoadOpen = false;
+                    s_KeyCooldown = 10;
+                    s_SelectedIndex = 0;
                 }
             }
         }
@@ -519,7 +526,6 @@ void ChartSave::DrawChartSystemUI() {
 
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
-    Vector2 mousePos = GetMousePosition();
 
     DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.6f));
 
@@ -545,36 +551,35 @@ void ChartSave::DrawChartSystemUI() {
 
     if (s_IsLoadOpen) {
         std::vector<std::string> charts = GetSavedChartList();
-        float uiScale = (float)screenHeight / 720.0f;
 
-        float boxWidth = 400.f * uiScale;
-        float boxHeight = (50.f + charts.size() * 45.f) * uiScale;
-        if (boxHeight < 100.f * uiScale) boxHeight = 100.f * uiScale;
-        if (boxHeight > 500.f * uiScale) boxHeight = 500.f * uiScale;
+        float boxWidth = 400.f;
+        float boxHeight = (50.f + charts.size() * 45.f);
+        if (boxHeight < 100.f) boxHeight = 100.f;
+        if (boxHeight > 500.f) boxHeight = 500.f;
 
         Rectangle box = { (float)screenWidth / 2.f - boxWidth / 2.f, (float)screenHeight / 2.f - boxHeight / 2.f, boxWidth, boxHeight };
         DrawRectangleRounded(box, 0.15f, 8, RAYWHITE);
         DrawRectangleRoundedLines(box, 0.15f, 8, LIGHTGRAY);
 
-        float startY = box.y + (25.f * uiScale);
+        float startY = box.y + 25.f;
         for (size_t i = 0; i < charts.size(); ++i) {
-            Rectangle itemBox = { box.x + (20.f * uiScale), startY + (float)(i * 45.f * uiScale), boxWidth - (40.f * uiScale), 35.f * uiScale };
-            bool isHovered = CheckCollisionPointRec(mousePos, itemBox);
+            Rectangle itemBox = { box.x + 20.f, startY + (float)(i * 45.f), boxWidth - 40.f, 35.f };
+            bool isSelected = (s_SelectedIndex == (int)i);
 
-            Color itemBg = isHovered ? Color{ 230, 240, 255, 255 } : WHITE;
+            Color itemBg = isSelected ? Color{ 230, 240, 255, 255 } : WHITE;
             Rectangle drawItemBox = itemBox;
 
-            if (isHovered) {
-                drawItemBox.x -= 3.f * uiScale;
-                drawItemBox.y -= 1.5f * uiScale;
-                drawItemBox.width += 6.f * uiScale;
-                drawItemBox.height += 3.f * uiScale;
+            if (isSelected) {
+                drawItemBox.x -= 3.f;
+                drawItemBox.y -= 1.5f;
+                drawItemBox.width += 6.f;
+                drawItemBox.height += 3.f;
             }
 
             DrawRectangleRounded(drawItemBox, 0.3f, 4, itemBg);
             DrawRectangleRoundedLines(drawItemBox, 0.3f, 4, LIGHTGRAY);
 
-            DrawTextEx(s_Font, charts[i].c_str(), Vector2{ drawItemBox.x + (15.f * uiScale), drawItemBox.y + (7.f * uiScale) }, 20 * uiScale, 1, DARKGRAY);
+            DrawTextEx(s_Font, charts[i].c_str(), Vector2{ drawItemBox.x + 15.f, drawItemBox.y + 7.f }, 20, 1, DARKGRAY);
         }
     }
 }
