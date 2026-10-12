@@ -25,6 +25,7 @@ extern "C" {
 #include "../editing/chart_editor.h"
 #include "../editing/chart_save.h"
 #include "../vfx/hit_effect.h"
+#include "../vfx/shack.h"
 #include "../Animation/note_down_animation.h"
 #include "../AudioManager/audio_manager.h"
 #include "../UI/Loading/Load.h"
@@ -51,6 +52,7 @@ extern "C" {
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include "../Hold_Note/HoldNote.h"
 // ----------------------------------------------------------------
 
 // 싱크
@@ -158,7 +160,7 @@ static const int LANE_COUNT = 4;
 #define LANE_WIDTH (BASE_PLAYFIELD_WIDTH / 4.0f) 
 #define LANE_AREA_WIDTH BASE_PLAYFIELD_WIDTH
 #define LANE_START_X PLAYFIELD_X
-static inline float GetLaneXCoord(int lane) {
+inline float GetLaneXCoord(int lane) {
     return LANE_START_X + (float)LANE_WIDTH * ((float)lane + 0.5f);
 }
 
@@ -1149,6 +1151,27 @@ void PlayScene::Update()
 {
     if (s_IsCleared)
     {
+
+        if (IsKeyPressed(KEY_F))
+    {
+        s_ClearResult.title = "별이 보이지 않는 밤";
+        s_ClearResult.artist = "비밀 인형극 II";
+        s_ClearResult.difficultyName = "Hard";
+        s_ClearResult.difficultyLevel = 8;
+        s_ClearResult.score = 985432;
+        s_ClearResult.accuracy = 98.54f;
+        s_ClearResult.maxCombo = 1234;
+        s_ClearResult.perfectCount = 850;
+        s_ClearResult.greatCount = 120;
+        s_ClearResult.goodCount = 15;
+        s_ClearResult.missCount = 1;
+        s_ClearResult.breakCount = 0;
+        s_ClearResult.fastCount = 0;
+        s_ClearResult.slowCount = 0;
+        s_ClearResult.grade = "S";
+        s_ClearResult.jacketPath = "";
+        s_IsCleared = true;
+    }
         s_ClearScreen.Update(GetFrameTime());
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
@@ -1198,7 +1221,7 @@ void PlayScene::Update()
             float outSliderMultiplier = 1.4f, outSliderTickRate = 1.0f;
             std::vector<SaveNoteData> loadedNotes;
 
-            if (ChartSave::LoadFromOsu(
+if (ChartSave::LoadFromOsu(
                     osuFileName.c_str(), outAudioFile, outTitle, outArtist, outCreator, outVersion,
                     outHP, outOD, outCS, outAR, outSliderMultiplier, outSliderTickRate, loadedNotes))
             {
@@ -1207,24 +1230,25 @@ void PlayScene::Update()
 
                 s_Notes.clear();
                 s_PlayableNotes.clear();
+                HoldNoteManager::Clear();
 
                 for (size_t i = 0; i < loadedNotes.size(); ++i)
                 {
                     const auto& saveNote = loadedNotes[i];
 
+                    if ((saveNote.type & 128) != 0) {
+                        continue;
+                    }
+
                     PlayableNote pNote;
                     pNote.timeSec = static_cast<float>(saveNote.time) / 1000.0f;
                     pNote.lane = saveNote.lane;
-
-                    if ((saveNote.type & 128) != 0 || saveNote.type == 128) {
-                        pNote.type = 1;
-                    } else {
-                        pNote.type = saveNote.type;
-                    }
-                    
+                    pNote.type = saveNote.type;
                     pNote.active = true;
                     s_PlayableNotes.push_back(pNote);
                 }
+
+                HoldNoteManager::LoadFromChart(loadedNotes);
 
                 std::sort(s_PlayableNotes.begin(), s_PlayableNotes.end(), [](const PlayableNote& a, const PlayableNote& b) {
                     return a.timeSec < b.timeSec;
@@ -1615,6 +1639,7 @@ if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
     }
 
     HitEffect::Update();
+    Shack::Update();
 
     bool lanePressed[4] = { 
         IsKeyPressed(KEY_D), 
@@ -1646,9 +1671,9 @@ if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
                 pNote.active = false;
                 float nX = GetLaneXCoord(pNote.lane);
                 HitEffect::Spawn({ nX, judgmentLineY });
+                Shack::Trigger(0.08f, 5.0f);
 
-
-                s_ShowJudgment = true; 
+                s_ShowJudgment = true;
                 s_JudgmentTimer = 0.4f;
                 s_JudgmentLinePulse = 1.0f; 
                 s_JudgmentAnimTimer = 0.3f;
@@ -1730,6 +1755,10 @@ if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
     s_SongInfo.missCount = s_MissCount; 
     s_SongInfo.hpRatio = s_HpRatio;
 
+         HoldNoteManager::Update(s_SongTimer, s_NoteScrollSpeed, judgmentLineY,
+                            s_Combo, s_LastCombo, s_Score, s_HpRatio,
+                            s_PerfectCount, s_GreatCount, s_GoodCount, s_MissCount,
+                            s_ShowJudgment, s_JudgmentTimer, s_CurrentJudgment, s_JudgmentAnimTimer);
     s_PlayMainUI.Update(s_SongInfo);
 
     if (s_ShowJudgment)
@@ -1780,17 +1809,22 @@ void PlayScene::DrawPlaying()
         IsKeyDown(KEY_K)
     };
 
+    Shack::Begin();
+
     DrawBackground();
     DrawPlayfield();
     DrawLanes(pressedStates, judgmentLineY);
     DrawInputPanel(pressedStates, judgmentLineY);
     DrawInputFeedbackFlash(pressedStates, judgmentLineY);
     DrawNotes(judgmentLineY);
+    HoldNoteManager::Draw(s_SongTimer, s_NoteScrollSpeed, judgmentLineY);
     DrawJudgmentLine(judgmentLineY);
     DrawJudgmentText();
     DrawComboHUD();
 
     HitEffect::Draw();
+
+    Shack::End();
 
     s_PlayMainUI.Draw(s_SongInfo, GetScreenWidth(), GetScreenHeight());
 

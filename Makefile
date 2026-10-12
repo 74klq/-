@@ -27,6 +27,7 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/chart_save.o \
        $(BIN_DIR)/editor_play.o \
        $(BIN_DIR)/hit_effect.o \
+       $(BIN_DIR)/shack.o \
        $(BIN_DIR)/note_down_animation.o \
        $(BIN_DIR)/audio_manager.o \
        $(BIN_DIR)/lobby_bgm.o \
@@ -37,6 +38,7 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/Fn_click.o \
        $(BIN_DIR)/Sn_click.o \
        $(BIN_DIR)/Clear.o \
+       $(BIN_DIR)/HoldNote.o \
        $(BIN_DIR)/resource.o
 
 all: $(BIN_DIR) $(TARGET)
@@ -99,6 +101,9 @@ $(BIN_DIR)/editor_play.o: source/editing/editor_play.cpp
 $(BIN_DIR)/hit_effect.o: source/vfx/hit_effect.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+$(BIN_DIR)/shack.o: source/vfx/shack.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
 $(BIN_DIR)/note_down_animation.o: source/Animation/note_down_animation.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
@@ -127,6 +132,9 @@ $(BIN_DIR)/Sn_click.o: source/Note_Exception_Hadling/NEH_Slow_Note/Sn_click.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/Clear.o: source/Ending/Clear.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/HoldNote.o: source/Hold_Note/HoldNote.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
