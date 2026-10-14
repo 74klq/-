@@ -3,6 +3,7 @@
 #include "slow_screen.h"
 #include "curtain_vfx.h"
 #include "../music_execute/Lobby_Music/lobby_bgm.h"
+#include "../Skin/Button/UI_Button.h"
 #include <raylib.h>
 #include <cstdlib>
 #include <algorithm>
@@ -63,6 +64,7 @@ static Font customFont = { 0 };
 static bool isAssetsLoaded = false;
 static int activeFrames = 0;
 static CurtainVFX curtainVfx;
+static Skin::Button::UI_Button skinButton(0, 0, 190.0f, 74.0f, "스킨", "03", 2);
 
 static float logoScale = 0.0f;
 static float logoAlpha = 0.0f;
@@ -90,11 +92,11 @@ static float beatTimer = 0.0f;
 static float uiTime = 0.0f;
 static float backgroundFade = 0.0f;
 static int hoveredMenuIndex = -1;
-static float menuItemHover[3] = { 0.0f, 0.0f, 0.0f };
-static float menuItemSelected[3] = { 0.0f, 0.0f, 0.0f };
-static float menuItemVelocity[3] = { 0.0f, 0.0f, 0.0f };
-static float menuItemSweep[3] = { 0.0f, 0.0f, 0.0f };
-static float menuItemPulse[3] = { 0.0f, 0.0f, 0.0f };
+static float menuItemHover[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+static float menuItemSelected[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+static float menuItemVelocity[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+static float menuItemSweep[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+static float menuItemPulse[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 static const float MENU_BPM = 180.0f;
 static const Color PASTE_PINK = { 255, 182, 193, 255 };
@@ -337,31 +339,6 @@ static void DrawBottomBars(int width, int height, float beat) {
     }
 }
 
-static void DrawCornerUI(Font font, int width, int height, float alpha, float time) {
-    float uiScale = (float)height / 720.0f;
-    float margin = std::max(24.0f * uiScale, width * 0.025f);
-    float length = 34.0f * uiScale;
-    Color line = WithAlpha(PASTE_PINK, alpha * 0.6f);
-
-    DrawLineEx({ margin, margin + length }, { margin, margin }, 2.0f * uiScale, line);
-    DrawLineEx({ margin, margin }, { margin + length, margin }, 2.0f * uiScale, line);
-    DrawLineEx({ width - margin - length, margin }, { width - margin, margin }, 2.0f * uiScale, WithAlpha(PASTE_YELLOW, alpha * 0.6f));
-    DrawLineEx({ width - margin, margin }, { width - margin, margin + length }, 2.0f * uiScale, WithAlpha(PASTE_YELLOW, alpha * 0.6f));
-    DrawLineEx({ margin, height - margin - length }, { margin, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_BLUE, alpha * 0.6f));
-    DrawLineEx({ margin, height - margin }, { margin + length, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_BLUE, alpha * 0.6f));
-    DrawLineEx({ width - margin - length, height - margin }, { width - margin, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_MINT, alpha * 0.6f));
-    DrawLineEx({ width - margin, height - margin - length }, { width - margin, height - margin }, 2.0f * uiScale, WithAlpha(PASTE_MINT, alpha * 0.6f));
-
-    DrawTextEx(font, "SETA", { margin + 3.0f * uiScale, margin + 42.0f * uiScale }, 12.0f * uiScale, 2.5f * uiScale, WithAlpha(PASTE_PINK, alpha * 0.75f));
-
-    const char* status = "MAIN MENU";
-    Vector2 statusSize = MeasureTextEx(font, status, 11.0f * uiScale, 2.0f * uiScale);
-    DrawTextEx(font, status, { width - margin - statusSize.x, margin + 42.0f * uiScale }, 11.0f * uiScale, 2.0f * uiScale, WithAlpha(PASTE_BLUE, alpha * 0.75f));
-
-    float pulse = 0.45f + std::sin(time * 3.0f) * 0.25f;
-    DrawCircleV({ width - margin - 6.0f * uiScale, height - margin - 5.0f * uiScale }, 3.0f * uiScale, WithAlpha(PASTE_YELLOW, pulse * alpha));
-}
-
 static void DrawPremiumAtmosphere(int width, int height, float time, float alpha, float beat) {
     float scale = (float)height / 720.0f;
     float margin = std::max(26.0f * scale, width * 0.025f);
@@ -393,7 +370,7 @@ static void DrawPremiumAtmosphere(int width, int height, float time, float alpha
             DrawLineEx({x, y - h}, {x, y + h}, 1.2f * scale, WithAlpha(multiColor, (0.15f + envelope * 0.25f) * alpha));
         }
     }
-    DrawText("S E T A   /   Rythm Air", (int)margin, (int)(height * 0.885f), (int)std::max(9.0f, 10.0f * scale), WithAlpha(PASTE_PINK, 0.8f * alpha));
+    DrawText("R Y T H M   A I R", (int)margin, (int)(height * 0.885f), (int)std::max(9.0f, 10.0f * scale), WithAlpha(PASTE_PINK, 0.8f * alpha));
     const char* build = "INTERACTIVE AUDIO VISUAL";
     int buildW = MeasureText(build, (int)std::max(9.0f, 9.0f * scale));
     DrawText(build, width - (int)margin - buildW, (int)(height * 0.885f), (int)std::max(9.0f, 9.0f * scale), WithAlpha(PASTE_BLUE, 0.8f * alpha));
@@ -437,12 +414,17 @@ static void DrawExpandedMenuItem(Font font, const char* label, const char* index
     float uiScale = (float)GetScreenHeight() / 720.0f;
     float screenW = (float)GetScreenWidth();
     float itemOpen = EaseOutBack(open);
-    float targetX = screenW * (0.505f + index * 0.155f);
+
+    float spacing = 220.0f * uiScale;
+    float startX = screenW * 0.5f - 1.5f * spacing;
+    float targetX = startX + index * spacing;
+    float targetY = center.y + 240.0f * uiScale;
+
     float x = center.x + (targetX - center.x) * itemOpen;
-    float y = center.y + std::sin(time * 1.5f + index * 0.7f) * 1.2f * uiScale;
+    float y = targetY + std::sin(time * 1.5f + index * 0.7f) * 1.2f * uiScale;
     float appear = Clamp01(open * 1.3f - index * 0.055f);
-    float width = (160.0f + selected * 18.0f + hover * 8.0f) * uiScale;
-    float height = 104.0f * uiScale;
+    float width = 190.0f * uiScale;
+    float height = 74.0f * uiScale;
     Rectangle box = { x - width * 0.5f, y - height * 0.5f, width, height };
     if (appear <= 0.01f) return;
 
@@ -451,20 +433,20 @@ static void DrawExpandedMenuItem(Font font, const char* label, const char* index
     Color thirdColor = GetPastelColor(index + 4);
 
     Color panel = selected > 0.5f ? Color{ 255, 255, 255, (unsigned char)(245.0f * appear) } 
-                                  : WithAlpha(baseColor, 0.55f * appear);
+                                  : WithAlpha(baseColor, 0.65f * appear);
 
-    DrawRectangleRounded(box, 0.85f, 16, panel);
-    DrawRectangleRoundedLines(box, 0.85f, 16, WithAlpha(secondColor, appear * 0.85f));
+    DrawRectangleRounded(box, 0.5f, 16, panel);
+    DrawRectangleRoundedLines(box, 0.5f, 16, WithAlpha(secondColor, appear * 0.85f));
     
-    Rectangle innerBox = { box.x + 5, box.y + 5, box.width - 10, box.height - 10 };
-    DrawRectangleRoundedLines(innerBox, 0.85f, 16, WithAlpha(thirdColor, appear * 0.4f));
+    Rectangle innerBox = { box.x + 4, box.y + 4, box.width - 8, box.height - 8 };
+    DrawRectangleRoundedLines(innerBox, 0.5f, 16, WithAlpha(thirdColor, appear * 0.4f));
 
-    DrawTextEx(font, indexText, { box.x + 18.0f * uiScale, box.y + 16.0f * uiScale }, 11.0f * uiScale, 1.0f * uiScale, WithAlpha(thirdColor, appear * 0.95f));
+    DrawTextEx(font, indexText, { box.x + 14.0f * uiScale, box.y + 12.0f * uiScale }, 10.0f * uiScale, 1.0f * uiScale, WithAlpha(thirdColor, appear * 0.95f));
 
-    float labelFontSize = (22.0f + selected * 3.0f) * uiScale;
+    float labelFontSize = (20.0f + selected * 3.0f) * uiScale;
     Vector2 labelSize = MeasureTextEx(font, label, labelFontSize, 1.0f * uiScale);
     Color textColor = selected > 0.5f ? Color{ 60, 50, 60, (unsigned char)(255.0f * appear) } : Color{ 255, 255, 255, (unsigned char)(245.0f * appear) };
-    DrawTextEx(font, label, { box.x + (box.width - labelSize.x) * 0.5f, box.y + (box.height - labelSize.y) * 0.5f + 4.0f * uiScale }, labelFontSize, 1.0f * uiScale, textColor);
+    DrawTextEx(font, label, { box.x + (box.width - labelSize.x) * 0.5f, box.y + (box.height - labelSize.y) * 0.5f + 2.0f * uiScale }, labelFontSize, 1.0f * uiScale, textColor);
 }
 
 MainMenu::MainMenu() {
@@ -591,12 +573,12 @@ void MainMenu::Update() {
 
     Vector2 mouse = GetMousePosition();
     Vector2 logoCenter = {
-        screenW * (0.5f + (0.335f - 0.5f) * EaseOutCubic(menuOpenAmount)),
-        screenH * (0.39f + (0.5f - 0.39f) * EaseOutCubic(menuOpenAmount))
+        screenW * 0.5f,
+        screenH * 0.39f
     };
 
-    float logoRadius = std::min(screenW, screenH) * 0.22f;
-    logoRadius = std::max(135.0f, std::min(250.0f, logoRadius));
+    float logoRadius = std::min(screenW, screenH) * 0.25f;
+    logoRadius = std::max(150.0f, std::min(280.0f, logoRadius));
 
     float distanceToLogo = std::sqrt(
         std::pow(mouse.x - logoCenter.x, 2.0f) +
@@ -621,7 +603,7 @@ void MainMenu::Update() {
 
         if (menuOpen) {
             selectedIndex = 0;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 4; ++i) {
                 menuItemPulse[i] = 1.0f;
                 menuItemSweep[i] = 0.0f;
             }
@@ -642,15 +624,33 @@ void MainMenu::Update() {
 
     if (menuOpenAmount > 0.03f) {
         float uiScale = (float)screenH / 720.0f;
-        for (int i = 0; i < 3; ++i) {
-            float t = EaseOutBack(menuOpenAmount);
+        float spacing = 220.0f * uiScale;
+        float startX = screenW * 0.5f - 1.5f * spacing;
+
+        float targetX2 = startX + 2 * spacing;
+        float targetY2 = logoCenter.y + 240.0f * uiScale;
+        float itemOpen = EaseOutBack(menuOpenAmount);
+        float x2 = logoCenter.x + (targetX2 - logoCenter.x) * itemOpen;
+        float y2 = targetY2 + std::sin(uiTime * 1.5f + 2 * 0.7f) * 1.2f * uiScale;
+        float w2 = 190.0f * uiScale;
+        float h2 = 74.0f * uiScale;
+        skinButton.SetPosition(x2 - w2 * 0.5f, y2 - h2 * 0.5f);
+        skinButton.Update(dt, menuOpen && selectedIndex == 2, hoveredMenuIndex == 2, mouse, IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+
+        if (skinButton.CheckCollision(mouse)) {
+            hoveredMenuIndex = 2;
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            if (i == 2) continue;
+
             Vector2 p = {
-                logoCenter.x + (screenW * (0.505f + i * 0.155f) - logoCenter.x) * t,
-                logoCenter.y
+                startX + i * spacing,
+                logoCenter.y + 240.0f * uiScale
             };
 
-            float w = 160.0f * uiScale;
-            float h = 112.0f * uiScale;
+            float w = 190.0f * uiScale;
+            float h = 74.0f * uiScale;
 
             Rectangle hit = {
                 p.x - w * 0.5f,
@@ -692,6 +692,11 @@ void MainMenu::Update() {
         }
 
         if (selectedIndex == 2) {
+            skinButton.ToggleExpand();
+            return;
+        }
+
+        if (selectedIndex == 3) {
             curtainVfx.Start([this]() {
             });
             return;
@@ -699,13 +704,13 @@ void MainMenu::Update() {
     }
 
     if (menuOpen) {
-        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            selectedIndex = (selectedIndex - 1 + totalOptions) % totalOptions;
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
+            selectedIndex = (selectedIndex - 1 + 4) % 4;
             menuItemPulse[selectedIndex] = 1.0f;
         }
 
-        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            selectedIndex = (selectedIndex + 1) % totalOptions;
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
+            selectedIndex = (selectedIndex + 1) % 4;
             menuItemPulse[selectedIndex] = 1.0f;
         }
 
@@ -733,6 +738,11 @@ void MainMenu::Update() {
             }
 
             if (selectedIndex == 2) {
+                skinButton.ToggleExpand();
+                return;
+            }
+
+            if (selectedIndex == 3) {
                 curtainVfx.Start([this]() {
                 });
                 return;
@@ -746,7 +756,7 @@ void MainMenu::Update() {
         SpawnBurst(logoCenter, 45);
     }
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         float targetSelected = menuOpen && selectedIndex == i ? 1.0f : 0.0f;
         float force = (targetSelected - menuItemSelected[i]) * 115.0f;
         menuItemVelocity[i] += force * dt;
@@ -794,7 +804,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             codepoints[count++] = i;
         }
 
-        const wchar_t* krText = L"플레이설정나가기메인메뉴시스템온라인";
+        const wchar_t* krText = L"플레이설정스킨나가기메인메뉴시스템온라인기본도형";
         for (int i = 0; krText[i] != L'\0'; ++i) {
             codepoints[count++] = (int)krText[i];
         }
@@ -826,8 +836,8 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     float parallaxY = ((mouse.y / (float)std::max(1, screenHeight)) - 0.5f) * 6.0f;
 
     Vector2 center = {
-        screenWidth * (0.5f + (0.335f - 0.5f) * EaseOutCubic(menuOpenAmount)) + parallaxX,
-        screenHeight * (0.39f + (0.5f - 0.39f) * EaseOutCubic(menuOpenAmount)) + parallaxY
+        screenWidth * 0.5f + parallaxX,
+        screenHeight * 0.39f + parallaxY
     };
 
     float beat = Clamp01(beatScale);
@@ -835,10 +845,11 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     float uiScale = (float)screenHeight / 720.0f;
 
     MenuBackground::Draw(screenWidth, screenHeight);
+    DrawRadialBackground(screenWidth, screenHeight, center, uiTime, beat);
     DrawPremiumAtmosphere(screenWidth, screenHeight, uiTime, introFinished ? 1.0f : Clamp01((introTimer - 0.2f) / 0.8f), beatScale);
 
-    float logoBaseRadius = std::min(screenWidth, screenHeight) * 0.205f;
-    logoBaseRadius = std::max(125.0f * uiScale, std::min(235.0f * uiScale, logoBaseRadius));
+    float logoBaseRadius = std::min(screenWidth, screenHeight) * 0.25f;
+    logoBaseRadius = std::max(150.0f * uiScale, std::min(280.0f * uiScale, logoBaseRadius));
 
     if (!introFinished) {
         float borderProgress = Clamp01((introTimer * 1000.0f) / 800.0f);
@@ -855,56 +866,6 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     float logoRadius = logoBaseRadius * visualScale;
 
     DrawLogoDecorations(center, logoBaseRadius * visualScale, uiTime, strongBeat, logoAlpha);
-
-    if (menuOpenAmount > 0.001f) {
-        float t = EaseOutCubic(menuOpenAmount);
-        float bandH = screenHeight * 0.192f;
-        float bandY = screenHeight * 0.5f - bandH * 0.5f;
-        
-        Rectangle bandRect = { 0, bandY, (float)screenWidth, bandH };
-        DrawRectangleRounded(bandRect, 0.25f, 16, WithAlpha(BLACK_DEEP, 0.5f * t));
-
-        int segments = 120;
-        float stepW = (float)screenWidth / segments;
-        
-        for (int i = 0; i < segments; ++i) {
-            float x = i * stepW;
-            float progress = (float)i / segments;
-            
-            float colorPos = progress * 5.0f;
-            int colorIdx = (int)colorPos % 5;
-            int nextColorIdx = (colorIdx + 1) % 5;
-            float localT = colorPos - std::floor(colorPos);
-            
-            Color c1 = GetPastelColor(colorIdx);
-            Color c2 = GetPastelColor(nextColorIdx);
-            Color blended = {
-                (unsigned char)(c1.r + (c2.r - c1.r) * localT),
-                (unsigned char)(c1.g + (c2.g - c1.g) * localT),
-                (unsigned char)(c1.b + (c2.b - c1.b) * localT),
-                255
-            };
-            
-            float edgeFade = 1.0f;
-            if (progress < 0.06f) edgeFade = progress / 0.06f;
-            else if (progress > 0.94f) edgeFade = (1.0f - progress) / 0.06f;
-
-            DrawRectangle((int)x, (int)bandY, (int)(stepW + 1.5f), (int)bandH, WithAlpha(blended, 0.28f * t * edgeFade));
-        }
-
-        DrawRectangleRoundedLines(bandRect, 0.25f, 16, WithAlpha(PASTE_PINK, 0.7f * t));
-        
-        Rectangle innerBandRect = { bandRect.x + 3, bandRect.y + 3, bandRect.width - 6, bandRect.height - 6 };
-        DrawRectangleRoundedLines(innerBandRect, 0.25f, 16, WithAlpha(PASTE_BLUE, 0.4f * t));
-        
-        for (int i = 0; i < 32; ++i) {
-            float x = screenWidth * 0.42f + i * screenWidth * 0.018f;
-            float pulse = 0.25f + 0.75f * (0.5f + 0.5f * std::sin(uiTime * 2.0f + i * 0.43f));
-            float h = (5.0f + pulse * (10.0f + strongBeat * 18.0f)) * uiScale;
-            Color barCol = GetPastelColor(i);
-            DrawLineEx({x, bandY + bandH - 8.0f * uiScale}, {x, bandY + bandH - 8.0f * uiScale - h}, 1.5f * uiScale, WithAlpha(barCol, (0.4f + pulse * 0.4f) * t));
-        }
-    }
 
     if (setaTexture.id != 0) {
         Rectangle src = {
@@ -973,21 +934,25 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     }
 
     if (menuOpenAmount > 0.01f) {
-        const char* labels[3] = { "플레이", "설정", "나가기" };
-        const char* indices[3] = { "01", "02", "03" };
+        const char* labels[4] = { "플레이", "설정", "스킨", "나가기" };
+        const char* indices[4] = { "01", "02", "03", "04" };
 
-        for (int i = 0; i < 3; ++i) {
-            DrawExpandedMenuItem(
-                customFont,
-                labels[i],
-                indices[i],
-                center,
-                menuOpenAmount,
-                menuItemSelected[i],
-                menuItemHover[i],
-                uiTime,
-                i
-            );
+        for (int i = 0; i < 4; ++i) {
+            if (i == 2) {
+                skinButton.Draw(customFont, menuOpenAmount, uiTime);
+            } else {
+                DrawExpandedMenuItem(
+                    customFont,
+                    labels[i],
+                    indices[i],
+                    center,
+                    menuOpenAmount,
+                    menuItemSelected[i],
+                    menuItemHover[i],
+                    uiTime,
+                    i
+                );
+            }
         }
     }
 
@@ -1012,29 +977,6 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
         2.2f * uiScale,
         WithAlpha(PASTE_BLUE, titleAlpha * 0.8f)
     );
-
-    float bpmWidth = 80.0f * uiScale;
-    DrawRectangleRounded(
-        { screenWidth * 0.5f - bpmWidth * 0.5f, screenHeight * 0.17f, bpmWidth, 24.0f * uiScale },
-        0.35f,
-        8,
-        WithAlpha(PASTE_PURPLE, 0.3f)
-    );
-
-    char bpmText[32];
-    std::snprintf(bpmText, sizeof(bpmText), "%d BPM", (int)MENU_BPM);
-
-    DrawCenteredText(
-        customFont,
-        bpmText,
-        screenWidth * 0.5f,
-        screenHeight * 0.17f + 12.0f * uiScale,
-        10.0f * uiScale,
-        1.5f * uiScale,
-        WithAlpha(PASTE_YELLOW, titleAlpha * 0.9f)
-    );
-
-    DrawCornerUI(customFont, screenWidth, screenHeight, titleAlpha, uiTime);
 
     if (introFinished) {
         const char* hint = menuOpen
@@ -1095,7 +1037,7 @@ bool MainMenu::IsGameStartSelected() const {
 
 bool MainMenu::IsExitSelected() const {
     return currentState == MenuState::Main &&
-           selectedIndex == 2 &&
+           selectedIndex == 3 &&
            introFinished &&
            (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE));
 }
@@ -1136,7 +1078,7 @@ void MainMenu::Reset() {
     backgroundFade = 0.0f;
     hoveredMenuIndex = -1;
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         menuItemHover[i] = 0.0f;
         menuItemSelected[i] = 0.0f;
         menuItemVelocity[i] = 0.0f;

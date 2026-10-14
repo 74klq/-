@@ -39,6 +39,10 @@ OBJS = $(BIN_DIR)/b_main.o \
        $(BIN_DIR)/Sn_click.o \
        $(BIN_DIR)/Clear.o \
        $(BIN_DIR)/HoldNote.o \
+       $(BIN_DIR)/Diagram_Short_Note.o \
+       $(BIN_DIR)/Diagram_Hold_Note.o \
+       $(BIN_DIR)/Diagram_Judgment_Skin.o \
+       $(BIN_DIR)/UI_Button.o \
        $(BIN_DIR)/resource.o
 
 all: $(BIN_DIR) $(TARGET)
@@ -135,6 +139,18 @@ $(BIN_DIR)/Clear.o: source/Ending/Clear.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN_DIR)/HoldNote.o: source/Hold_Note/HoldNote.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/Diagram_Short_Note.o: source/skin/Note_Skin/short_note/Diagram/Diagram_Short_Note.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/Diagram_Hold_Note.o: source/skin/Note_Skin/hold_note/Diagram/Diagram_Hold_Note.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/Diagram_Judgment_Skin.o: source/skin/Judgment_Skin/Diagram/Diagram_Judgment.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BIN_DIR)/UI_Button.o: source/skin/Button/UI_Button.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:

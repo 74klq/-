@@ -175,8 +175,9 @@ void HoldNoteManager::Draw(float songTimer, float noteScrollSpeed, float judgmen
 
         if (bodyHeight < 0.0f) bodyHeight = 0.0f;
 
-        DrawRectangleRounded({ cx - w * 0.5f, tailY, w, bodyHeight }, 0.1f, 4, Color{ 150, 150, 220, 180 });
+        DrawRectangleRounded({ cx - w * 0.5f, tailY, w, bodyHeight }, 0.1f, 4, Color{ 255, 255, 255, 120 });
+        
         DrawRectangleRounded({ cx - w * 0.5f, headY - 12.0f, w, 24.0f }, 0.2f, 6, Color{ 218, 218, 221, 255 });
-        DrawRectangleRounded({ cx - w * 0.5f, tailY - 12.0f, w, 24.0f }, 0.2f, 6, Color{ 180, 180, 240, 255 });
+        
     }
 }

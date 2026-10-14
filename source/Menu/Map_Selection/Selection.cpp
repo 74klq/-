@@ -9,7 +9,7 @@
 
 static std::vector<Texture2D> g_jacketTextures;
 static FMOD_SYSTEM* g_fmodSystem = nullptr;
-static FMOD_SOUND* g_fmodSounds[10] = { nullptr };
+static FMOD_SOUND* g_fmodSounds[15] = { nullptr };
 static FMOD_CHANNEL* g_fmodChannel = nullptr;
 static int g_currentPlayingSongIndex = -1;
 static float g_songSwitchTimer = 0.0f;
@@ -21,7 +21,7 @@ struct SongHighlight {
     unsigned int durationMs;
 };
 
-static const SongHighlight g_songHighlights[10] = {
+static const SongHighlight g_songHighlights[15] = {
     { 95000, 12000 },
     { 99000, 12000 },
     { 73000, 12000 },
@@ -31,10 +31,15 @@ static const SongHighlight g_songHighlights[10] = {
     { 22000, 12000 },
     { 76000, 12000 },
     { 118000, 12000 },
-    { 511000, 12000 }
+    { 511000, 12000 },
+    { 170000, 12000 }, // 11번째 곡 (2분 50초)
+    { 88000, 12000 },  // 12번째 곡 (1분 28초)
+    { 123000, 12000 }, // 13번째 곡 (2분 3초)
+    { 95000, 12000 },  // 14번째 곡 (1분 35초)
+    { 234000, 12000 }  // 15번째 곡 (3분 54초)
 };
 
-static const char* g_musicPaths[10] = {
+static const char* g_musicPaths[15] = {
     "music/A_Night_Without_Visible_Stars.ogg",
     "music/kaleidoscope.ogg",
     "music/SkysCape.wav",
@@ -44,7 +49,12 @@ static const char* g_musicPaths[10] = {
     "music/N.ogg",
     "music/doll.ogg",
     "music/R.ogg",
-    "music/Megamix.ogg"
+    "music/Megamix.ogg",
+    "music/Maelstrom.ogg",
+    "music/AAAA.ogg",
+    "music/magic.ogg",
+    "music/Stars_2021.ogg",
+    "music/MemoryLocked.ogg"
 };
 
 static inline float EaseOutCubic(float x) {
@@ -73,7 +83,7 @@ SongSelect::~SongSelect() {
         FMOD_Channel_Stop(g_fmodChannel);
         g_fmodChannel = nullptr;
     }
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 15; ++i) {
         if (g_fmodSounds[i]) {
             FMOD_Sound_Release(g_fmodSounds[i]);
             g_fmodSounds[i] = nullptr;
@@ -105,7 +115,7 @@ void SongSelect::Init() {
         FMOD_System_Init(g_fmodSystem, 512, FMOD_INIT_NORMAL, 0);
     }
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 15; ++i) {
         if (!g_fmodSounds[i]) {
             FMOD_System_CreateSound(g_fmodSystem, g_musicPaths[i], FMOD_CREATESTREAM, 0, &g_fmodSounds[i]);
         }
@@ -127,6 +137,11 @@ void SongSelect::Init() {
         "music_assets/SecretDoll2.png",
         "music_assets/R.png",
         "music_assets/PlumMegamix.png",
+        "music_assets/Maelstrom.png",
+        "music_assets/Tempest.png",
+        "music_assets/magic.png",
+        "music_assets/Stars2021.png",
+        "music_assets/MemoryLocked.png"
     };
 
     for (const auto& path : jacketPaths) {
@@ -170,7 +185,13 @@ void SongSelect::Init() {
             "비밀인형극 II",
             "PLUM MEGAMIX",
             "The Lost Aria",
-            "Maelstrom"
+            "Maelstrom",
+            "마법의 문구점",
+            "Tempest",
+            "MemoryLocked",
+            "별이 보이지 않는밤 (2021리메이크)",
+            "ほしのおとしもの",
+            "ああああ"
         };
 
         for (const auto& text : texts) {
@@ -227,7 +248,7 @@ void SongSelect::Init() {
     g_pendingSongSwitch = false;
     g_songSwitchTimer = 0.0f;
 
-    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 10 && g_fmodSounds[selectedSongIndex]) {
+    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 15 && g_fmodSounds[selectedSongIndex]) {
         FMOD_System_PlaySound(g_fmodSystem, g_fmodSounds[selectedSongIndex], 0, false, &g_fmodChannel);
         FMOD_Channel_SetPosition(g_fmodChannel, g_songHighlights[selectedSongIndex].startMs, FMOD_TIMEUNIT_MS);
         g_currentPlayingSongIndex = selectedSongIndex;
@@ -366,6 +387,71 @@ void SongSelect::LoadSongs() {
     song10.musicPlayerActive = 10; 
     song10.videoFileName = "";
     songs.push_back(song10);
+
+    SongData song11;
+    song11.title = "Maelstrom";
+    song11.artist = "Plum";
+    song11.mapper = "Seta";
+    song11.bpm = 150.0f;
+    song11.length = 120.0f;
+    song11.cleared = false;
+    song11.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song11.osuFileName = "Maelstrom.osu";          
+    song11.musicPlayerActive = 11;
+    song11.videoFileName = "";
+    songs.push_back(song11);
+
+    SongData song12;
+    song12.title = "ほしのおとしもの";
+    song12.artist = "ああああ";
+    song12.mapper = "Seta";
+    song12.bpm = 150.0f;
+    song12.length = 120.0f;
+    song12.cleared = false;
+    song12.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song12.osuFileName = "AAAAA.osu";          
+    song12.musicPlayerActive = 12;
+    song12.videoFileName = "";
+    songs.push_back(song12);
+
+    SongData song13;
+    song13.title = "마법의 문구점";
+    song13.artist = "Plum";
+    song13.mapper = "Seta";
+    song13.bpm = 150.0f;
+    song13.length = 120.0f;
+    song13.cleared = false;
+    song13.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song13.osuFileName = "magic.osu";          
+    song13.musicPlayerActive = 13;
+    song13.videoFileName = "";
+    songs.push_back(song13);
+
+    SongData song14;
+    song14.title = "별이 보이지 않는밤 (2021리메이크)";
+    song14.artist = "Plum";
+    song14.mapper = "Seta";
+    song14.bpm = 150.0f;
+    song14.length = 120.0f;
+    song14.cleared = false;
+    song14.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song14.osuFileName = "new_song.osu";          
+    song14.musicPlayerActive = 14;
+    song14.videoFileName = "";
+    songs.push_back(song14);
+
+    SongData song15;
+    song15.title = "MemoryLocked";
+    song15.artist = "Plum";
+    song15.mapper = "Seta";
+    song15.bpm = 150.0f;
+    song15.length = 120.0f;
+    song15.cleared = false;
+    song15.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song15.osuFileName = "new_song.osu";          
+    song15.musicPlayerActive = 15;
+    song15.videoFileName = "";
+    songs.push_back(song15);
 }
 
 void SongSelect::Update() {
@@ -436,7 +522,7 @@ void SongSelect::Update() {
     if (g_pendingSongSwitch) {
         g_songSwitchTimer += dt;
         if (g_songSwitchTimer >= 0.5f) {
-            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 10 && g_fmodSounds[g_pendingSongIndex]) {
+            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 15 && g_fmodSounds[g_pendingSongIndex]) {
                 if (g_fmodChannel) {
                     FMOD_Channel_Stop(g_fmodChannel);
                     g_fmodChannel = nullptr;
@@ -453,7 +539,7 @@ void SongSelect::Update() {
         FMOD_System_Update(g_fmodSystem);
     }
 
-    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 10) {
+    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 15) {
         unsigned int pos = 0;
         FMOD_Channel_GetPosition(g_fmodChannel, &pos, FMOD_TIMEUNIT_MS);
         unsigned int startMs = g_songHighlights[g_currentPlayingSongIndex].startMs;

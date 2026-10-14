@@ -3,7 +3,7 @@
 
 static float s_ShackTimer = 0.0f;
 static float s_ShackDuration = 0.1f;
-static float s_ShackMagnitude = 6.0f;
+static float s_ShackMagnitude = 3.0f;
 static Camera2D s_ShackCamera = { 0 };
 
 void Shack::Trigger(float duration, float magnitude)

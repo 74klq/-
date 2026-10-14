@@ -41,6 +41,11 @@ extern "C" {
 #include "../music_execute/music8_on.cpp"
 #include "../music_execute/music9_on.cpp"
 #include "../music_execute/music10_on.cpp"
+#include "../music_execute/music11_on.cpp"
+#include "../music_execute/music12_on.cpp"
+#include "../music_execute/music13_on.cpp"
+#include "../music_execute/music14_on.cpp"
+#include "../music_execute/music15_on.cpp"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -53,6 +58,10 @@ extern "C" {
 #include <atomic>
 #include <chrono>
 #include "../Hold_Note/HoldNote.h"
+#include "../Skin/Button/UI_Button.h"
+#include "../Skin/Note_Skin/short_note/Diagram/Diagram_Short_Note.h"
+#include "../Skin/Note_Skin/hold_note/Diagram/Diagram_Hold_Note.h"
+#include "../Skin/Judgment_Skin/Diagram/Diagram_Judgment.h"
 // ----------------------------------------------------------------
 
 // 싱크
@@ -181,13 +190,29 @@ struct MusicPlayerWrapper {
     MusicExecute::MusicPlayer8* p8 = nullptr;
     MusicExecute::MusicPlayer9* p9 = nullptr;
     MusicExecute::MusicPlayer10* p10 = nullptr;
+    MusicExecute::MusicPlayer11* p11 = nullptr;
+    MusicExecute::MusicPlayer12* p12 = nullptr;
+    MusicExecute::MusicPlayer13* p13 = nullptr;
+    MusicExecute::MusicPlayer14* p14 = nullptr;
+    MusicExecute::MusicPlayer15* p15 = nullptr;
     int active = 1;
 
     void Init(AudioManager& am) {
-        if (p1) p1->Initialize(am); if (p2) p2->Initialize(am); if (p3) p3->Initialize(am); // 여기서 nullptr 체크없이 부르면 = 터짐 = 좆됨
-        if (p4) p4->Initialize(am); if (p5) p5->Initialize(am); if (p6) p6->Initialize(am);
-        if (p7) p7->Initialize(am); if (p8) p8->Initialize(am); if (p9) p9->Initialize(am);
+        if (p1) p1->Initialize(am);
+        if (p2) p2->Initialize(am); 
+        if (p3) p3->Initialize(am); // 여기서 nullptr 체크없이 부르면 = 터짐 = 좆됨
+        if (p4) p4->Initialize(am); 
+        if (p5) p5->Initialize(am); 
+        if (p6) p6->Initialize(am);
+        if (p7) p7->Initialize(am); 
+        if (p8) p8->Initialize(am); 
+        if (p9) p9->Initialize(am);
         if (p10) p10->Initialize(am);
+        if (p11) p11->Initialize(am); 
+        if (p12) p12->Initialize(am); 
+        if (p13) p13->Initialize(am);
+        if (p14) p14->Initialize(am); 
+        if (p15) p15->Initialize(am);
     }
 
     void Update(float dt) {
@@ -202,14 +227,30 @@ struct MusicPlayerWrapper {
             case 8: if (p8) p8->Update(dt); break;
             case 9: if (p9) p9->Update(dt); break;
             case 10: if (p10) p10->Update(dt); break;
+            case 11: if (p11) p11->Update(dt); break;
+            case 12: if (p12) p12->Update(dt); break;
+            case 13: if (p13) p13->Update(dt); break;
+            case 14: if (p14) p14->Update(dt); break;
+            case 15: if (p15) p15->Update(dt); break;
         }
     }
 
     void Stop() {
-        if (p1) p1->Stop(); if (p2) p2->Stop(); if (p3) p3->Stop();
-        if (p4) p4->Stop(); if (p5) p5->Stop(); if (p6) p6->Stop();
-        if (p7) p7->Stop(); if (p8) p8->Stop(); if (p9) p9->Stop();
+        if (p1) p1->Stop(); 
+        if (p2) p2->Stop(); 
+        if (p3) p3->Stop();
+        if (p4) p4->Stop(); 
+        if (p5) p5->Stop(); 
+        if (p6) p6->Stop();
+        if (p7) p7->Stop(); 
+        if (p8) p8->Stop(); 
+        if (p9) p9->Stop();
         if (p10) p10->Stop();
+        if (p11) p11->Stop();
+        if (p12) p12->Stop();
+        if (p13) p13->Stop();
+        if (p14) p14->Stop();
+        if (p15) p15->Stop();
     }
 
     void Play(AudioManager& am, int i) {
@@ -224,6 +265,11 @@ struct MusicPlayerWrapper {
             case 8: if (p8) p8->Play(am, i); break;
             case 9: if (p9) p9->Play(am, i); break;
             case 10: if (p10) p10->Play(am, i); break;
+            case 11: if (p11) p11->Play(am, i); break;
+            case 12: if (p12) p12->Play(am, i); break;
+            case 13: if (p13) p13->Play(am, i); break;
+            case 14: if (p14) p14->Play(am, i); break;
+            case 15: if (p15) p15->Play(am, i); break;
         }
     }
 
@@ -239,6 +285,11 @@ struct MusicPlayerWrapper {
             case 8: if (p8) p8->PlayImmediate(); break;
             case 9: if (p9) p9->PlayImmediate(); break;
             case 10: if (p10) p10->PlayImmediate(); break;
+            case 11: if (p11) p11->PlayImmediate(); break;
+            case 12: if (p12) p12->PlayImmediate(); break;
+            case 13: if (p13) p13->PlayImmediate(); break;
+            case 14: if (p14) p14->PlayImmediate(); break;
+            case 15: if (p15) p15->PlayImmediate(); break;
         }
     }
 
@@ -254,6 +305,11 @@ struct MusicPlayerWrapper {
             case 8: if (p8) p8->SetPitch(p); break;
             case 9: if (p9) p9->SetPitch(p); break;
             case 10: if (p10) p10->SetPitch(p); break;
+            case 11: if (p11) p11->SetPitch(p); break;
+            case 12: if (p12) p12->SetPitch(p); break;
+            case 13: if (p13) p13->SetPitch(p); break;
+            case 14: if (p14) p14->SetPitch(p); break;
+            case 15: if (p15) p15->SetPitch(p); break;
         }
     }
 
@@ -269,16 +325,32 @@ struct MusicPlayerWrapper {
             case 8: return p8 ? p8->GetChannelRaw() : nullptr;
             case 9: return p9 ? p9->GetChannelRaw() : nullptr;
             case 10: return p10 ? p10->GetChannelRaw() : nullptr;
+            case 11: return p11 ? p11->GetChannelRaw() : nullptr;
+            case 12: return p12 ? p12->GetChannelRaw() : nullptr;
+            case 13: return p13 ? p13->GetChannelRaw() : nullptr;
+            case 14: return p14 ? p14->GetChannelRaw() : nullptr;
+            case 15: return p15 ? p15->GetChannelRaw() : nullptr;
         }
         return nullptr;
     }
 
     bool IsValid() const {
         switch (active) {
-            case 1: return p1 != nullptr; case 2: return p2 != nullptr; case 3: return p3 != nullptr;
-            case 4: return p4 != nullptr; case 5: return p5 != nullptr; case 6: return p6 != nullptr;
-            case 7: return p7 != nullptr; case 8: return p8 != nullptr; case 9: return p9 != nullptr;
+            case 1: return p1 != nullptr; 
+            case 2: return p2 != nullptr; 
+            case 3: return p3 != nullptr;
+            case 4: return p4 != nullptr; 
+            case 5: return p5 != nullptr; 
+            case 6: return p6 != nullptr;
+            case 7: return p7 != nullptr; 
+            case 8: return p8 != nullptr; 
+            case 9: return p9 != nullptr;
             case 10: return p10 != nullptr;
+            case 11: return p11 != nullptr;
+            case 12: return p12 != nullptr;
+            case 13: return p13 != nullptr;
+            case 14: return p14 != nullptr;
+            case 15: return p15 != nullptr;
         }
         return false;
     }
@@ -694,17 +766,8 @@ static void DrawNotes(float judgmentLineY)
     const float nowMs = s_SongTimer * 1000.0f;
     const float time = GetTime();
 
-    //int monitorRefreshRate = GetMonitorRefreshRate(GetCurrentMonitor());
-    //if (monitorRefreshRate <= 0) monitorRefreshRate = 60;
-
-    //float frameTimeSec = 1.0f / static_cast<float>(monitorRefreshRate);
-    //float displayLatencySec = frameTimeSec * 2.0f;
-
     for (const auto& pNote : s_PlayableNotes)
     {
-        // if (!pNote.active || pNote.lane < 0 || pNote.lane >= LANE_COUNT)
-          //  continue;
-
           if (!pNote.active)
           continue;
 
@@ -713,10 +776,6 @@ static void DrawNotes(float judgmentLineY)
 
         float uiScale = (float)GetScreenHeight() / 720.0f; 
         const float diffSec = (pNote.timeSec * 1000.0f - nowMs) / 1000.0f;
-        //float displayLatencySec = 0.035f; 
-        //const float diffSec = (pNote.timeSec * 1000.0f - nowMs) / 1000.0f;
-        //const float diffSec = ((pNote.timeSec * 1000.0f - nowMs) / 1000.0f) - displayLatencySec;
-        //const float y = judgmentLineY - diffSec * (s_NoteScrollSpeed * uiScale);
          const float y = judgmentLineY - (diffSec * s_NoteScrollSpeed);
 
         int screenH = GetScreenHeight();
@@ -732,22 +791,34 @@ static void DrawNotes(float judgmentLineY)
         const bool nearHit = fabsf(diffSec) < 0.22f;
         const float pulse = 0.5f + 0.5f * sinf(time * 9.0f + pNote.lane);
 
-        if (nearHit)
+        if (Skin::Button::UI_Button::IsDiagramActive())
         {
-            DrawRectangleRounded({ cx - w * 0.5f - 10.0f * uiScale, y - h * 0.5f - 10.0f * uiScale, w + 20.0f * uiScale, h + 20.0f * uiScale }, 0.18f, 8, Color{ 255, 255, 255, static_cast<unsigned char>(8 + pulse * 12) });
+            Skin::Note::ShortNote::Diagram::DrawShortNote(cx, y, w, h, uiScale, time, pNote.lane);
         }
+        else
+        {
+            if (nearHit)
+            {
+                DrawRectangleRounded({ cx - w * 0.5f - 10.0f * uiScale, y - h * 0.5f - 10.0f * uiScale, w + 20.0f * uiScale, h + 20.0f * uiScale }, 0.18f, 8, Color{ 255, 255, 255, static_cast<unsigned char>(8 + pulse * 12) });
+            }
 
-        DrawRectangleRounded({ cx - w * 0.5f + 4.0f * uiScale, y - h * 0.5f + 7.0f * uiScale, w, h }, 0.18f, 8, Color{ 0, 0, 0, 245 });
-        DrawRectangleRounded({ cx - w * 0.5f, y - h * 0.5f, w, h }, 0.18f, 8, Color{ 218, 218, 221, 255 });
-        DrawRectangleRounded({ cx - w * 0.5f + 2.0f * uiScale, y - h * 0.5f + 2.0f * uiScale, w - 4.0f * uiScale, h * 0.42f }, 0.16f, 8, Color{ 255, 255, 255, 255 });
-        DrawRectangleRounded({ cx - w * 0.5f + 5.0f * uiScale, y - 2.0f * uiScale, w - 10.0f * uiScale, 4.0f * uiScale }, 0.35f, 8, Color{ 22, 22, 24, 255 });
-        DrawRectangleRoundedLines({ cx - w * 0.5f, y - h * 0.5f, w, h }, 0.18f, 8, Color{ 255, 255, 255, 240 });
-
+            DrawRectangleRounded({ cx - w * 0.5f + 4.0f * uiScale, y - h * 0.5f + 7.0f * uiScale, w, h }, 0.18f, 8, Color{ 0, 0, 0, 245 });
+            DrawRectangleRounded({ cx - w * 0.5f, y - h * 0.5f, w, h }, 0.18f, 8, Color{ 218, 218, 221, 255 });
+            DrawRectangleRounded({ cx - w * 0.5f + 2.0f * uiScale, y - h * 0.5f + 2.0f * uiScale, w - 4.0f * uiScale, h * 0.42f }, 0.16f, 8, Color{ 255, 255, 255, 255 });
+            DrawRectangleRounded({ cx - w * 0.5f + 5.0f * uiScale, y - 2.0f * uiScale, w - 10.0f * uiScale, 4.0f * uiScale }, 0.35f, 8, Color{ 22, 22, 24, 255 });
+            DrawRectangleRoundedLines({ cx - w * 0.5f, y - h * 0.5f, w, h }, 0.18f, 8, Color{ 255, 255, 255, 240 });
+        }
     }
 }
 
 static void DrawJudgmentLine(float judgmentLineY)
 {
+    if (Skin::Button::UI_Button::IsDiagramActive())
+    {
+        Skin::Judgment::Diagram::DrawJudgmentLine(judgmentLineY, s_JudgmentLinePulse);
+        return;
+    }
+
     const float t = GetTime();
     const float impact = Clamp01(s_JudgmentLinePulse);
     const float pulse = 0.5f + 0.5f * sinf(t * 3.2f);
@@ -1057,6 +1128,11 @@ PlayScene::PlayScene(SongSelect& sharedSongSelect)
     s_MusicPlayer.p8 = new MusicExecute::MusicPlayer8();
     s_MusicPlayer.p9 = new MusicExecute::MusicPlayer9();
     s_MusicPlayer.p10 = new MusicExecute::MusicPlayer10();
+    s_MusicPlayer.p11 = new MusicExecute::MusicPlayer11();
+    s_MusicPlayer.p12 = new MusicExecute::MusicPlayer12();
+    s_MusicPlayer.p13 = new MusicExecute::MusicPlayer13();
+    s_MusicPlayer.p14 = new MusicExecute::MusicPlayer14();
+    s_MusicPlayer.p15 = new MusicExecute::MusicPlayer15();
 }
 
 PlayScene::~PlayScene()
@@ -1071,6 +1147,11 @@ PlayScene::~PlayScene()
     delete s_MusicPlayer.p8;  
     delete s_MusicPlayer.p9;
     delete s_MusicPlayer.p10;
+    delete s_MusicPlayer.p11;
+    delete s_MusicPlayer.p12;
+    delete s_MusicPlayer.p13;
+    delete s_MusicPlayer.p14;
+    delete s_MusicPlayer.p15;
     s_BgaPlayer.Close();
 }
 
@@ -1263,17 +1344,22 @@ if (ChartSave::LoadFromOsu(
             }
 
             static const std::vector<std::string> jacketPaths = {
-                "music_assets/stars.png",
-                "music_assets/kaleidoscope.png",
-                "music_assets/SkysCape.png",
-                "music_assets/TheLostAria.png",
-                "music_assets/Timeline.png",
-                "music_assets/Terrasphere.png",
-                "music_assets/N.png",
-                "music_assets/SecretDoll2.png",
-                "music_assets/R.png",
-                "music_assets/PlumMegamix.png",
-            };
+    "music_assets/stars.png",
+    "music_assets/kaleidoscope.png",
+    "music_assets/SkysCape.png",
+    "music_assets/TheLostAria.png",
+    "music_assets/Timeline.png",
+    "music_assets/Terrasphere.png",
+    "music_assets/N.png",
+    "music_assets/SecretDoll2.png",
+    "music_assets/R.png",
+    "music_assets/PlumMegamix.png",
+    "music_assets/Maelstrom.png",
+    "music_assets/Tempest.png",
+    "music_assets/magic.png",
+    "music_assets/Stars2021.png",
+    "music_assets/MemoryLocked.png"
+};
 
             s_SongInfo.title = curSong.title;
             s_SongInfo.artist = curSong.artist;
@@ -1367,17 +1453,22 @@ if (ChartSave::LoadFromOsu(
             }
 
             static const std::vector<std::string> jacketPaths = {
-                "music_assets/stars.png",
-                "music_assets/kaleidoscope.png",
-                "music_assets/SkysCape.png",
-                "music_assets/TheLostAria.png",
-                "music_assets/Timeline.png",
-                "music_assets/Terrasphere.png",
-                "music_assets/N.png",
-                "music_assets/SecretDoll2.png",
-                "music_assets/R.png",
-                "music_assets/PlumMegamix.png",
-            };
+    "music_assets/stars.png",
+    "music_assets/kaleidoscope.png",
+    "music_assets/SkysCape.png",
+    "music_assets/TheLostAria.png",
+    "music_assets/Timeline.png",
+    "music_assets/Terrasphere.png",
+    "music_assets/N.png",
+    "music_assets/SecretDoll2.png",
+    "music_assets/R.png",
+    "music_assets/PlumMegamix.png",
+    "music_assets/Maelstrom.png",
+    "music_assets/Tempest.png",
+    "music_assets/magic.png",
+    "music_assets/Stars2021.png",
+    "music_assets/MemoryLocked.png"
+};
 
             if (currentSelectedIdx >= 0 && currentSelectedIdx < static_cast<int>(jacketPaths.size()))
             {
