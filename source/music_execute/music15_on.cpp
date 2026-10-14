@@ -13,7 +13,7 @@ namespace MusicExecute {
 
         bool Initialize(AudioManager& audioManager) {
             std::string musicName = "Music15";
-            std::string musicPath = "music/MemoryLocked.ogg";
+            std::string musicPath = "music/AAAA.ogg";
 
             if (!audioManager.CreateStream(musicName, musicPath)) {
                 return false;

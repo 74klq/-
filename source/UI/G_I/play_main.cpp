@@ -37,7 +37,11 @@ void PlayMainUI::Init()
         for (int i = 32; i <= 126; ++i) cpSet.insert(i);
 
         std::vector<std::string> texts = {
-            "별이 보이지 않는 밤", "비밀 인형극 II"
+            "별이 보이지 않는 밤", 
+            "비밀 인형극 II",
+            "ほしのおとしもの",
+            "ああああ",
+            "별이 보이지 않는 밤 (2021 리메이크)"
         };
 
         for (const auto& text : texts) {

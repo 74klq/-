@@ -7,6 +7,55 @@
 #include <string>
 #include <fmod.h>
 
+static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint) {
+    int length = TextLength(text);
+    float textOffsetY = 0;
+    float textOffsetX = 0.0f;
+    float scaleFactor = fontSize/(float)font.baseSize;
+    enum { MEASURE_STATE_SPACE = 0, MEASURE_STATE_WORD };
+    int state = MEASURE_STATE_SPACE;
+    int startLine = -1;
+    int endLine = -1;
+    int lastk = -1;
+
+    for (int i = 0, k = 0; i < length; i++) {
+        int glyphWidth = 0;
+        int nextIndex = 0;
+        int codepoint = GetCodepointNext(&text[i], &nextIndex);
+        i += (nextIndex - 1);
+        if (codepoint != '\n') {
+            glyphWidth = (font.glyphs[GetGlyphIndex(font, codepoint)].advanceX == 0) ? 
+                         (int)(font.recs[GetGlyphIndex(font, codepoint)].width*scaleFactor) : 
+                         (int)(font.glyphs[GetGlyphIndex(font, codepoint)].advanceX*scaleFactor);
+            if (i + 1 < length) glyphWidth += (int)(spacing*scaleFactor);
+        }
+        if (state == MEASURE_STATE_SPACE) {
+            if (codepoint == ' ') state = MEASURE_STATE_SPACE;
+            else { state = MEASURE_STATE_WORD; startLine = i; }
+        } else if (state == MEASURE_STATE_WORD) {
+            if (codepoint == ' ') { state = MEASURE_STATE_SPACE; endLine = i; }
+        }
+        if (codepoint == '\n') {
+            if (!wordWrap) {
+                textOffsetX = 0.0f;
+                textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
+            }
+        } else {
+            if (((textOffsetX + glyphWidth) > rec.width) && wordWrap) {
+                textOffsetX = 0.0f;
+                textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
+                if (state == MEASURE_STATE_WORD) { i = startLine - nextIndex; state = MEASURE_STATE_SPACE; continue; }
+            }
+            if ((textOffsetY + font.baseSize*scaleFactor) > rec.height) break;
+            if ((codepoint != ' ') && (codepoint != '\n')) {
+                DrawTextCodepoint(font, codepoint, (Vector2){ rec.x + textOffsetX, rec.y + textOffsetY }, fontSize, tint);
+            }
+            textOffsetX += glyphWidth;
+        }
+        k++;
+    }
+}
+
 static std::vector<Texture2D> g_jacketTextures;
 static FMOD_SYSTEM* g_fmodSystem = nullptr;
 static FMOD_SOUND* g_fmodSounds[15] = { nullptr };
@@ -32,29 +81,29 @@ static const SongHighlight g_songHighlights[15] = {
     { 76000, 12000 },
     { 118000, 12000 },
     { 511000, 12000 },
-    { 170000, 12000 }, // 11번째 곡 (2분 50초)
-    { 88000, 12000 },  // 12번째 곡 (1분 28초)
-    { 123000, 12000 }, // 13번째 곡 (2분 3초)
-    { 95000, 12000 },  // 14번째 곡 (1분 35초)
-    { 234000, 12000 }  // 15번째 곡 (3분 54초)
+    { 170000, 12000 },
+    { 95000, 12000 },
+    { 123000, 12000 },
+    { 234000, 12000 },
+    { 88000, 12000 }
 };
 
 static const char* g_musicPaths[15] = {
     "music/A_Night_Without_Visible_Stars.ogg",
-    "music/kaleidoscope.ogg",
-    "music/SkysCape.wav",
-    "music/TheLostAria.ogg",
-    "music/Timeline.ogg",
-    "music/Terrasphere.ogg",
-    "music/N.ogg",
-    "music/doll.ogg",
-    "music/R.ogg",
-    "music/Megamix.ogg",
-    "music/Maelstrom.ogg",
-    "music/AAAA.ogg",
-    "music/magic.ogg",
-    "music/Stars_2021.ogg",
-    "music/MemoryLocked.ogg"
+    "music/kaleidoscope.ogg",                  
+    "music/SkysCape.wav",                     
+    "music/TheLostAria.ogg",                   
+    "music/Timeline.ogg",                  
+    "music/Terrasphere.ogg",                 
+    "music/N.ogg",                           
+    "music/doll.ogg",                        
+    "music/R.ogg",                          
+    "music/Megamix.ogg",                      
+    "music/Maelstrom.ogg",               
+    "music/Stars_2021.ogg",     
+    "music/magic.ogg",             
+    "music/MemoryLocked.ogg",
+    "music/AAAA.ogg"
 };
 
 static inline float EaseOutCubic(float x) {
@@ -138,10 +187,10 @@ void SongSelect::Init() {
         "music_assets/R.png",
         "music_assets/PlumMegamix.png",
         "music_assets/Maelstrom.png",
-        "music_assets/Tempest.png",
-        "music_assets/magic.png",
         "music_assets/Stars2021.png",
-        "music_assets/MemoryLocked.png"
+        "music_assets/magic.png",
+        "music_assets/MemoryLocked.png",
+        "music_assets/stars_Delete.png"
     };
 
     for (const auto& path : jacketPaths) {
@@ -402,8 +451,8 @@ void SongSelect::LoadSongs() {
     songs.push_back(song11);
 
     SongData song12;
-    song12.title = "ほしのおとしもの";
-    song12.artist = "ああああ";
+    song12.title = "별이 보이지 않는 밤 (2021 리메이크)";
+    song12.artist = "Plum";
     song12.mapper = "Seta";
     song12.bpm = 150.0f;
     song12.length = 120.0f;
@@ -428,7 +477,7 @@ void SongSelect::LoadSongs() {
     songs.push_back(song13);
 
     SongData song14;
-    song14.title = "별이 보이지 않는밤 (2021리메이크)";
+    song14.title = "MemoryLocked";
     song14.artist = "Plum";
     song14.mapper = "Seta";
     song14.bpm = 150.0f;
@@ -441,14 +490,14 @@ void SongSelect::LoadSongs() {
     songs.push_back(song14);
 
     SongData song15;
-    song15.title = "MemoryLocked";
-    song15.artist = "Plum";
+    song15.title = "ほしのおとしもの";
+    song15.artist = "ああああ";
     song15.mapper = "Seta";
     song15.bpm = 150.0f;
     song15.length = 120.0f;
     song15.cleared = false;
     song15.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
-    song15.osuFileName = "new_song.osu";          
+    song15.osuFileName = "AAAA.osu";          
     song15.musicPlayerActive = 15;
     song15.videoFileName = "";
     songs.push_back(song15);
@@ -692,20 +741,25 @@ void SongSelect::DrawSongCarousel(int screenWidth, int screenHeight) {
             DrawRectangleRounded((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.10f, 4, (Color){ 50, 60, 78, (unsigned char)(255 * alpha) });
         }
         
-        Color titleColor = isCurrent ? WHITE : (Color){ 200, 210, 225, (unsigned char)(220 * alpha) };
+               Color titleColor = isCurrent ? WHITE : (Color){ 200, 210, 225, (unsigned char)(220 * alpha) };
         Color artistColor = isCurrent ? (Color){ 210, 220, 235, 255 } : (Color){ 140, 150, 170, (unsigned char)(180 * alpha) };
 
         float textX = jacketX + jacketSize + 16.0f * scale * uiScale;
         
         if (fontLoaded) {
-            DrawTextEx(suitFont, songs[i].title.c_str(), (Vector2){ textX, jacketY + 10.0f * scale * uiScale }, 20.0f * scale * uiScale, 1.0f, titleColor);
-            DrawTextEx(suitFont, songs[i].artist.c_str(), (Vector2){ textX, jacketY + 44.0f * scale * uiScale }, 15.0f * scale * uiScale, 1.0f, artistColor);
+            float maxTitleWidth = cardWidth - (jacketSize + 30.0f * scale * uiScale);
+            float titleFontSize = 18.0f * scale * uiScale;
+            Rectangle titleRect = { textX, jacketY + 8.0f * scale * uiScale, maxTitleWidth, 50.0f * scale * uiScale };
+            
+            DrawTextBoxed(suitFont, songs[i].title.c_str(), titleRect, titleFontSize, 1.0f, true, titleColor);
+            DrawTextEx(suitFont, songs[i].artist.c_str(), (Vector2){ textX, jacketY + 52.0f * scale * uiScale }, 14.0f * scale * uiScale, 1.0f, artistColor);
         } else {
             DrawText(songs[i].title.c_str(), (int)textX, (int)(jacketY + 10.0f * scale * uiScale), (int)(18 * scale * uiScale), titleColor);
             DrawText(songs[i].artist.c_str(), (int)textX, (int)(jacketY + 44.0f * scale * uiScale), (int)(14 * scale * uiScale), artistColor);
         }
     }
 }
+
 
 void SongSelect::DrawCurrentSongInfo(int screenWidth, int screenHeight) {
     float uiScale = (float)screenHeight / 720.0f;
@@ -743,19 +797,22 @@ void SongSelect::DrawCurrentSongInfo(int screenWidth, int screenHeight) {
 
     float titleX = artX + currentArtSize + 28.0f * uiScale;
     float titleY = artY + 10.0f * uiScale;
+    float panelContentW = infoPanelW - (margin * 2.0f);
 
     if (fontLoaded) {
-        DrawTextEx(suitFont, curSong.title.c_str(), (Vector2){ titleX, titleY }, 32.0f * uiScale, 1.0f, WHITE);
-        DrawTextEx(suitFont, curSong.artist.c_str(), (Vector2){ titleX, titleY + 45.0f * uiScale }, 20.0f * uiScale, 1.0f, (Color){ 170, 182, 200, 255 });
+        float maxPanelTitleWidth = panelContentW - currentArtSize - 38.0f * uiScale;
+        float panelFontSize = 28.0f * uiScale;
+        Rectangle panelTitleRect = { titleX, titleY, maxPanelTitleWidth, 80.0f * uiScale };
+        
+        DrawTextBoxed(suitFont, curSong.title.c_str(), panelTitleRect, panelFontSize, 1.0f, true, WHITE);
+        DrawTextEx(suitFont, curSong.artist.c_str(), (Vector2){ titleX, titleY + 65.0f * uiScale }, 18.0f * uiScale, 1.0f, (Color){ 170, 182, 200, 255 });
     } else {
         DrawText(curSong.title.c_str(), (int)titleX, (int)titleY, (int)(28 * uiScale), WHITE);
         DrawText(curSong.artist.c_str(), (int)titleX, (int)(titleY + 40.0f * uiScale), (int)(18 * uiScale), (Color){ 170, 182, 200, 255 });
     }
 
     float metaStartY = artY + currentArtSize + 30.0f * uiScale;
-    float panelContentW = infoPanelW - (margin * 2.0f);
     DrawLine((int)artX, (int)(metaStartY - 15.0f * uiScale), (int)(artX + panelContentW), (int)(metaStartY - 15.0f * uiScale), (Color){ 255, 255, 255, 40 });
-
     float rowSpacing = 36.0f * uiScale;
 
     auto DrawMetaRow = [&](const char* label, const std::string& value, float yOffset) {

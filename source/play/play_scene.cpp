@@ -1343,7 +1343,7 @@ if (ChartSave::LoadFromOsu(
                 return;
             }
 
-            static const std::vector<std::string> jacketPaths = {
+static const std::vector<std::string> jacketPaths = {
     "music_assets/stars.png",
     "music_assets/kaleidoscope.png",
     "music_assets/SkysCape.png",
@@ -1355,10 +1355,10 @@ if (ChartSave::LoadFromOsu(
     "music_assets/R.png",
     "music_assets/PlumMegamix.png",
     "music_assets/Maelstrom.png",
-    "music_assets/Tempest.png",
-    "music_assets/magic.png",
     "music_assets/Stars2021.png",
-    "music_assets/MemoryLocked.png"
+    "music_assets/magic.png",
+    "music_assets/MemoryLocked.png",
+    "music_assets/stars_Delete.png"
 };
 
             s_SongInfo.title = curSong.title;
@@ -1452,7 +1452,7 @@ if (ChartSave::LoadFromOsu(
                 s_LoadedJacketTex = { 0 };
             }
 
-            static const std::vector<std::string> jacketPaths = {
+static const std::vector<std::string> jacketPaths = {
     "music_assets/stars.png",
     "music_assets/kaleidoscope.png",
     "music_assets/SkysCape.png",
@@ -1464,10 +1464,10 @@ if (ChartSave::LoadFromOsu(
     "music_assets/R.png",
     "music_assets/PlumMegamix.png",
     "music_assets/Maelstrom.png",
-    "music_assets/Tempest.png",
-    "music_assets/magic.png",
     "music_assets/Stars2021.png",
-    "music_assets/MemoryLocked.png"
+    "music_assets/magic.png",
+    "music_assets/MemoryLocked.png",
+    "music_assets/stars_Delete.png"
 };
 
             if (currentSelectedIdx >= 0 && currentSelectedIdx < static_cast<int>(jacketPaths.size()))
