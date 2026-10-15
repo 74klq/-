@@ -12,39 +12,27 @@ static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float font
     float textOffsetY = 0;
     float textOffsetX = 0.0f;
     float scaleFactor = fontSize/(float)font.baseSize;
-    enum { MEASURE_STATE_SPACE = 0, MEASURE_STATE_WORD };
-    int state = MEASURE_STATE_SPACE;
-    int startLine = -1;
-    int endLine = -1;
-    int lastk = -1;
 
-    for (int i = 0, k = 0; i < length; i++) {
+    for (int i = 0; i < length; i++) {
         int glyphWidth = 0;
         int nextIndex = 0;
         int codepoint = GetCodepointNext(&text[i], &nextIndex);
         i += (nextIndex - 1);
+        
         if (codepoint != '\n') {
             glyphWidth = (font.glyphs[GetGlyphIndex(font, codepoint)].advanceX == 0) ? 
                          (int)(font.recs[GetGlyphIndex(font, codepoint)].width*scaleFactor) : 
                          (int)(font.glyphs[GetGlyphIndex(font, codepoint)].advanceX*scaleFactor);
             if (i + 1 < length) glyphWidth += (int)(spacing*scaleFactor);
         }
-        if (state == MEASURE_STATE_SPACE) {
-            if (codepoint == ' ') state = MEASURE_STATE_SPACE;
-            else { state = MEASURE_STATE_WORD; startLine = i; }
-        } else if (state == MEASURE_STATE_WORD) {
-            if (codepoint == ' ') { state = MEASURE_STATE_SPACE; endLine = i; }
-        }
+        
         if (codepoint == '\n') {
-            if (!wordWrap) {
-                textOffsetX = 0.0f;
-                textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
-            }
+            textOffsetX = 0.0f;
+            textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
         } else {
             if (((textOffsetX + glyphWidth) > rec.width) && wordWrap) {
                 textOffsetX = 0.0f;
                 textOffsetY += (font.baseSize + font.baseSize/2)*scaleFactor;
-                if (state == MEASURE_STATE_WORD) { i = startLine - nextIndex; state = MEASURE_STATE_SPACE; continue; }
             }
             if ((textOffsetY + font.baseSize*scaleFactor) > rec.height) break;
             if ((codepoint != ' ') && (codepoint != '\n')) {
@@ -52,13 +40,12 @@ static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float font
             }
             textOffsetX += glyphWidth;
         }
-        k++;
     }
 }
 
 static std::vector<Texture2D> g_jacketTextures;
 static FMOD_SYSTEM* g_fmodSystem = nullptr;
-static FMOD_SOUND* g_fmodSounds[15] = { nullptr };
+static FMOD_SOUND* g_fmodSounds[17] = { nullptr };
 static FMOD_CHANNEL* g_fmodChannel = nullptr;
 static int g_currentPlayingSongIndex = -1;
 static float g_songSwitchTimer = 0.0f;
@@ -70,7 +57,7 @@ struct SongHighlight {
     unsigned int durationMs;
 };
 
-static const SongHighlight g_songHighlights[15] = {
+static const SongHighlight g_songHighlights[17] = {
     { 95000, 12000 },
     { 99000, 12000 },
     { 73000, 12000 },
@@ -85,10 +72,13 @@ static const SongHighlight g_songHighlights[15] = {
     { 95000, 12000 },
     { 123000, 12000 },
     { 234000, 12000 },
-    { 88000, 12000 }
+    { 88000, 12000 },
+    { 49000, 12000 },
+    { 60000, 12000 },
+
 };
 
-static const char* g_musicPaths[15] = {
+static const char* g_musicPaths[17] = {
     "music/A_Night_Without_Visible_Stars.ogg",
     "music/kaleidoscope.ogg",                  
     "music/SkysCape.wav",                     
@@ -103,7 +93,9 @@ static const char* g_musicPaths[15] = {
     "music/Stars_2021.ogg",     
     "music/magic.ogg",             
     "music/MemoryLocked.ogg",
-    "music/AAAA.ogg"
+    "music/AAAA.ogg",
+    "music/Of_Our_Time.ogg",
+    "music/QuomodocunquizE.ogg"
 };
 
 static inline float EaseOutCubic(float x) {
@@ -132,7 +124,7 @@ SongSelect::~SongSelect() {
         FMOD_Channel_Stop(g_fmodChannel);
         g_fmodChannel = nullptr;
     }
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 17; ++i) {
         if (g_fmodSounds[i]) {
             FMOD_Sound_Release(g_fmodSounds[i]);
             g_fmodSounds[i] = nullptr;
@@ -164,7 +156,7 @@ void SongSelect::Init() {
         FMOD_System_Init(g_fmodSystem, 512, FMOD_INIT_NORMAL, 0);
     }
 
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 17; ++i) {
         if (!g_fmodSounds[i]) {
             FMOD_System_CreateSound(g_fmodSystem, g_musicPaths[i], FMOD_CREATESTREAM, 0, &g_fmodSounds[i]);
         }
@@ -190,7 +182,9 @@ void SongSelect::Init() {
         "music_assets/Stars2021.png",
         "music_assets/magic.png",
         "music_assets/MemoryLocked.png",
-        "music_assets/stars_Delete.png"
+        "music_assets/stars_Delete.png",
+        "music_assets/Of_Our_Time.png",
+        "music_assets/QuomodocunquizE.png"
     };
 
     for (const auto& path : jacketPaths) {
@@ -240,7 +234,11 @@ void SongSelect::Init() {
             "MemoryLocked",
             "별이 보이지 않는밤 (2021리메이크)",
             "ほしのおとしもの",
-            "ああああ"
+            "ああああ",
+            "Of Our Time",
+            "Will Stetson",
+            "Camellia",
+            "QuomodocunquizE"
         };
 
         for (const auto& text : texts) {
@@ -297,7 +295,7 @@ void SongSelect::Init() {
     g_pendingSongSwitch = false;
     g_songSwitchTimer = 0.0f;
 
-    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 15 && g_fmodSounds[selectedSongIndex]) {
+    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 17 && g_fmodSounds[selectedSongIndex]) {
         FMOD_System_PlaySound(g_fmodSystem, g_fmodSounds[selectedSongIndex], 0, false, &g_fmodChannel);
         FMOD_Channel_SetPosition(g_fmodChannel, g_songHighlights[selectedSongIndex].startMs, FMOD_TIMEUNIT_MS);
         g_currentPlayingSongIndex = selectedSongIndex;
@@ -458,7 +456,7 @@ void SongSelect::LoadSongs() {
     song12.length = 120.0f;
     song12.cleared = false;
     song12.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
-    song12.osuFileName = "AAAAA.osu";          
+    song12.osuFileName = "Stars_2021.osu";          
     song12.musicPlayerActive = 12;
     song12.videoFileName = "";
     songs.push_back(song12);
@@ -484,7 +482,7 @@ void SongSelect::LoadSongs() {
     song14.length = 120.0f;
     song14.cleared = false;
     song14.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
-    song14.osuFileName = "new_song.osu";          
+    song14.osuFileName = "MemoryLocked.osu";          
     song14.musicPlayerActive = 14;
     song14.videoFileName = "";
     songs.push_back(song14);
@@ -501,6 +499,32 @@ void SongSelect::LoadSongs() {
     song15.musicPlayerActive = 15;
     song15.videoFileName = "";
     songs.push_back(song15);
+
+    SongData song16;
+    song16.title = "Of Our Time";
+    song16.artist = "Will Stetson";
+    song16.mapper = "Seta";
+    song16.bpm = 150.0f;
+    song16.length = 120.0f;
+    song16.cleared = false;
+    song16.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song16.osuFileName = "";          
+    song16.musicPlayerActive = 16;
+    song16.videoFileName = "";
+    songs.push_back(song16);
+
+    SongData song17;
+    song17.title = "QuomodocunquizE";
+    song17.artist = "Camellia";
+    song17.mapper = "Seta";
+    song17.bpm = 150.0f;
+    song17.length = 120.0f;
+    song17.cleared = false;
+    song17.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song17.osuFileName = "QuomodocunquizE.osu";          
+    song17.musicPlayerActive = 17;
+    song17.videoFileName = "";
+    songs.push_back(song17);
 }
 
 void SongSelect::Update() {
@@ -571,7 +595,7 @@ void SongSelect::Update() {
     if (g_pendingSongSwitch) {
         g_songSwitchTimer += dt;
         if (g_songSwitchTimer >= 0.5f) {
-            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 15 && g_fmodSounds[g_pendingSongIndex]) {
+            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 17 && g_fmodSounds[g_pendingSongIndex]) {
                 if (g_fmodChannel) {
                     FMOD_Channel_Stop(g_fmodChannel);
                     g_fmodChannel = nullptr;
@@ -588,7 +612,7 @@ void SongSelect::Update() {
         FMOD_System_Update(g_fmodSystem);
     }
 
-    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 15) {
+    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 17) {
         unsigned int pos = 0;
         FMOD_Channel_GetPosition(g_fmodChannel, &pos, FMOD_TIMEUNIT_MS);
         unsigned int startMs = g_songHighlights[g_currentPlayingSongIndex].startMs;
@@ -741,22 +765,30 @@ void SongSelect::DrawSongCarousel(int screenWidth, int screenHeight) {
             DrawRectangleRounded((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.10f, 4, (Color){ 50, 60, 78, (unsigned char)(255 * alpha) });
         }
         
-               Color titleColor = isCurrent ? WHITE : (Color){ 200, 210, 225, (unsigned char)(220 * alpha) };
-        Color artistColor = isCurrent ? (Color){ 210, 220, 235, 255 } : (Color){ 140, 150, 170, (unsigned char)(180 * alpha) };
+Color titleColor = isCurrent ? WHITE : (Color){ 200, 210, 225, (unsigned char)(220 * alpha) };
+Color artistColor = isCurrent ? (Color){ 210, 220, 235, 255 } : (Color){ 140, 150, 170, (unsigned char)(180 * alpha) };
 
-        float textX = jacketX + jacketSize + 16.0f * scale * uiScale;
-        
-        if (fontLoaded) {
-            float maxTitleWidth = cardWidth - (jacketSize + 30.0f * scale * uiScale);
-            float titleFontSize = 18.0f * scale * uiScale;
-            Rectangle titleRect = { textX, jacketY + 8.0f * scale * uiScale, maxTitleWidth, 50.0f * scale * uiScale };
-            
-            DrawTextBoxed(suitFont, songs[i].title.c_str(), titleRect, titleFontSize, 1.0f, true, titleColor);
-            DrawTextEx(suitFont, songs[i].artist.c_str(), (Vector2){ textX, jacketY + 52.0f * scale * uiScale }, 14.0f * scale * uiScale, 1.0f, artistColor);
-        } else {
-            DrawText(songs[i].title.c_str(), (int)textX, (int)(jacketY + 10.0f * scale * uiScale), (int)(18 * scale * uiScale), titleColor);
-            DrawText(songs[i].artist.c_str(), (int)textX, (int)(jacketY + 44.0f * scale * uiScale), (int)(14 * scale * uiScale), artistColor);
-        }
+float textX = jacketX + jacketSize + 16.0f * scale * uiScale;
+
+if (fontLoaded) {
+    float maxTitleWidth = cardWidth - (jacketSize + 30.0f * scale * uiScale);
+    
+    float titleFontSize = 15.0f * scale * uiScale; 
+    
+    float measuredWidth = MeasureTextEx(suitFont, songs[i].title.c_str(), titleFontSize, 1.0f).x;
+    if (measuredWidth > maxTitleWidth) {
+        titleFontSize *= (maxTitleWidth / measuredWidth);
+    }
+    
+    Rectangle titleRect = { textX, jacketY + 8.0f * scale * uiScale, maxTitleWidth, 40.0f * scale * uiScale };
+
+    DrawTextBoxed(suitFont, songs[i].title.c_str(), titleRect, titleFontSize, 1.0f, false, titleColor);
+    DrawTextEx(suitFont, songs[i].artist.c_str(), (Vector2){ textX, jacketY + 56.0f * scale * uiScale }, 12.0f * scale * uiScale, 1.0f, artistColor);
+} else {
+    DrawText(songs[i].title.c_str(), (int)textX, (int)(jacketY + 10.0f * scale * uiScale), (int)(15 * scale * uiScale), titleColor);
+    DrawText(songs[i].artist.c_str(), (int)textX, (int)(jacketY + 48.0f * scale * uiScale), (int)(12 * scale * uiScale), artistColor);
+}
+
     }
 }
 

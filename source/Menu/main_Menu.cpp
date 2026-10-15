@@ -66,6 +66,9 @@ static int activeFrames = 0;
 static CurtainVFX curtainVfx;
 static Skin::Button::UI_Button skinButton(0, 0, 190.0f, 74.0f, "스킨", "03", 2);
 
+static bool isExitingGame = false;   
+static float exitFadeTimer = 0.0f;  
+
 static float logoScale = 0.0f;
 static float logoAlpha = 0.0f;
 static float logoRotation = 0.0f;
@@ -461,6 +464,15 @@ void MainMenu::Update() {
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
 
+    if (isExitingGame) {
+        exitFadeTimer += dt * 1.5f;
+        if (exitFadeTimer >= 1.0f) {
+            CloseWindow();
+            std::exit(0);
+        }
+        return;
+    }
+
     SlowScreen::Update(dt);
     curtainVfx.Update(dt);
     if (curtainVfx.IsActive()) return;
@@ -571,25 +583,37 @@ void MainMenu::Update() {
         return;
     }
 
-    Vector2 mouse = GetMousePosition();
+      Vector2 mouse = GetMousePosition();
+    
+    float parallaxX = ((mouse.x / (float)std::max(1, screenW)) - 0.5f) * 8.0f;
+    float parallaxY = ((mouse.y / (float)std::max(1, screenH)) - 0.5f) * 6.0f;
+
     Vector2 logoCenter = {
-        screenW * 0.5f,
-        screenH * 0.39f
+        screenW * 0.5f + parallaxX,
+        screenH * 0.39f + parallaxY
     };
 
-    float logoRadius = std::min(screenW, screenH) * 0.25f;
-    logoRadius = std::max(150.0f, std::min(280.0f, logoRadius));
+    float uiScale = (float)screenH / 720.0f;
+    float logoBaseRadius = std::min(screenW, screenH) * 0.25f;
+    logoBaseRadius = std::max(150.0f * uiScale, std::min(280.0f * uiScale, logoBaseRadius));
+
+    float actualBeatScale = Clamp01(beatImpact) * 0.085f;
+    float hoverScale = logoHover * 0.035f;
+    float pressScale = logoPress * 0.0f;
+    float openScale = menuOpenAmount * 0.012f;
+    float visualScale = logoScale * (1.0f + actualBeatScale + hoverScale + pressScale + openScale);
+    float logoRadius = logoBaseRadius * visualScale;
 
     float distanceToLogo = std::sqrt(
         std::pow(mouse.x - logoCenter.x, 2.0f) +
         std::pow(mouse.y - logoCenter.y, 2.0f)
     );
 
-    bool insideLogo = distanceToLogo <= logoRadius * (1.0f + logoHover * 0.04f);
+    bool insideLogo = distanceToLogo <= logoRadius;
 
     float hoverTarget = insideLogo ? 1.0f : 0.0f;
     logoHover += (hoverTarget - logoHover) * std::min(1.0f, dt * 12.0f);
-    logoPress += (logoPress - 0.0f) * std::min(1.0f, dt * 16.0f);
+    logoPress += (0.0f - logoPress) * std::min(1.0f, dt * 16.0f);
     logoPulse += (0.0f - logoPulse) * std::min(1.0f, dt * 5.0f);
     menuClosePulse += (0.0f - menuClosePulse) * std::min(1.0f, dt * 7.0f);
 
@@ -630,12 +654,16 @@ void MainMenu::Update() {
         float targetX2 = startX + 2 * spacing;
         float targetY2 = logoCenter.y + 240.0f * uiScale;
         float itemOpen = EaseOutBack(menuOpenAmount);
-        float x2 = logoCenter.x + (targetX2 - logoCenter.x) * itemOpen;
-        float y2 = targetY2 + std::sin(uiTime * 1.5f + 2 * 0.7f) * 1.2f * uiScale;
-        float w2 = 190.0f * uiScale;
-        float h2 = 74.0f * uiScale;
-        skinButton.SetPosition(x2 - w2 * 0.5f, y2 - h2 * 0.5f);
-        skinButton.Update(dt, menuOpen && selectedIndex == 2, hoveredMenuIndex == 2, mouse, IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+float x2 = logoCenter.x + (targetX2 - logoCenter.x) * itemOpen;
+float y2 = targetY2 + std::sin(uiTime * 1.5f + 2 * 0.7f) * 1.2f * uiScale;
+float w2 = 190.0f * uiScale;
+float h2 = 74.0f * uiScale;
+
+skinButton.SetSize(w2, h2); 
+
+skinButton.SetPosition(x2 - w2 * 0.5f, y2 - h2 * 0.5f);
+skinButton.Update(dt, menuOpen && selectedIndex == 2, hoveredMenuIndex == 2, mouse, IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+
 
         if (skinButton.CheckCollision(mouse)) {
             hoveredMenuIndex = 2;
@@ -698,6 +726,7 @@ void MainMenu::Update() {
 
         if (selectedIndex == 3) {
             curtainVfx.Start([this]() {
+                isExitingGame = true;
             });
             return;
         }
@@ -804,7 +833,23 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
             codepoints[count++] = i;
         }
 
-        const wchar_t* krText = L"플레이설정스킨나가기메인메뉴시스템온라인기본도형";
+        const wchar_t* krText = L"플레이"
+                                L"설정"
+                                L"스킨"
+                                L"나가기"
+                                L"메인메뉴"
+                                L"시스템"
+                                L"온라인"
+                                L"기본도형"
+                                L"아래개중고르세요"
+                                L"Rythm Air"
+                                L"방향키"
+                                L"선택"
+                                L"엔터"
+                                L"스페이스 확인"
+                                L"닫기"
+                                L"클릭"
+                                L"엔터 메뉴 열기";
         for (int i = 0; krText[i] != L'\0'; ++i) {
             codepoints[count++] = (int)krText[i];
         }
@@ -970,7 +1015,7 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 
     DrawCenteredText(
         customFont,
-        menuOpen ? "CHOOSE YOUR DESTINATION" : "PRESS ENTER TO BEGIN",
+        menuOpen ? "아래 4개중 고르세요" : "PRESS ENTER TO BEGIN",
         screenWidth * 0.5f,
         screenHeight * 0.13f,
         std::min(11.0f * uiScale, screenWidth * 0.009f),
@@ -979,9 +1024,9 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
     );
 
     if (introFinished) {
-        const char* hint = menuOpen
-            ? "ARROW / WASD  SELECT     ENTER / SPACE  CONFIRM     ESC  CLOSE"
-            : "CLICK / ENTER  OPEN MENU";
+    const char* hint = menuOpen
+        ? "방향키 / WASD  선택     엔터 / 스페이스  확인     ESC  닫기"
+        : "클릭 / 엔터  메뉴 열기";
 
         Vector2 hintSize = MeasureTextEx(customFont, hint, 10.0f * uiScale, 1.5f * uiScale);
 
@@ -1028,6 +1073,11 @@ void MainMenu::Draw(int screenWidth, int screenHeight) {
 
     curtainVfx.Draw(screenWidth, screenHeight);
     SlowScreen::Draw(screenWidth, screenHeight);
+
+    if (isExitingGame) {
+        float alpha = std::max(0.0f, std::min(1.0f, exitFadeTimer));
+        DrawRectangle(0,0, screenWidth, screenHeight, Color{ 0, 0, 0, (unsigned char)(alpha * 255.0f)});
+    }
 }
 
 bool MainMenu::IsGameStartSelected() const {
@@ -1043,6 +1093,8 @@ bool MainMenu::IsExitSelected() const {
 }
 
 void MainMenu::Reset() {
+    isExitingGame = false;
+    exitFadeTimer = 0.0f;
     LobbyBgm_Stop();
     selectedIndex = 0;
     pulseTimer = 0.0f;

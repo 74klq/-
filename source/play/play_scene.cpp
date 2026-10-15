@@ -12,7 +12,7 @@ extern "C" {
 // ---------------------------------------
 
 // 혹시라도 나중에 곡 추가하거나 이럴때 눈으로 쳐 보고 switch 복붙하셈 
-// -- n달후 나에게 --
+// -- 미래의 나에게 --
 
 // --------------------------------------------------
 // 헤더
@@ -31,6 +31,31 @@ extern "C" {
 #include "../UI/Loading/Load.h"
 #include "../UI/G_I/play_main.h"
 #include "../Ending/Clear.h"
+
+// ---------------------------------------------------------------------
+
+// 에디터 기능이 .cpp 인클루드 한거 내부에도 포함되있어서 방지용
+// 15개 파일 다 고치기 귀찮음
+
+static bool CustomIsKeyPressed(int key) {
+    if (key != 68 && key != 70 && key != 74 && key != 75 &&
+        key != 257 && key != 80 && key != 265 && key != 266) {
+        return false; 
+    }
+    return ::IsKeyPressed(key);
+}
+
+static bool CustomIsKeyDown(int key) {
+    if (key != 68 && key != 70 && key != 74 && key != 75) {
+        return false; 
+    }
+    return ::IsKeyDown(key);
+}
+
+// ---------------------------------------------------------------------
+
+#define IsKeyPressed CustomIsKeyPressed
+#define IsKeyDown CustomIsKeyDown
 #include "../music_execute/music1_on.cpp"
 #include "../music_execute/music2_on.cpp"
 #include "../music_execute/music3_on.cpp"
@@ -46,6 +71,8 @@ extern "C" {
 #include "../music_execute/music13_on.cpp"
 #include "../music_execute/music14_on.cpp"
 #include "../music_execute/music15_on.cpp"
+#include "../music_execute/music16_on.cpp"
+#include "../music_execute/music17_on.cpp"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -195,6 +222,8 @@ struct MusicPlayerWrapper {
     MusicExecute::MusicPlayer13* p13 = nullptr;
     MusicExecute::MusicPlayer14* p14 = nullptr;
     MusicExecute::MusicPlayer15* p15 = nullptr;
+    MusicExecute::MusicPlayer16* p16 = nullptr;
+    MusicExecute::MusicPlayer17* p17 = nullptr;
     int active = 1;
 
     void Init(AudioManager& am) {
@@ -213,6 +242,8 @@ struct MusicPlayerWrapper {
         if (p13) p13->Initialize(am);
         if (p14) p14->Initialize(am); 
         if (p15) p15->Initialize(am);
+        if (p16) p16->Initialize(am);
+        if (p17) p17->Initialize(am);
     }
 
     void Update(float dt) {
@@ -232,6 +263,8 @@ struct MusicPlayerWrapper {
             case 13: if (p13) p13->Update(dt); break;
             case 14: if (p14) p14->Update(dt); break;
             case 15: if (p15) p15->Update(dt); break;
+             case 16: if (p16) p16->Update(dt); break;
+              case 17: if (p17) p17->Update(dt); break;
         }
     }
 
@@ -251,6 +284,8 @@ struct MusicPlayerWrapper {
         if (p13) p13->Stop();
         if (p14) p14->Stop();
         if (p15) p15->Stop();
+         if (p16) p16->Stop();
+          if (p17) p17->Stop();
     }
 
     void Play(AudioManager& am, int i) {
@@ -270,6 +305,8 @@ struct MusicPlayerWrapper {
             case 13: if (p13) p13->Play(am, i); break;
             case 14: if (p14) p14->Play(am, i); break;
             case 15: if (p15) p15->Play(am, i); break;
+             case 16: if (p16) p16->Play(am, i); break;
+              case 17: if (p17) p17->Play(am, i); break;
         }
     }
 
@@ -290,6 +327,8 @@ struct MusicPlayerWrapper {
             case 13: if (p13) p13->PlayImmediate(); break;
             case 14: if (p14) p14->PlayImmediate(); break;
             case 15: if (p15) p15->PlayImmediate(); break;
+               case 16: if (p16) p16->PlayImmediate(); break;
+                  case 17: if (p17) p17->PlayImmediate(); break;
         }
     }
 
@@ -310,6 +349,8 @@ struct MusicPlayerWrapper {
             case 13: if (p13) p13->SetPitch(p); break;
             case 14: if (p14) p14->SetPitch(p); break;
             case 15: if (p15) p15->SetPitch(p); break;
+           case 16: if (p16) p16->SetPitch(p); break;
+                      case 17: if (p17) p17->SetPitch(p); break;
         }
     }
 
@@ -330,6 +371,8 @@ struct MusicPlayerWrapper {
             case 13: return p13 ? p13->GetChannelRaw() : nullptr;
             case 14: return p14 ? p14->GetChannelRaw() : nullptr;
             case 15: return p15 ? p15->GetChannelRaw() : nullptr;
+             case 16: return p16 ? p16->GetChannelRaw() : nullptr;
+              case 17: return p17 ? p17->GetChannelRaw() : nullptr;
         }
         return nullptr;
     }
@@ -351,6 +394,8 @@ struct MusicPlayerWrapper {
             case 13: return p13 != nullptr;
             case 14: return p14 != nullptr;
             case 15: return p15 != nullptr;
+             case 16: return p16 != nullptr; 
+              case 17: return p17 != nullptr; 
         }
         return false;
     }
@@ -461,6 +506,7 @@ static FramedBeatmapClock s_BeatmapClock(true);
 static BgaVideoPlayer s_BgaPlayer;
 
 static std::vector<Note> s_Notes;
+static FMOD_SOUND* s_HitClapSound = nullptr;
 
 static PlayMainUI s_PlayMainUI;
 static ClearScreen s_ClearScreen;
@@ -1133,6 +1179,8 @@ PlayScene::PlayScene(SongSelect& sharedSongSelect)
     s_MusicPlayer.p13 = new MusicExecute::MusicPlayer13();
     s_MusicPlayer.p14 = new MusicExecute::MusicPlayer14();
     s_MusicPlayer.p15 = new MusicExecute::MusicPlayer15();
+    s_MusicPlayer.p16 = new MusicExecute::MusicPlayer16();
+    s_MusicPlayer.p17 = new MusicExecute::MusicPlayer17();
 }
 
 PlayScene::~PlayScene()
@@ -1152,6 +1200,9 @@ PlayScene::~PlayScene()
     delete s_MusicPlayer.p13;
     delete s_MusicPlayer.p14;
     delete s_MusicPlayer.p15;
+     delete s_MusicPlayer.p16;
+      delete s_MusicPlayer.p17;
+
     s_BgaPlayer.Close();
 }
 
@@ -1224,16 +1275,23 @@ void PlayScene::Init(int startSongIndex)
     s_ComboFont = LoadFontEx("fonts/Pretendard-Black.ttf", 96, codepoints, 256);
     s_SuitFont = LoadFontEx("fonts/Pretendard-Black.ttf", 96, codepoints, 256);
     
-    if (s_ComboFont.texture.id != 0) SetTextureFilter(s_ComboFont.texture, TEXTURE_FILTER_BILINEAR);
+     if (s_ComboFont.texture.id != 0) SetTextureFilter(s_ComboFont.texture, TEXTURE_FILTER_BILINEAR);
     if (s_SuitFont.texture.id != 0) SetTextureFilter(s_SuitFont.texture, TEXTURE_FILTER_BILINEAR);
+
+    FMOD_SYSTEM* sys = s_AudioManager.GetSystemRaw(); // <- 추가
+    if (sys && !s_HitClapSound) // <- 추가
+    { // <- 추가
+        FMOD_System_CreateSound(sys, "hit_sounds/soft-hitclap.wav", FMOD_DEFAULT, nullptr, &s_HitClapSound); // <- 추가
+    } // <- 추가
 }
+
 
 void PlayScene::Update()
 {
     if (s_IsCleared)
     {
 
-        if (IsKeyPressed(KEY_F))
+       /* if (IsKeyPressed(KEY_F))
     {
         s_ClearResult.title = "별이 보이지 않는 밤";
         s_ClearResult.artist = "비밀 인형극 II";
@@ -1252,9 +1310,9 @@ void PlayScene::Update()
         s_ClearResult.grade = "S";
         s_ClearResult.jacketPath = "";
         s_IsCleared = true;
-    }
+    } */
         s_ClearScreen.Update(GetFrameTime());
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             s_IsCleared = false;
             s_SongSelectEnterDelay = 0.3f;
@@ -1504,7 +1562,7 @@ void PlayScene::UpdatePlaying()
         return;
     }
 
-    if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) 
+    /* if (s_MusicPlayer.IsValid() && s_MusicPlayer.GetChannelRaw()) 
     {
         if (IsKeyDown(KEY_L) || IsKeyPressed(KEY_L)) 
         {
@@ -1526,7 +1584,7 @@ void PlayScene::UpdatePlaying()
                 // 입력 버퍼 비우기
             }
         }
-    }
+    } */
 
     if (s_IgnoreFirstEnter)
     {
@@ -1591,18 +1649,18 @@ void PlayScene::UpdatePlaying()
         }
     }
 
-    if (s_IsPaused)
+     if (s_IsPaused)
     {
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) 
+        if (IsKeyPressed(KEY_UP)) 
         {
             s_PauseSelection = (s_PauseSelection - 1 + 2) % 2;
         }
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) 
+        if (IsKeyPressed(KEY_DOWN)) 
         {
             s_PauseSelection = (s_PauseSelection + 1) % 2;
         }
 
-        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z))
+        if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             if (s_PauseSelection == 0) 
             {
@@ -1732,14 +1790,30 @@ if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
     HitEffect::Update();
     Shack::Update();
 
-    bool lanePressed[4] = { 
+        bool lanePressed[4] = { 
         IsKeyPressed(KEY_D), 
         IsKeyPressed(KEY_F), 
         IsKeyPressed(KEY_J), 
         IsKeyPressed(KEY_K) 
     };
 
+   if (lanePressed[0] || lanePressed[1] || lanePressed[2] || lanePressed[3])
+    {
+        FMOD_SYSTEM* sys = s_AudioManager.GetSystemRaw();
+        if (sys && s_HitClapSound)
+        {
+            FMOD_CHANNEL* ch = nullptr;
+            FMOD_System_PlaySound(sys, s_HitClapSound, nullptr, true, &ch);
+            if (ch)
+            {
+                FMOD_Channel_SetVolume(ch, 0.25f); 
+                FMOD_Channel_SetPaused(ch, false);
+            }
+        }
+    }
+
     for (int lane = 0; lane < 4; ++lane)
+
     {
         if (!lanePressed[lane]) 
         {
@@ -1762,7 +1836,7 @@ if (s_SongTimer > 1.0f && s_MusicPlayer.IsValid())
                 pNote.active = false;
                 float nX = GetLaneXCoord(pNote.lane);
                 HitEffect::Spawn({ nX, judgmentLineY });
-                Shack::Trigger(0.08f, 5.0f);
+                Shack::Trigger(0.1f, 1.5f);
 
                 s_ShowJudgment = true;
                 s_JudgmentTimer = 0.4f;
@@ -1946,10 +2020,16 @@ void PlayScene::Unload()
         s_ComboFont = Font{ 0 };
     }
 
-    if (s_SuitFont.texture.id != 0)
+       if (s_SuitFont.texture.id != 0)
     {
         UnloadFont(s_SuitFont);
         s_SuitFont = Font{ 0 };
+    }
+
+    if (s_HitClapSound)
+    { 
+        FMOD_Sound_Release(s_HitClapSound); 
+        s_HitClapSound = nullptr; 
     }
 
     s_ChartEditor.Release();

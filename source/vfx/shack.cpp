@@ -1,9 +1,10 @@
 #include "shack.h"
 #include <cstdlib>
+#include <cmath>
 
 static float s_ShackTimer = 0.0f;
 static float s_ShackDuration = 0.1f;
-static float s_ShackMagnitude = 3.0f;
+static float s_ShackMagnitude = 1.5f;
 static Camera2D s_ShackCamera = { 0 };
 
 void Shack::Trigger(float duration, float magnitude)
@@ -29,12 +30,16 @@ void Shack::Begin()
 {
     s_ShackCamera = { 0 };
     s_ShackCamera.zoom = 1.0f;
+    
     if (s_ShackTimer > 0.0f)
     {
         float progress = s_ShackTimer / s_ShackDuration;
         float currentMag = s_ShackMagnitude * progress;
-        float offsetX = ((float)(rand() % 2000) / 1000.0f - 1.0f) * currentMag;
-        float offsetY = ((float)(rand() % 2000) / 1000.0f - 1.0f) * currentMag;
+        float timeFactor = GetTime() * 120.0f; 
+        
+        float offsetX = std::sin(timeFactor) * currentMag;
+        float offsetY = std::cos(timeFactor * 1.2f) * currentMag;
+        
         s_ShackCamera.offset = (Vector2){ offsetX, offsetY };
     }
     BeginMode2D(s_ShackCamera);

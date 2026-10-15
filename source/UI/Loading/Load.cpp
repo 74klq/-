@@ -185,24 +185,28 @@ void LoadingScreen::DrawJacket() {
             float aiX = (screenWidth - aiSize) * 0.5f;
             float aiY = (screenHeight - aiSize) * 0.4f;
             
+            BeginScissorMode((int)aiX, (int)aiY, (int)aiSize, (int)aiSize);
             DrawTexturePro(
                 currentSong.jacketTexture,
                 (Rectangle){ 0, 0, (float)currentSong.jacketTexture.width, (float)currentSong.jacketTexture.height },
                 (Rectangle){ aiX, aiY, aiSize, aiSize },
                 (Vector2){ 0, 0 }, 0.0f, (Color){ 255, 255, 255, (unsigned char)(50 / i) }
             );
+            EndScissorMode();
         }
     }
 
     DrawRectangleRounded((Rectangle){ jacketX + 6.0f * uiScale, jacketY + 6.0f * uiScale, jacketSize, jacketSize }, 0.06f, 4, (Color){ 0, 0, 0, 180 });
 
     if (currentSong.jacketTexture.id != 0) {
+        BeginScissorMode((int)jacketX, (int)jacketY, (int)jacketSize, (int)jacketSize);
         DrawTexturePro(
             currentSong.jacketTexture,
             (Rectangle){ 0, 0, (float)currentSong.jacketTexture.width, (float)currentSong.jacketTexture.height },
             (Rectangle){ jacketX, jacketY, jacketSize, jacketSize },
             (Vector2){ 0, 0 }, 0.0f, WHITE
         );
+        EndScissorMode();
     } else {
         DrawRectangleRounded((Rectangle){ jacketX, jacketY, jacketSize, jacketSize }, 0.06f, 4, (Color){ 30, 35, 45, 255 });
     }

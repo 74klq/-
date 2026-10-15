@@ -41,26 +41,18 @@ void HoldNoteManager::Update(float songTimer, float noteScrollSpeed, float judgm
                              bool& showJudgment, float& judgmentTimer, const char*& currentJudgment, float& judgmentAnimTimer) {
     float dt = GetFrameTime();
 
-    bool keyPressStates[4] = {
-        IsKeyPressed(KEY_D),
-        IsKeyPressed(KEY_F),
-        IsKeyPressed(KEY_J),
-        IsKeyPressed(KEY_K)
-    };
-
-    bool keyDownStates[4] = {
-        IsKeyDown(KEY_D),
-        IsKeyDown(KEY_F),
-        IsKeyDown(KEY_J),
-        IsKeyDown(KEY_K)
-    };
+    bool keyPressStates[4] = { IsKeyPressed(KEY_D), IsKeyPressed(KEY_F), IsKeyPressed(KEY_J), IsKeyPressed(KEY_K) };
+    bool keyDownStates[4]  = { IsKeyDown(KEY_D),  IsKeyDown(KEY_F),  IsKeyDown(KEY_J),  IsKeyDown(KEY_K)  };
+    bool keyPressUsed[4] = { false, false, false, false };
 
     for (auto& note : s_HoldNotes) {
         if (!note.active) continue;
+        if (note.lane < 0 || note.lane >= 4) continue;
 
         if (!note.headHit) {
             float timeDiff = songTimer - note.startTimeSec;
-            if (timeDiff > 0.3f) {
+            
+            if (timeDiff > 0.45f) {
                 note.active = false;
                 note.completed = true;
                 combo = 0;
@@ -75,21 +67,25 @@ void HoldNoteManager::Update(float songTimer, float noteScrollSpeed, float judgm
                 continue;
             }
 
-            if (note.lane >= 0 && note.lane < 4 && keyPressStates[note.lane]) {
+            if (keyPressUsed[note.lane]) continue;
+
+            if (keyPressStates[note.lane]) {
                 float absDiff = fabsf(timeDiff);
-                if (absDiff <= 0.15f) {
+                if (absDiff <= 0.22f) {
                     note.headHit = true;
+                    keyPressUsed[note.lane] = true;
+
                     if (keyDownStates[note.lane]) {
                         note.isHolding = true;
                     }
 
-                    if (absDiff <= 0.07f) {
+                    if (absDiff <= 0.12f) {
                         currentJudgment = "PERFECT";
                         combo++;
                         perfectCount++;
                         score += 20;
                         hpRatio += 0.01f;
-                    } else if (absDiff <= 0.12f) {
+                    } else if (absDiff <= 0.18f) {
                         currentJudgment = "GREAT";
                         combo++;
                         greatCount++;
@@ -109,9 +105,7 @@ void HoldNoteManager::Update(float songTimer, float noteScrollSpeed, float judgm
             }
         } 
         else if (note.isHolding) {
-            if (note.lane < 0 || note.lane >= 4) continue;
-
-            if (songTimer >= note.endTimeSec) {
+            if (songTimer >= note.endTimeSec - 0.05f) { 
                 note.isHolding = false;
                 note.active = false;
                 note.completed = true;
@@ -125,23 +119,39 @@ void HoldNoteManager::Update(float songTimer, float noteScrollSpeed, float judgm
                 judgmentAnimTimer = 0.3f;
             }
             else if (!keyDownStates[note.lane]) {
-                note.isHolding = false;
-                note.active = false;
-                note.completed = true;
-                combo = 0;
-                lastCombo = 0;
-                showJudgment = true;
-                judgmentTimer = 0.3f;
-                currentJudgment = "MISS";
-                judgmentAnimTimer = 0.3f;
-                missCount++;
-                hpRatio -= 0.05f;
-                if (hpRatio < 0.0f) hpRatio = 0.0f;
+                float remainingTime = note.endTimeSec - songTimer;
+                
+                if (remainingTime < 0.18f) {
+                    note.isHolding = false;
+                    note.active = false;
+                    note.completed = true;
+                    combo++;
+                    score += 15;
+                    hpRatio += 0.01f;
+                    if (hpRatio > 1.0f) hpRatio = 1.0f;
+                    currentJudgment = "PERFECT";
+                    showJudgment = true;
+                    judgmentTimer = 0.4f;
+                    judgmentAnimTimer = 0.3f;
+                } else {
+                    note.isHolding = false;
+                    note.active = false;
+                    note.completed = true;
+                    combo = 0;
+                    lastCombo = 0;
+                    showJudgment = true;
+                    judgmentTimer = 0.3f;
+                    currentJudgment = "MISS";
+                    judgmentAnimTimer = 0.3f;
+                    missCount++;
+                    hpRatio -= 0.05f;
+                    if (hpRatio < 0.0f) hpRatio = 0.0f;
+                }
             }
             else {
                 note.tickAccumulator += dt;
-                if (note.tickAccumulator >= 0.1f) {
-                    note.tickAccumulator = 0.0f;
+                while (note.tickAccumulator >= 0.1f) {
+                    note.tickAccumulator -= 0.1f;
                     combo++;
                     score += 2;
                 }
@@ -176,8 +186,6 @@ void HoldNoteManager::Draw(float songTimer, float noteScrollSpeed, float judgmen
         if (bodyHeight < 0.0f) bodyHeight = 0.0f;
 
         DrawRectangleRounded({ cx - w * 0.5f, tailY, w, bodyHeight }, 0.1f, 4, Color{ 255, 255, 255, 120 });
-        
         DrawRectangleRounded({ cx - w * 0.5f, headY - 12.0f, w, 24.0f }, 0.2f, 6, Color{ 218, 218, 221, 255 });
-        
     }
 }

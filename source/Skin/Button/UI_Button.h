@@ -36,6 +36,7 @@ public:
     void Draw(Font font, float openAmount, float time) const;
     bool CheckCollision(Vector2 point) const;
     void SetPosition(float x, float y);
+     void SetSize(float width, float height);
     
     bool IsExpanded() const { return isExpanded; }
     void ToggleExpand() { isExpanded = !isExpanded; }

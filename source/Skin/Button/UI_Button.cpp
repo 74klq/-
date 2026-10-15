@@ -49,9 +49,17 @@ void UI_Button::Update(float dt, bool isSelected, bool isHovered, Vector2 mouseP
                     options[j].isChecked = (j == i);
                 }
                 selectedOptionIndex = (int)i;
+                
                 s_DiagramSkinGlobal = (selectedOptionIndex == 1);
                 break;
             }
+        }
+    }
+    else {
+        if (options.size() >= 2) {
+            options[0].isChecked = !s_DiagramSkinGlobal;
+            options[1].isChecked = s_DiagramSkinGlobal;
+            selectedOptionIndex = s_DiagramSkinGlobal ? 1 : 0;
         }
     }
 }
@@ -153,5 +161,10 @@ void UI_Button::SetPosition(float x, float y) {
     rect.y = y;
 }
 
+void UI_Button::SetSize(float width, float height) {
+    rect.width = width;
+    rect.height = height;
+
+}
 }
 }
