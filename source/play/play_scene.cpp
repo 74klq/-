@@ -73,6 +73,11 @@ static bool CustomIsKeyDown(int key) {
 #include "../music_execute/music15_on.cpp"
 #include "../music_execute/music16_on.cpp"
 #include "../music_execute/music17_on.cpp"
+#include "../music_execute/music18_on.cpp"
+#include "../music_execute/music19_on.cpp"
+#include "../music_execute/music20_on.cpp"
+#include "../music_execute/music21_on.cpp"
+#include "../music_execute/music22_on.cpp"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -224,6 +229,11 @@ struct MusicPlayerWrapper {
     MusicExecute::MusicPlayer15* p15 = nullptr;
     MusicExecute::MusicPlayer16* p16 = nullptr;
     MusicExecute::MusicPlayer17* p17 = nullptr;
+    MusicExecute::MusicPlayer18* p18 = nullptr;
+    MusicExecute::MusicPlayer19* p19 = nullptr;
+    MusicExecute::MusicPlayer20* p20 = nullptr;
+    MusicExecute::MusicPlayer21* p21 = nullptr;
+    MusicExecute::MusicPlayer22* p22 = nullptr;
     int active = 1;
 
     void Init(AudioManager& am) {
@@ -244,6 +254,11 @@ struct MusicPlayerWrapper {
         if (p15) p15->Initialize(am);
         if (p16) p16->Initialize(am);
         if (p17) p17->Initialize(am);
+        if (p18) p18->Initialize(am);
+        if (p19) p19->Initialize(am);
+        if (p20) p20->Initialize(am);
+        if (p21) p21->Initialize(am);
+        if (p22) p22->Initialize(am);
     }
 
     void Update(float dt) {
@@ -265,6 +280,11 @@ struct MusicPlayerWrapper {
             case 15: if (p15) p15->Update(dt); break;
              case 16: if (p16) p16->Update(dt); break;
               case 17: if (p17) p17->Update(dt); break;
+              case 18: if (p18) p18->Update(dt); break;
+              case 19: if (p19) p19->Update(dt); break;
+              case 20: if (p20) p20->Update(dt); break;
+              case 21: if (p21) p21->Update(dt); break;
+              case 22: if (p22) p22->Update(dt); break;
         }
     }
 
@@ -286,6 +306,11 @@ struct MusicPlayerWrapper {
         if (p15) p15->Stop();
          if (p16) p16->Stop();
           if (p17) p17->Stop();
+          if (p18) p18->Stop();
+          if (p19) p19->Stop();
+          if (p20) p20->Stop();
+          if (p21) p21->Stop();
+          if (p22) p22->Stop();
     }
 
     void Play(AudioManager& am, int i) {
@@ -307,6 +332,11 @@ struct MusicPlayerWrapper {
             case 15: if (p15) p15->Play(am, i); break;
              case 16: if (p16) p16->Play(am, i); break;
               case 17: if (p17) p17->Play(am, i); break;
+              case 18: if (p18) p18->Play(am, i); break;
+              case 19: if (p19) p19->Play(am, i); break;
+              case 20: if (p20) p20->Play(am, i); break;
+              case 21: if (p21) p21->Play(am, i); break;
+              case 22: if (p22) p22->Play(am, i); break;
         }
     }
 
@@ -329,6 +359,11 @@ struct MusicPlayerWrapper {
             case 15: if (p15) p15->PlayImmediate(); break;
                case 16: if (p16) p16->PlayImmediate(); break;
                   case 17: if (p17) p17->PlayImmediate(); break;
+                  case 18: if (p18) p18->PlayImmediate(); break;
+                  case 19: if (p19) p19->PlayImmediate(); break;
+                  case 20: if (p20) p20->PlayImmediate(); break;
+                  case 21: if (p21) p21->PlayImmediate(); break;
+                  case 22: if (p22) p22->PlayImmediate(); break;
         }
     }
 
@@ -349,8 +384,13 @@ struct MusicPlayerWrapper {
             case 13: if (p13) p13->SetPitch(p); break;
             case 14: if (p14) p14->SetPitch(p); break;
             case 15: if (p15) p15->SetPitch(p); break;
-           case 16: if (p16) p16->SetPitch(p); break;
-                      case 17: if (p17) p17->SetPitch(p); break;
+            case 16: if (p16) p16->SetPitch(p); break;
+            case 17: if (p17) p17->SetPitch(p); break;
+            case 18: if (p18) p18->SetPitch(p); break;
+            case 19: if (p19) p19->SetPitch(p); break;
+            case 20: if (p20) p20->SetPitch(p); break;
+            case 21: if (p21) p21->SetPitch(p); break;
+            case 22: if (p22) p22->SetPitch(p); break;
         }
     }
 
@@ -373,6 +413,11 @@ struct MusicPlayerWrapper {
             case 15: return p15 ? p15->GetChannelRaw() : nullptr;
              case 16: return p16 ? p16->GetChannelRaw() : nullptr;
               case 17: return p17 ? p17->GetChannelRaw() : nullptr;
+              case 18: return p18 ? p18->GetChannelRaw() : nullptr;
+              case 19: return p19 ? p19->GetChannelRaw() : nullptr;
+              case 20: return p20 ? p20->GetChannelRaw() : nullptr;
+              case 21: return p21 ? p21->GetChannelRaw() : nullptr;
+              case 22: return p22 ? p22->GetChannelRaw() : nullptr;
         }
         return nullptr;
     }
@@ -396,6 +441,11 @@ struct MusicPlayerWrapper {
             case 15: return p15 != nullptr;
              case 16: return p16 != nullptr; 
               case 17: return p17 != nullptr; 
+              case 18: return p18 != nullptr;
+              case 19: return p19 != nullptr;
+              case 20: return p20 != nullptr;
+              case 21: return p21 != nullptr;
+              case 22: return p22 != nullptr;
         }
         return false;
     }
@@ -1181,6 +1231,11 @@ PlayScene::PlayScene(SongSelect& sharedSongSelect)
     s_MusicPlayer.p15 = new MusicExecute::MusicPlayer15();
     s_MusicPlayer.p16 = new MusicExecute::MusicPlayer16();
     s_MusicPlayer.p17 = new MusicExecute::MusicPlayer17();
+    s_MusicPlayer.p18 = new MusicExecute::MusicPlayer18();
+    s_MusicPlayer.p19 = new MusicExecute::MusicPlayer19();
+    s_MusicPlayer.p20 = new MusicExecute::MusicPlayer20();
+    s_MusicPlayer.p21 = new MusicExecute::MusicPlayer21();
+    s_MusicPlayer.p22 = new MusicExecute::MusicPlayer22();
 }
 
 PlayScene::~PlayScene()
@@ -1202,6 +1257,11 @@ PlayScene::~PlayScene()
     delete s_MusicPlayer.p15;
      delete s_MusicPlayer.p16;
       delete s_MusicPlayer.p17;
+      delete s_MusicPlayer.p18;
+      delete s_MusicPlayer.p19;
+      delete s_MusicPlayer.p20;
+      delete s_MusicPlayer.p21;
+      delete s_MusicPlayer.p22;
 
     s_BgaPlayer.Close();
 }
@@ -1416,7 +1476,14 @@ static const std::vector<std::string> jacketPaths = {
     "music_assets/Stars2021.png",
     "music_assets/magic.png",
     "music_assets/MemoryLocked.png",
-    "music_assets/stars_Delete.png"
+    "music_assets/stars_Delete.png",
+    "music_assets/Of_Our_Time.png",
+    "music_assets/QuomodocunquizE.png",
+    "music_assets/me.png",
+    "music_assets/Sailor.png",
+    "music_assets/Sleep.png",
+    "music_assets/Your.png",
+    "music_assets/Megamix3.png"
 };
 
             s_SongInfo.title = curSong.title;
@@ -1455,7 +1522,6 @@ static const std::vector<std::string> jacketPaths = {
                 s_BeatmapClock.LoadComplete();
                 s_BeatmapClock.Start();
 
-                // [추가된 코드] 재생될 음악의 실제 총 길이를 구해서 s_SongInfo에 저장합니다.
                 if (channel)
                 {
                     FMOD_SOUND* currentSound = nullptr;
@@ -1525,7 +1591,15 @@ static const std::vector<std::string> jacketPaths = {
     "music_assets/Stars2021.png",
     "music_assets/magic.png",
     "music_assets/MemoryLocked.png",
-    "music_assets/stars_Delete.png"
+    "music_assets/stars_Delete.png",
+    "music_assets/Of_Our_Time.png",
+    "music_assets/QuomodocunquizE.png",
+    "music_assets/me.png",
+    "music_assets/Sailor.png",
+    "music_assets/Sleep.png",
+    "music_assets/Your.png",
+    "music_assets/Megamix3.png"
+    
 };
 
             if (currentSelectedIdx >= 0 && currentSelectedIdx < static_cast<int>(jacketPaths.size()))

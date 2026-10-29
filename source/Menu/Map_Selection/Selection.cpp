@@ -45,7 +45,7 @@ static void DrawTextBoxed(Font font, const char *text, Rectangle rec, float font
 
 static std::vector<Texture2D> g_jacketTextures;
 static FMOD_SYSTEM* g_fmodSystem = nullptr;
-static FMOD_SOUND* g_fmodSounds[17] = { nullptr };
+static FMOD_SOUND* g_fmodSounds[22] = { nullptr };
 static FMOD_CHANNEL* g_fmodChannel = nullptr;
 static int g_currentPlayingSongIndex = -1;
 static float g_songSwitchTimer = 0.0f;
@@ -57,7 +57,7 @@ struct SongHighlight {
     unsigned int durationMs;
 };
 
-static const SongHighlight g_songHighlights[17] = {
+static const SongHighlight g_songHighlights[22] = {
     { 95000, 12000 },
     { 99000, 12000 },
     { 73000, 12000 },
@@ -75,10 +75,15 @@ static const SongHighlight g_songHighlights[17] = {
     { 88000, 12000 },
     { 49000, 12000 },
     { 60000, 12000 },
+    { 84000, 12000 },
+    { 213000, 12000 },
+    { 91000, 12000 },
+    { 63000, 12000 },
+    { 641000, 12000 }
 
 };
 
-static const char* g_musicPaths[17] = {
+static const char* g_musicPaths[22] = {
     "music/A_Night_Without_Visible_Stars.ogg",
     "music/kaleidoscope.ogg",                  
     "music/SkysCape.wav",                     
@@ -95,7 +100,12 @@ static const char* g_musicPaths[17] = {
     "music/MemoryLocked.ogg",
     "music/AAAA.ogg",
     "music/Of_Our_Time.ogg",
-    "music/QuomodocunquizE.ogg"
+    "music/QuomodocunquizE.ogg",
+    "music/me.ogg",
+    "music/Sailor.ogg",
+    "music/Sleep.ogg",
+    "music/Your.ogg",
+    "music/Megamix3.ogg"
 };
 
 static inline float EaseOutCubic(float x) {
@@ -124,7 +134,7 @@ SongSelect::~SongSelect() {
         FMOD_Channel_Stop(g_fmodChannel);
         g_fmodChannel = nullptr;
     }
-    for (int i = 0; i < 17; ++i) {
+    for (int i = 0; i < 22; ++i) {
         if (g_fmodSounds[i]) {
             FMOD_Sound_Release(g_fmodSounds[i]);
             g_fmodSounds[i] = nullptr;
@@ -156,7 +166,7 @@ void SongSelect::Init() {
         FMOD_System_Init(g_fmodSystem, 512, FMOD_INIT_NORMAL, 0);
     }
 
-    for (int i = 0; i < 17; ++i) {
+    for (int i = 0; i < 22; ++i) {
         if (!g_fmodSounds[i]) {
             FMOD_System_CreateSound(g_fmodSystem, g_musicPaths[i], FMOD_CREATESTREAM, 0, &g_fmodSounds[i]);
         }
@@ -184,7 +194,12 @@ void SongSelect::Init() {
         "music_assets/MemoryLocked.png",
         "music_assets/stars_Delete.png",
         "music_assets/Of_Our_Time.png",
-        "music_assets/QuomodocunquizE.png"
+        "music_assets/QuomodocunquizE.png",
+        "music_assets/me.png",
+        "music_assets/Sailor.png",
+        "music_assets/Sleep.png",
+        "music_assets/Your.png",
+        "music_assets/Megamix3.png"
     };
 
     for (const auto& path : jacketPaths) {
@@ -238,7 +253,12 @@ void SongSelect::Init() {
             "Of Our Time",
             "Will Stetson",
             "Camellia",
-            "QuomodocunquizE"
+            "QuomodocunquizE",
+            "나만의 작은 라라라",
+            "Sailor",
+            "잠에 드는 그대에게",
+            "스스로를 미워하는 당신에게",
+            "MEGAMIX 3"
         };
 
         for (const auto& text : texts) {
@@ -295,7 +315,7 @@ void SongSelect::Init() {
     g_pendingSongSwitch = false;
     g_songSwitchTimer = 0.0f;
 
-    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 17 && g_fmodSounds[selectedSongIndex]) {
+    if (g_fmodSystem && selectedSongIndex >= 0 && selectedSongIndex < 22 && g_fmodSounds[selectedSongIndex]) {
         FMOD_System_PlaySound(g_fmodSystem, g_fmodSounds[selectedSongIndex], 0, false, &g_fmodChannel);
         FMOD_Channel_SetPosition(g_fmodChannel, g_songHighlights[selectedSongIndex].startMs, FMOD_TIMEUNIT_MS);
         g_currentPlayingSongIndex = selectedSongIndex;
@@ -510,7 +530,7 @@ void SongSelect::LoadSongs() {
     song16.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
     song16.osuFileName = "";          
     song16.musicPlayerActive = 16;
-    song16.videoFileName = "";
+    song16.videoFileName = "Of_Our_Time.osu";
     songs.push_back(song16);
 
     SongData song17;
@@ -525,7 +545,74 @@ void SongSelect::LoadSongs() {
     song17.musicPlayerActive = 17;
     song17.videoFileName = "";
     songs.push_back(song17);
+
+    SongData song18;
+    song18.title = "나만의 작은 라라라";
+    song18.artist = "Plum";
+    song18.mapper = "Seta";
+    song18.bpm = 150.0f;
+    song18.length = 120.0f;
+    song18.cleared = false;
+    song18.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song18.osuFileName = "me.osu";          
+    song18.musicPlayerActive = 18;
+    song18.videoFileName = "";
+    songs.push_back(song18);
+
+    SongData song19;
+    song19.title = "Sailor";
+    song19.artist = "Plum";
+    song19.mapper = "Seta";
+    song19.bpm = 150.0f;
+    song19.length = 120.0f;
+    song19.cleared = false;
+    song19.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song19.osuFileName = "Sailor.osu";          
+    song19.musicPlayerActive = 19;
+    song19.videoFileName = "";
+    songs.push_back(song19);
+
+    SongData song20;
+    song20.title = "잠에 드는 그대에게";
+    song20.artist = "Plum";
+    song20.mapper = "Seta";
+    song20.bpm = 150.0f;
+    song20.length = 120.0f;
+    song20.cleared = false;
+    song20.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song20.osuFileName = "Sleep.osu";          
+    song20.musicPlayerActive = 20;
+    song20.videoFileName = "";
+    songs.push_back(song20);
+
+    SongData song21;
+    song21.title = "스스로를 미워하는 당신에게";
+    song21.artist = "Plum";
+    song21.mapper = "Seta";
+    song21.bpm = 150.0f;
+    song21.length = 120.0f;
+    song21.cleared = false;
+    song21.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song21.osuFileName = "Your.osu";          
+    song21.musicPlayerActive = 21;
+    song21.videoFileName = "";
+    songs.push_back(song21);
+
+    SongData song22;
+    song22.title = "MEGAMIX 3";
+    song22.artist = "Plum";
+    song22.mapper = "Seta";
+    song22.bpm = 150.0f;
+    song22.length = 120.0f;
+    song22.cleared = false;
+    song22.difficulties = { {"HARD", 15, 150.0f, 1200, 2400, 6.5f} };
+    song22.osuFileName = "Megamix3.osu";          
+    song22.musicPlayerActive = 22;
+    song22.videoFileName = "";
+    songs.push_back(song22);
 }
+
+
 
 void SongSelect::Update() {
     SetMouseScale((float)1280 / GetScreenWidth(), (float)720 / GetScreenHeight());
@@ -595,7 +682,7 @@ void SongSelect::Update() {
     if (g_pendingSongSwitch) {
         g_songSwitchTimer += dt;
         if (g_songSwitchTimer >= 0.5f) {
-            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 17 && g_fmodSounds[g_pendingSongIndex]) {
+            if (g_fmodSystem && g_pendingSongIndex >= 0 && g_pendingSongIndex < 22 && g_fmodSounds[g_pendingSongIndex]) {
                 if (g_fmodChannel) {
                     FMOD_Channel_Stop(g_fmodChannel);
                     g_fmodChannel = nullptr;
@@ -612,7 +699,7 @@ void SongSelect::Update() {
         FMOD_System_Update(g_fmodSystem);
     }
 
-    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 17) {
+    if (g_fmodChannel && g_currentPlayingSongIndex >= 0 && g_currentPlayingSongIndex < 22) {
         unsigned int pos = 0;
         FMOD_Channel_GetPosition(g_fmodChannel, &pos, FMOD_TIMEUNIT_MS);
         unsigned int startMs = g_songHighlights[g_currentPlayingSongIndex].startMs;
@@ -815,17 +902,25 @@ void SongSelect::DrawCurrentSongInfo(int screenWidth, int screenHeight) {
 
     DrawRectangleRounded((Rectangle){ artX + 5.0f * uiScale, artY + 5.0f * uiScale, currentArtSize, currentArtSize }, 0.06f, 4, (Color){ 0, 0, 0, 120 });
 
-    if (selectedSongIndex < (int)g_jacketTextures.size() && g_jacketTextures[selectedSongIndex].id != 0) {
-        DrawTexturePro(
-            g_jacketTextures[selectedSongIndex],
-            (Rectangle){ 0, 0, (float)g_jacketTextures[selectedSongIndex].width, (float)g_jacketTextures[selectedSongIndex].height },
-            (Rectangle){ artX, artY, currentArtSize, currentArtSize },
-            (Vector2){ 0, 0 }, 0.0f, WHITE
-        );
-    } else {
-        DrawRectangleRounded((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.06f, 4, (Color){ 35, 43, 58, 255 });
+Color panelBgColor = (Color){ 20, 24, 34, 250 }; 
+
+if (selectedSongIndex < (int)g_jacketTextures.size() && g_jacketTextures[selectedSongIndex].id != 0) {
+    DrawTexturePro(
+        g_jacketTextures[selectedSongIndex],
+        (Rectangle){ 0, 0, (float)g_jacketTextures[selectedSongIndex].width, (float)g_jacketTextures[selectedSongIndex].height },
+        (Rectangle){ artX, artY, currentArtSize, currentArtSize },
+        (Vector2){ 0, 0 }, 0.0f, WHITE
+    );
+    
+    for (float thick = 1.0f; thick <= 3.0f; thick += 0.5f) {
+        DrawRectangleRoundedLines((Rectangle){ artX - thick/2, artY - thick/2, currentArtSize + thick, currentArtSize + thick }, 0.06f, 4, panelBgColor);
     }
-    DrawRectangleRoundedLines((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.06f, 4, WHITE);
+} else {
+    DrawRectangleRounded((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.06f, 4, (Color){ 35, 43, 58, 255 });
+}
+
+DrawRectangleRoundedLines((Rectangle){ artX, artY, currentArtSize, currentArtSize }, 0.06f, 4, WHITE);
+
 
     float titleX = artX + currentArtSize + 28.0f * uiScale;
     float titleY = artY + 10.0f * uiScale;

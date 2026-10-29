@@ -553,18 +553,34 @@ void ChartSave::DrawChartSystemUI() {
         std::vector<std::string> charts = GetSavedChartList();
 
         float boxWidth = 400.f;
-        float boxHeight = (50.f + charts.size() * 45.f);
+        const int maxVisibleItems = 8;
+        const float itemHeight = 45.f;
+        
+        int totalCharts = (int)charts.size();
+        int visibleCount = (totalCharts > maxVisibleItems) ? maxVisibleItems : totalCharts;
+
+        float boxHeight = 50.f + (visibleCount * itemHeight);
         if (boxHeight < 100.f) boxHeight = 100.f;
-        if (boxHeight > 500.f) boxHeight = 500.f;
 
         Rectangle box = { (float)screenWidth / 2.f - boxWidth / 2.f, (float)screenHeight / 2.f - boxHeight / 2.f, boxWidth, boxHeight };
         DrawRectangleRounded(box, 0.15f, 8, RAYWHITE);
         DrawRectangleRoundedLines(box, 0.15f, 8, LIGHTGRAY);
 
+        BeginScissorMode((int)box.x, (int)box.y + 10, (int)box.width, (int)box.height - 20);
+
+        int startIndex = 0;
+        if (s_SelectedIndex >= maxVisibleItems) {
+            startIndex = s_SelectedIndex - maxVisibleItems + 1;
+        }
+
         float startY = box.y + 25.f;
-        for (size_t i = 0; i < charts.size(); ++i) {
-            Rectangle itemBox = { box.x + 20.f, startY + (float)(i * 45.f), boxWidth - 40.f, 35.f };
-            bool isSelected = (s_SelectedIndex == (int)i);
+        
+        for (int i = 0; i < visibleCount; ++i) {
+            int chartIndex = startIndex + i;
+            if (chartIndex >= totalCharts) break;
+
+            Rectangle itemBox = { box.x + 20.f, startY + (float)(i * itemHeight), boxWidth - 40.f, 35.f };
+            bool isSelected = (s_SelectedIndex == chartIndex);
 
             Color itemBg = isSelected ? Color{ 230, 240, 255, 255 } : WHITE;
             Rectangle drawItemBox = itemBox;
@@ -579,7 +595,9 @@ void ChartSave::DrawChartSystemUI() {
             DrawRectangleRounded(drawItemBox, 0.3f, 4, itemBg);
             DrawRectangleRoundedLines(drawItemBox, 0.3f, 4, LIGHTGRAY);
 
-            DrawTextEx(s_Font, charts[i].c_str(), Vector2{ drawItemBox.x + 15.f, drawItemBox.y + 7.f }, 20, 1, DARKGRAY);
+            DrawTextEx(s_Font, charts[chartIndex].c_str(), Vector2{ drawItemBox.x + 15.f, drawItemBox.y + 7.f }, 20, 1, DARKGRAY);
         }
+
+        EndScissorMode();
     }
 }
